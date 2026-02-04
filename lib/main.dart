@@ -1,0 +1,44 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:messaging/cubit/app_startup_cubit.dart';
+import 'package:messaging/screens/permissions_screen.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
+import 'theme/app_theme.dart';
+import 'screens/conversations_screen.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(MultiProvider(providers: [
+    BlocProvider(create: (c)=>AppStartupCubit()),
+  ],child: const MyApp(),),);
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'SMS App',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme(),
+      darkTheme: AppTheme.darkTheme(),
+      themeMode: ThemeMode.system,
+      home: BlocBuilder<AppStartupCubit, AppStartupState>(
+        builder: (context, state) {
+          if (state is AppStartupLoading) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          } else if (state is AppStartupLoaded) {
+            return const ConversationsScreen();
+          } else {
+            return const PermissionsScreen();
+          }
+        },
+      ),
+    );
+  }
+}
