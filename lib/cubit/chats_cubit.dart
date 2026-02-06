@@ -7,10 +7,10 @@ import 'package:messaging/services/sms_service.dart';
 part 'chats_state.dart';
 
 class ChatsCubit extends Cubit<ChatsState> {
-  final SmsService _smsService;
+  final SmsService _smsService = SmsService();
   StreamSubscription? _updateSubscription;
 
-  ChatsCubit(this._smsService) : super(ChatsInitial()) {
+  ChatsCubit() : super(ChatsInitial()) {
     _updateSubscription = _smsService.onMessageUpdated.listen((_) {
       loadChats(showLoading: false);
     });
@@ -20,16 +20,19 @@ class ChatsCubit extends Cubit<ChatsState> {
   Future<void> loadChats({bool showLoading = true}) async {
     if (showLoading) emit(ChatsLoading());
     try {
-      var chats = await _smsService.getAllChats();
-      // if (chats.isEmpty) {
         await _smsService.syncExistingMessages();
-        chats = await _smsService.getAllChats();
-      // }
+        final chats = await _smsService.getAllChats();
       emit(ChatsLoaded(chats));
     } catch (e) {
       emit(ChatsError("Failed to load messages"));
     }
   }
+  Future<void> deleteChat(String threadId) async {
+    await _smsService.deleteThread(threadId);
+    loadChats();
+  }
+
+
 
   @override
   Future<void> close() {

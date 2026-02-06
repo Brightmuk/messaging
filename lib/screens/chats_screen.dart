@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
 import 'package:messaging/cubit/chats_cubit.dart';
 import 'package:messaging/screens/single_chat_screen.dart';
-import '../services/sms_service.dart';
+import 'package:messaging/core/utils/date_formatter.dart';
 import 'new_message_screen.dart';
 
 class ChatsScreen extends StatelessWidget {
@@ -12,7 +11,7 @@ class ChatsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => ChatsCubit(SmsService()),
+      create: (context) => ChatsCubit(),
       child: const ChatsView(),
     );
   }
@@ -26,77 +25,6 @@ class ChatsView extends StatefulWidget {
 }
 
 class _ChatsViewState extends State<ChatsView> {
-  final SmsService _smsService = SmsService();
-
-
-  void _showDefaultSmsDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Set as Default SMS App'),
-        content: const Text(
-          'Would you like to set this as your default SMS app? '
-          'This is required to receive messages.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Not Now'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _smsService.requestDefaultSmsApp();
-            },
-            child: const Text('Set as Default'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatDate(int? timestamp) {
-    if (timestamp == null) return '';
-    final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inDays == 0) {
-      return DateFormat('HH:mm').format(date);
-    } else if (difference.inDays == 1) {
-      return 'Yesterday';
-    } else if (difference.inDays < 7) {
-      return DateFormat('EEEE').format(date);
-    } else {
-      return DateFormat('MMM d').format(date);
-    }
-  }
-
-  Future<void> _deleteChat(String threadId) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Chat'),
-        content: const Text('Are you sure you want to delete this chat?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      await _smsService.deleteThread(threadId);
-      context.read<ChatsCubit>().loadChats();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -105,7 +33,7 @@ class _ChatsViewState extends State<ChatsView> {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
-            onPressed:(){},
+            onPressed: () {},
             tooltip: 'Settings',
           ),
         ],
@@ -186,7 +114,7 @@ class _ChatsViewState extends State<ChatsView> {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          _formatDate(chat.lastMessageDate),
+                          formatDate(chat.lastMessageDate),
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                         if (chat.unreadCount > 0) ...[
@@ -214,15 +142,13 @@ class _ChatsViewState extends State<ChatsView> {
                     ),
                     onTap: () async {
                       Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ChatScreen(
-                            threadId: chat.threadId,
-                            address: chat.address,
-                          ),
-                        )
-                      );
-                      
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => SingleChatScreenView(
+                              threadId: chat.threadId,
+                              address: chat.address,
+                            ),
+                          ));
                     },
                     onLongPress: () => _deleteChat(chat.threadId),
                   );
@@ -247,5 +173,31 @@ class _ChatsViewState extends State<ChatsView> {
         label: const Text('New'),
       ),
     );
+  }
+
+
+
+  Future<void> _deleteChat(String threadId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Chat'),
+        content: const Text('Are you sure you want to delete this chat?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      context.read<ChatsCubit>().deleteChat(threadId);
+    }
   }
 }

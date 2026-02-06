@@ -1,35 +1,44 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:messaging/core/utils/date_formatter.dart';
+import 'package:messaging/cubit/single_chat_cubit.dart';
 import '../models/sms_message.dart';
-import '../services/sms_service.dart';
 
-class ChatScreen extends StatefulWidget {
+class SingleChatScreen extends StatelessWidget {
+  final String threadId;
+  final String address;
+  const SingleChatScreen(
+      {super.key, required this.threadId, required this.address});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+        child: SingleChatScreenView(threadId: threadId, address: address),
+        create: (c) => SingleChatCubit(threadId));
+  }
+}
+
+class SingleChatScreenView extends StatefulWidget {
   final String threadId;
   final String address;
 
-  const ChatScreen({
+  const SingleChatScreenView({
     super.key,
     required this.threadId,
     required this.address,
   });
 
   @override
-  State<ChatScreen> createState() => _ChatScreenState();
+  State<SingleChatScreenView> createState() => _SingleChatScreenViewState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
-  final SmsService _smsService = SmsService();
+class _SingleChatScreenViewState extends State<SingleChatScreenView> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  List<AppSmsMessage> _messages = [];
-  bool _isLoading = true;
-  bool _isSending = false;
 
   @override
   void initState() {
     super.initState();
-    _loadMessages();
-    _markAsRead();
   }
 
   @override
@@ -38,8 +47,6 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollController.dispose();
     super.dispose();
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -72,29 +79,37 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _messages.isEmpty
-                    ? Center(
-                        child: Text(
-                          'No messages',
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                color: Theme.of(context).colorScheme.outline,
-                              ),
-                        ),
-                      )
-                    : ListView.builder(
-                      reverse: true,
+      body: BlocBuilder<SingleChatCubit, SingleChatState>(
+        builder: (context, state) {
+          if (state is SingleChatLoading) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (state is SingleChatError) {
+            return const Center(child: Text('Something went wrong'));
+          }
+          final messages = (state as SingleChatLoaded).messages;
+
+          return Column(
+            children: [
+              messages.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No messages',
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              color: Theme.of(context).colorScheme.outline,
+                            ),
+                      ),
+                    )
+                  : Expanded(
+                      child: ListView.builder(
+                        reverse: true,
                         controller: _scrollController,
                         padding: const EdgeInsets.all(16),
-                        itemCount: _messages.length,
+                        itemCount: messages.length,
                         itemBuilder: (context, index) {
-                          final message = _messages[index];
+                          final message = messages[index];
                           final isSent = message.isSent;
-                          final showDateSeparator = _shouldShowDateSeparator(index);
+                          final showDateSeparator =
+                              _shouldShowDateSeparator(index, messages);
 
                           return Column(
                             children: [
@@ -112,7 +127,8 @@ class _ChatScreenState extends State<ChatScreen> {
                                   ),
                                   constraints: BoxConstraints(
                                     maxWidth:
-                                        MediaQuery.of(context).size.width * 0.75,
+                                        MediaQuery.of(context).size.width *
+                                            0.75,
                                   ),
                                   decoration: BoxDecoration(
                                     color: isSent
@@ -139,7 +155,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        _formatMessageTime(message.date),
+                                        formatMessageTime(message.date),
                                         style: Theme.of(context)
                                             .textTheme
                                             .bodySmall
@@ -162,128 +178,98 @@ class _ChatScreenState extends State<ChatScreen> {
                           );
                         },
                       ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, -2),
+                    ),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, -2),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: SafeArea(
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _messageController,
-                      decoration: const InputDecoration(
-                        hintText: 'Message',
-                        border: OutlineInputBorder(),
+                child: SafeArea(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _messageController,
+                          decoration: const InputDecoration(
+                            hintText: 'Message',
+                            border: OutlineInputBorder(),
+                          ),
+                          maxLines: null,
+                          textCapitalization: TextCapitalization.sentences,
+                          onSubmitted: (_) => _sendMessage(),
+                        ),
                       ),
-                      maxLines: null,
-                      textCapitalization: TextCapitalization.sentences,
-                      onSubmitted: (_) => _sendMessage(),
-                    ),
+                      const SizedBox(width: 8),
+                      FilledButton(
+                        onPressed:
+                            (state is SingleChatSending) ? null : _sendMessage,
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.all(16),
+                          shape: const CircleBorder(),
+                        ),
+                        child: (state is SingleChatSending)
+                            ? SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color:
+                                      Theme.of(context).colorScheme.onPrimary,
+                                ),
+                              )
+                            : const Icon(Icons.send),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  FilledButton(
-                    onPressed: _isSending ? null : _sendMessage,
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.all(16),
-                      shape: const CircleBorder(),
-                    ),
-                    child: _isSending
-                        ? SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Theme.of(context).colorScheme.onPrimary,
-                            ),
-                          )
-                        : const Icon(Icons.send),
-                  ),
-                ],
+                ),
               ),
-            ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void showDefaultSmsDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Set as Default SMS App'),
+        content: const Text(
+          'Would you like to set this as your default SMS app? '
+          'This is required to receive messages.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Not Now'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(context);
+              context.read<SingleChatCubit>().setAsDefaultApp();
+            },
+            child: const Text('Set as Default'),
           ),
         ],
       ),
     );
-  }
-  Future<void> _loadMessages() async {
-  setState(() => _isLoading = true);
-  final messages = await _smsService.getMessagesForThread(widget.threadId);
-  setState(() {
-    _messages = messages;
-    _isLoading = false;
-  });
-}
-
-  Future<void> _markAsRead() async {
-    await _smsService.markThreadAsRead(widget.threadId);
-  }
-
-  void _scrollToBottom() {
-    if (_scrollController.hasClients) {
-      Future.delayed(const Duration(milliseconds: 100), () {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      });
-    }
   }
 
   Future<void> _sendMessage() async {
     final message = _messageController.text.trim();
     if (message.isEmpty) return;
 
-    setState(() => _isSending = true);
+    context.read<SingleChatCubit>().sendMessage(widget.address, message);
     _messageController.clear();
-
-    final success = await _smsService.sendSms(widget.address, message, widget.threadId);
-
-    if (success) {
-      await _loadMessages();
-      _scrollToBottom();
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to send message'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
-
-    setState(() => _isSending = false);
-  }
-
-  String _formatMessageTime(int timestamp) {
-    final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
-    return DateFormat('HH:mm').format(date);
-  }
-
-  String _formatMessageDate(int timestamp) {
-    final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inDays == 0) {
-      return 'Today';
-    } else if (difference.inDays == 1) {
-      return 'Yesterday';
-    } else {
-      return DateFormat('MMM d, yyyy').format(date);
-    }
+    // await context.read<SingleChatCubit>().markThreadAsRead();
   }
 
   Widget _buildDateSeparator(int timestamp) {
@@ -295,7 +281,7 @@ class _ChatScreenState extends State<ChatScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
-              _formatMessageDate(timestamp),
+              formatMessageDate(timestamp),
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.outline,
                   ),
@@ -307,12 +293,14 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  bool _shouldShowDateSeparator(int index) {
+  bool _shouldShowDateSeparator(int index, List<AppSmsMessage> messages) {
     if (index == 0) return true;
-    
-    final currentDate = DateTime.fromMillisecondsSinceEpoch(_messages[index].date);
-    final previousDate = DateTime.fromMillisecondsSinceEpoch(_messages[index - 1].date);
-    
+
+    final currentDate =
+        DateTime.fromMillisecondsSinceEpoch(messages[index].date);
+    final previousDate =
+        DateTime.fromMillisecondsSinceEpoch(messages[index - 1].date);
+
     return currentDate.day != previousDate.day ||
         currentDate.month != previousDate.month ||
         currentDate.year != previousDate.year;

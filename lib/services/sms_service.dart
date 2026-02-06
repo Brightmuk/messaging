@@ -1,6 +1,5 @@
 import 'package:flutter/services.dart';
 import 'package:another_telephony/telephony.dart';
-import 'package:permission_handler/permission_handler.dart';
 import '../models/sms_message.dart';
 import 'database_helper.dart';
 import 'notification_service.dart';
@@ -54,7 +53,7 @@ Future<void> syncExistingMessages() async {
   // You can filter by inbox, or get all. 
   List<SmsMessage> messages = await telephony.getInboxSms(
     columns: [SmsColumn.ADDRESS, SmsColumn.BODY, SmsColumn.DATE, SmsColumn.THREAD_ID, SmsColumn.READ],
-    sortOrder: [OrderBy(SmsColumn.DATE, sort: Sort.DESC)]
+    sortOrder: [OrderBy(SmsColumn.DATE, sort: Sort.ASC)]
   );
   
   for (int i = 0; i < messages.length; i++) {
@@ -72,17 +71,14 @@ Future<void> syncExistingMessages() async {
 
     // 3. Insert into local DB (using insert ignore/replace)
     await _dbHelper.insertMessage(appMsg);
-
-    //Update only with the last message
-    // if( i == messages.length - 1){
-      await _updateChat(
-      appMsg.threadId, 
-      appMsg.address, 
-      appMsg.body, 
-      appMsg.date,
-      incrementUnread: false
-    );
-    // }
+    await _updateChat(
+    appMsg.threadId, 
+    appMsg.address, 
+    appMsg.body, 
+    appMsg.date,
+    incrementUnread: false
+  );
+  
   }
 }
 
@@ -221,6 +217,7 @@ Future<void> syncExistingMessages() async {
   // Delete thread
   Future<void> deleteThread(String threadId) async {
     await _dbHelper.deleteThread(threadId);
+    
   }
 
   // Get contact name

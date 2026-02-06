@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:messaging/cubit/app_startup_cubit.dart';
 import 'package:messaging/screens/permissions_screen.dart';
 import 'package:provider/provider.dart';
-import 'theme/app_theme.dart';
+import 'core/theme/app_theme.dart';
 import 'screens/chats_screen.dart';
 
 void main() async {
@@ -33,6 +33,7 @@ class MyApp extends StatelessWidget {
             );
           } else if (state is AppStartupLoaded) {
             return const ChatsScreen();
+            // return const MyWidget();
           } else {
             return const PermissionsScreen();
           }
