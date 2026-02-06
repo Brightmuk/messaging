@@ -3,21 +3,21 @@ import 'package:intl/intl.dart';
 import '../models/sms_message.dart';
 import '../services/sms_service.dart';
 
-class ConversationScreen extends StatefulWidget {
+class ChatScreen extends StatefulWidget {
   final String threadId;
   final String address;
 
-  const ConversationScreen({
+  const ChatScreen({
     super.key,
     required this.threadId,
     required this.address,
   });
 
   @override
-  State<ConversationScreen> createState() => _ConversationScreenState();
+  State<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ConversationScreenState extends State<ConversationScreen> {
+class _ChatScreenState extends State<ChatScreen> {
   final SmsService _smsService = SmsService();
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();

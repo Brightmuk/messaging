@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:messaging/cubit/app_startup_cubit.dart';
 import 'package:messaging/screens/permissions_screen.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'theme/app_theme.dart';
-import 'screens/conversations_screen.dart';
+import 'screens/chats_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,7 +32,7 @@ class MyApp extends StatelessWidget {
               body: Center(child: CircularProgressIndicator()),
             );
           } else if (state is AppStartupLoaded) {
-            return const ConversationsScreen();
+            return const ChatsScreen();
           } else {
             return const PermissionsScreen();
           }

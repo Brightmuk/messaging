@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'conversation_screen.dart';
+import 'package:messaging/screens/single_chat_screen.dart';
+
 
 class NewMessageScreen extends StatefulWidget {
   const NewMessageScreen({super.key});
@@ -31,13 +32,13 @@ class _NewMessageScreenState extends State<NewMessageScreen> {
     return null;
   }
 
-  void _startConversation() {
+  void _startChat() {
     if (_formKey.currentState!.validate()) {
       final phoneNumber = _phoneController.text.trim();
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => ConversationScreen(
+          builder: (context) => ChatScreen(
             threadId: phoneNumber,
             address: phoneNumber,
           ),
@@ -76,15 +77,15 @@ class _NewMessageScreenState extends State<NewMessageScreen> {
                 ],
                 validator: _validatePhoneNumber,
                 autofocus: true,
-                onFieldSubmitted: (_) => _startConversation(),
+                onFieldSubmitted: (_) => _startChat(),
               ),
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
-                  onPressed: _startConversation,
+                  onPressed: _startChat,
                   icon: const Icon(Icons.message_outlined),
-                  label: const Text('Start Conversation'),
+                  label: const Text('Start Chat'),
                 ),
               ),
               const SizedBox(height: 24),

@@ -71,7 +71,7 @@ class NotificationService {
 
   void _onNotificationTapped(NotificationResponse response) {
     // Handle notification tap
-    // This will be used to navigate to the conversation
+    // This will be used to navigate to the chat
     print('Notification tapped with payload: ${response.payload}');
   }
 

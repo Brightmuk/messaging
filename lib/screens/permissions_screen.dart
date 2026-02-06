@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:messaging/cubit/permissions_cubit.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'conversations_screen.dart';
+import 'chats_screen.dart';
 
 class PermissionsScreen extends StatelessWidget {
   const PermissionsScreen({super.key});
@@ -49,7 +49,10 @@ class PermissionsScreen extends StatelessWidget {
                         title: 'Default SMS App',
                         subtitle: 'Necessary to handle system messaging',
                         isGrantedOverride: state.isDefaultApp,
-                        onTap: () => context.read<PermissionsCubit>().requestDefaultRole(),
+                        onTap: () async{
+                          await context.read<PermissionsCubit>().requestDefaultRole();
+                          context.read<PermissionsCubit>().requestDefaultRole();
+                        },
                       ),
                     ],
                   ),
@@ -60,7 +63,7 @@ class PermissionsScreen extends StatelessWidget {
                     width: double.infinity,
                     child: FilledButton(
                       onPressed: state.allGranted 
-                        ? () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ConversationsScreen()))
+                        ? () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ChatsScreen()))
                         : null,
                       child: const Text('Continue to Messages'),
                     ),

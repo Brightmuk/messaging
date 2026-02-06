@@ -7,6 +7,10 @@ import 'notification_service.dart';
 import 'dart:async';
 
 class SmsService {
+  SmsService._internal();
+  static final SmsService _instance = SmsService._internal();
+  factory SmsService() => _instance;
+
   final Telephony telephony = Telephony.instance;
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
   final _messageUpdateController = StreamController<void>.broadcast();
@@ -25,7 +29,6 @@ class SmsService {
   }
 
 
-  /// Triggers the Android system dialog to ask the user to make this app default.
   static Future<void> requestDefaultSmsRole() async {
     try {
       await _channel.invokeMethod('requestDefaultSmsRole');
@@ -45,17 +48,6 @@ class SmsService {
     );
   }
 
-  // Request necessary permissions
-  Future<bool> requestPermissions() async {
-    Map<Permission, PermissionStatus> statuses = await [
-      Permission.sms,
-      Permission.phone,
-      Permission.contacts,
-      Permission.notification,
-    ].request();
-
-    return statuses.values.every((status) => status.isGranted);
-  }
 
 Future<void> syncExistingMessages() async {
   // 1. Fetch messages from the system provider
@@ -64,8 +56,10 @@ Future<void> syncExistingMessages() async {
     columns: [SmsColumn.ADDRESS, SmsColumn.BODY, SmsColumn.DATE, SmsColumn.THREAD_ID, SmsColumn.READ],
     sortOrder: [OrderBy(SmsColumn.DATE, sort: Sort.DESC)]
   );
-
-  for (var msg in messages) {
+  
+  for (int i = 0; i < messages.length; i++) {
+    final msg = messages[i];
+    
     // 2. Convert to your AppSmsMessage model
     final appMsg = AppSmsMessage(
       address: msg.address ?? 'Unknown',
@@ -78,15 +72,17 @@ Future<void> syncExistingMessages() async {
 
     // 3. Insert into local DB (using insert ignore/replace)
     await _dbHelper.insertMessage(appMsg);
-    
-    // 4. Update the conversation summary table
-    // We do this without incrementing unread since they are old messages
-    await _updateConversation(
+
+    //Update only with the last message
+    // if( i == messages.length - 1){
+      await _updateChat(
       appMsg.threadId, 
       appMsg.address, 
       appMsg.body, 
+      appMsg.date,
       incrementUnread: false
     );
+    // }
   }
 }
 
@@ -104,12 +100,13 @@ Future<void> syncExistingMessages() async {
         to: address,
         message: message,
       );
+      int date = DateTime.now().millisecondsSinceEpoch;
 
       // Save to database
       final smsMessage = AppSmsMessage(
         address: address,
         body: message,
-        date: DateTime.now().millisecondsSinceEpoch,
+        date: date,
         type: 2, // Sent message
         threadId: threadId,
         read: true,
@@ -117,8 +114,8 @@ Future<void> syncExistingMessages() async {
 
       await _dbHelper.insertMessage(smsMessage);
       
-      // Update conversation
-      await _updateConversation(threadId,address, message);
+      // Update chat
+      await _updateChat(threadId, address, message, date);
       _messageUpdateController.add(null);
       return true;
     } catch (e) {
@@ -151,10 +148,11 @@ Future<void> syncExistingMessages() async {
     );
 
     await _dbHelper.insertMessage(smsMessage);
-    await _updateConversation(
+    await _updateChat(
       smsMessage.threadId,
       smsMessage.address,
       smsMessage.body,
+      smsMessage.date,
       incrementUnread: true,
     );
 
@@ -166,34 +164,38 @@ Future<void> syncExistingMessages() async {
     );
   }
 
-  // Update conversation
-  Future<void> _updateConversation(
+  // Update chat
+  Future<void> _updateChat(
     String threadId,
     String address,
-    String lastMessage, {
+    String lastMessage, 
+    int lastMessageDate,
+    {
     bool incrementUnread = false,
   }) async {
-    final conversations = await _dbHelper.getAllConversations();
-    final existingConversation = conversations.firstWhere(
+    final chats = await _dbHelper.getAllChats();
+    final existingChat = chats.firstWhere(
       (c) => c.threadId == threadId,
-      orElse: () => AppConversation(
+      orElse: () => AppChat(
         threadId: threadId,
         address: address,
+        lastMessage: lastMessage,
+        lastMessageDate: lastMessageDate,
         unreadCount: 0,
       ),
     );
 
-    final updatedConversation = AppConversation(
+    final updatedChat = AppChat(
       threadId: threadId,
       address: address,
       lastMessage: lastMessage,
-      lastMessageDate: DateTime.now().millisecondsSinceEpoch,
+      lastMessageDate: lastMessageDate,
       unreadCount: incrementUnread
-          ? existingConversation.unreadCount + 1
-          : existingConversation.unreadCount,
+          ? existingChat.unreadCount + 1
+          : existingChat.unreadCount,
     );
 
-    await _dbHelper.updateConversation(updatedConversation);
+    await _dbHelper.updateChat(updatedChat);
   }
 
   // Get messages for a thread
@@ -201,9 +203,9 @@ Future<void> syncExistingMessages() async {
     return await _dbHelper.getMessagesForThread(threadId);
   }
 
-  // Get all conversations
-  Future<List<AppConversation>> getAllConversations() async {
-    return await _dbHelper.getAllConversations();
+  // Get all chats
+  Future<List<AppChat>> getAllChats() async {
+    return await _dbHelper.getAllChats();
   }
 
   // Mark thread as read

@@ -45,14 +45,14 @@ class AppSmsMessage {
   bool get isReceived => type == 1;
 }
 
-class AppConversation {
+class AppChat {
   final String threadId;
   final String address;
   final String? lastMessage;
   final int? lastMessageDate;
   final int unreadCount;
 
-  AppConversation({
+  AppChat({
     required this.threadId,
     required this.address,
     this.lastMessage,
@@ -70,8 +70,8 @@ class AppConversation {
     };
   }
 
-  factory AppConversation.fromMap(Map<String, dynamic> map) {
-    return AppConversation(
+  factory AppChat.fromMap(Map<String, dynamic> map) {
+    return AppChat(
       threadId: map['threadId'],
       address: map['address'],
       lastMessage: map['lastMessage'],

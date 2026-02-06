@@ -10,15 +10,18 @@ class AppStartupCubit extends Cubit<AppStartupState> {
   }
 
   Future<bool> _checkStartupPermissions() async {
-    final statuses = await [
-      Permission.sms,
-      Permission.phone,
-      Permission.contacts,
-      Permission.notification,
-    ].request();
+    var smsStatus = await Permission.sms.status;
+    var phoneStatus = await Permission.phone.status;
+    var contactsStatus = await Permission.contacts.status;
+    var notificationStatus = await Permission.notification.status;
+    
 
-    return statuses.values.every((s) => s.isGranted);
+    return smsStatus.isGranted &&
+        phoneStatus.isGranted &&
+        contactsStatus.isGranted &&
+        notificationStatus.isGranted;
   }
+ 
   void _initialize() async {
     emit(AppStartupLoading());
     await Future.delayed(const Duration(seconds: 2));

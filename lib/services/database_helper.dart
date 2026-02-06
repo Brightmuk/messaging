@@ -39,7 +39,7 @@ class DatabaseHelper {
     ''');
 
     await db.execute('''
-      CREATE TABLE conversations (
+      CREATE TABLE chats (
         threadId TEXT PRIMARY KEY,
         address TEXT NOT NULL,
         lastMessage TEXT,
@@ -66,21 +66,21 @@ class DatabaseHelper {
     return result.map((json) => AppSmsMessage.fromMap(json)).toList();
   }
 
-  Future<List<AppConversation>> getAllConversations() async {
+  Future<List<AppChat>> getAllChats() async {
     final db = await database;
     final result = await db.query(
-      'conversations',
+      'chats',
       orderBy: 'lastMessageDate DESC',
     );
 
-    return result.map((json) => AppConversation.fromMap(json)).toList();
+    return result.map((json) => AppChat.fromMap(json)).toList();
   }
 
-  Future<void> updateConversation(AppConversation conversation) async {
+  Future<void> updateChat(AppChat chat) async {
     final db = await database;
     await db.insert(
-      'conversations',
-      conversation.toMap(),
+      'chats',
+      chat.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
@@ -105,7 +105,7 @@ class DatabaseHelper {
     );
     
     await db.update(
-      'conversations',
+      'chats',
       {'unreadCount': 0},
       where: 'threadId = ?',
       whereArgs: [threadId],
@@ -129,7 +129,7 @@ class DatabaseHelper {
       whereArgs: [threadId],
     );
     await db.delete(
-      'conversations',
+      'chats',
       where: 'threadId = ?',
       whereArgs: [threadId],
     );
