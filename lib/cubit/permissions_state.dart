@@ -7,5 +7,5 @@ class PermissionsState {
   PermissionsState({required this.statuses, required this.isDefaultApp});
 
   bool get allGranted => 
-    statuses.values.every((s) => s.isGranted) && isDefaultApp;
+    statuses.values.every((s) => s.isGranted);
 }

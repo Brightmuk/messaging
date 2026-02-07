@@ -1,12 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:messaging/cubit/permissions_cubit.dart';
+import 'package:messaging/services/sms_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'chats_screen.dart';
 
-class PermissionsScreen extends StatelessWidget {
+class PermissionsScreen extends StatefulWidget {
   const PermissionsScreen({super.key});
 
+  @override
+  State<PermissionsScreen> createState() => _PermissionsScreenState();
+}
+
+class _PermissionsScreenState extends State<PermissionsScreen>  with WidgetsBindingObserver {
+    @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _checkDefaultSmsStatus();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+    @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkDefaultSmsStatus();
+    }
+  }
+
+  Future<void> _checkDefaultSmsStatus() async {
+    await SmsService.isDefaultSmsApp();
+    setState((){});
+  }
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
@@ -51,7 +80,7 @@ class PermissionsScreen extends StatelessWidget {
                         isGrantedOverride: state.isDefaultApp,
                         onTap: () async{
                           await context.read<PermissionsCubit>().requestDefaultRole();
-                          context.read<PermissionsCubit>().requestDefaultRole();
+                          
                         },
                       ),
                     ],

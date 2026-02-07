@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:another_telephony/telephony.dart';
 import '../models/sms_message.dart';
@@ -6,7 +7,9 @@ import 'notification_service.dart';
 import 'dart:async';
 
 class SmsService {
-  SmsService._internal();
+  SmsService._internal(){
+    initialize();
+  }
   static final SmsService _instance = SmsService._internal();
   factory SmsService() => _instance;
 
@@ -49,22 +52,17 @@ class SmsService {
 
 
 Future<void> syncExistingMessages() async {
+  debugPrint("Syncing existing messages...");
   // 1. Fetch messages from the system provider
   // You can filter by inbox, or get all. 
   List<SmsMessage> messages = await telephony.getInboxSms(
     columns: [SmsColumn.ADDRESS, SmsColumn.BODY, SmsColumn.DATE, SmsColumn.THREAD_ID, SmsColumn.READ],
     sortOrder: [OrderBy(SmsColumn.DATE, sort: Sort.ASC)]
   );
-  final s = await telephony.getSentSms();
-  for(SmsMessage msg in s){
-    print(msg.body);
-  }
-  
   
   for (int i = 0; i < messages.length; i++) {
     final msg = messages[i];
     
-    // 2. Convert to your AppSmsMessage model
     final appMsg = AppSmsMessage(
       address: msg.address ?? 'Unknown',
       body: msg.body ?? '',
@@ -73,11 +71,7 @@ Future<void> syncExistingMessages() async {
       threadId: msg.threadId.toString(),
       read: msg.read ?? true,
     );
-    if(msg.address == "+254791670106"){
-      print(msg.body);
-    }
 
-    // 3. Insert into local DB (using insert ignore/replace)
     await _dbHelper.insertMessage(appMsg);
     await _updateChat(
     appMsg.threadId, 
@@ -89,7 +83,6 @@ Future<void> syncExistingMessages() async {
   
   }
 }
-
 
   // Request to become default SMS app
   Future<void> requestDefaultSmsApp() async {
@@ -123,15 +116,15 @@ Future<void> syncExistingMessages() async {
       _messageUpdateController.add(null);
       return true;
     } catch (e) {
-      print('Error sending SMS: $e');
+      debugPrint('Error sending SMS: $e');
       return false;
     }
   }
 
   // Handle incoming message
   void _onMessageReceived(SmsMessage message) async {
-    _messageUpdateController.add(null);
     await _saveIncomingMessage(message);
+    _messageUpdateController.add(null);
   }
 
   // Handle background message
@@ -179,7 +172,7 @@ Future<void> syncExistingMessages() async {
   }) async {
     final chats = await _dbHelper.getAllChats();
     final existingChat = chats.firstWhere(
-      (c) => c.threadId == threadId,
+      (c) => c.threadId == threadId || c.address == address,
       orElse: () => AppChat(
         threadId: threadId,
         address: address,

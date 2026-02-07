@@ -41,6 +41,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> {
   @override
   void initState() {
     super.initState();
+    context.read<SingleChatCubit>().markThreadAsRead();
   }
 
   @override
@@ -88,7 +89,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> {
           } else if (state is SingleChatError) {
             return const Center(child: Text('Something went wrong'));
           }
-          final messages = (state as SingleChatLoaded).messages;
+          final messages = context.read<SingleChatCubit>().messages;
 
           return Column(
             children: [
