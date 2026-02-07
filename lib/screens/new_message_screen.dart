@@ -38,7 +38,7 @@ class _NewMessageScreenState extends State<NewMessageScreen> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => SingleChatScreenView(
+          builder: (context) => SingleChatScreen(
             threadId: phoneNumber,
             address: phoneNumber,
           ),

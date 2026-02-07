@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:messaging/cubit/chats_cubit.dart';
+import 'package:messaging/screens/settings_screen.dart';
 import 'package:messaging/screens/single_chat_screen.dart';
 import 'package:messaging/core/utils/date_formatter.dart';
 import 'new_message_screen.dart';
@@ -33,9 +34,12 @@ class _ChatsViewState extends State<ChatsView> {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context)=> const SettingsScreen()));
+            },
             tooltip: 'Settings',
           ),
+          
         ],
       ),
       body: BlocBuilder<ChatsCubit, ChatsState>(builder: (context, state) {
@@ -144,7 +148,7 @@ class _ChatsViewState extends State<ChatsView> {
                       Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => SingleChatScreenView(
+                            builder: (context) => SingleChatScreen(
                               threadId: chat.threadId,
                               address: chat.address,
                             ),

@@ -55,6 +55,11 @@ Future<void> syncExistingMessages() async {
     columns: [SmsColumn.ADDRESS, SmsColumn.BODY, SmsColumn.DATE, SmsColumn.THREAD_ID, SmsColumn.READ],
     sortOrder: [OrderBy(SmsColumn.DATE, sort: Sort.ASC)]
   );
+  final s = await telephony.getSentSms();
+  for(SmsMessage msg in s){
+    print(msg.body);
+  }
+  
   
   for (int i = 0; i < messages.length; i++) {
     final msg = messages[i];
@@ -68,6 +73,9 @@ Future<void> syncExistingMessages() async {
       threadId: msg.threadId.toString(),
       read: msg.read ?? true,
     );
+    if(msg.address == "+254791670106"){
+      print(msg.body);
+    }
 
     // 3. Insert into local DB (using insert ignore/replace)
     await _dbHelper.insertMessage(appMsg);

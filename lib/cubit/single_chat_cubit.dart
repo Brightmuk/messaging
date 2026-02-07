@@ -8,7 +8,9 @@ part 'single_chat_state.dart';
 class SingleChatCubit extends Cubit<SingleChatState> {
   final String threadId;
     final SmsService _smsService = SmsService();
-  SingleChatCubit(this.threadId) : super(SingleChatInitial());
+  SingleChatCubit(this.threadId) : super(SingleChatInitial()){
+    getMessages();
+  }
 
     Future<void> setAsDefaultApp() async {
     await _smsService.requestDefaultSmsApp();

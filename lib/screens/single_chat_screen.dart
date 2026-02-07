@@ -13,8 +13,10 @@ class SingleChatScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-        child: SingleChatScreenView(threadId: threadId, address: address),
-        create: (c) => SingleChatCubit(threadId));
+      create: (c) => SingleChatCubit(threadId),
+        child: SingleChatScreenView(threadId: threadId, address: address)
+    );
+        
   }
 }
 
