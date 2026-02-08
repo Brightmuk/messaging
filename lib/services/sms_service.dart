@@ -217,6 +217,7 @@ Future<void> syncExistingMessages() async {
 
   // Delete thread
   Future<void> deleteThread(String threadId) async {
+  
     await _dbHelper.deleteThread(threadId);
     
   }

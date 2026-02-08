@@ -124,13 +124,13 @@ class _SettingsScreenState extends State<SettingsScreen>
                       _buildLinkTile(
                         Icons.info_outline,
                         "About the App",
-                        () => _launchUrl('https://brimukon.com/about'),
+                        () => _launchUrl('https://brimukon.com/apps/messaging'),
                       ),
                       const Divider(height: 1, indent: 16, endIndent: 16),
                       _buildLinkTile(
                         Icons.help_outline,
                         "Help & Feedback",
-                        () => _launchUrl('https://brimukon.com/help'),
+                        () => _launchUrl('https://brimukon.com/support'),
                       ),
                     ],
                   ),

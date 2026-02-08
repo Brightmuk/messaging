@@ -1,4 +1,8 @@
+import 'dart:async';
+
 import 'package:bloc/bloc.dart';
+import 'package:flutter/material.dart';
+import 'package:messaging/core/events.dart';
 import 'package:messaging/models/sms_message.dart';
 import 'package:messaging/services/sms_service.dart';
 import 'package:meta/meta.dart';
@@ -8,7 +12,12 @@ part 'single_chat_state.dart';
 class SingleChatCubit extends Cubit<SingleChatState> {
   final String threadId;
     final SmsService _smsService = SmsService();
+     StreamSubscription? _updateSubscription;
   SingleChatCubit(this.threadId) : super(SingleChatInitial()){
+        _updateSubscription = _smsService.onMessageUpdated.listen((_) {
+      debugPrint("New sms received...");
+      getMessages(showLoading: false);
+    });
     getMessages();
   }
 
@@ -16,8 +25,11 @@ class SingleChatCubit extends Cubit<SingleChatState> {
     await _smsService.requestDefaultSmsApp();
   }
   List<AppSmsMessage> messages = [];
-  Future<void> getMessages() async {
-    emit(SingleChatLoading());
+  Future<void> getMessages({bool showLoading = true}) async {
+    if (showLoading) {
+      emit(SingleChatLoading());
+    }
+
     final messages = await _smsService.getMessagesForThread(threadId);
     this.messages = messages;
     emit(SingleChatLoaded(messages));
@@ -40,5 +52,12 @@ class SingleChatCubit extends Cubit<SingleChatState> {
 
   Future<void> markThreadAsRead() async {
     await _smsService.markThreadAsRead(threadId);
+    eventBus.fire(ThreadReadEvent());
+  }
+  @override
+  Future<void> close() {
+    _updateSubscription?.cancel();
+    return super.close();
   }
 }
+class ThreadReadEvent{}
