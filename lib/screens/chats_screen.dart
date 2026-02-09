@@ -12,7 +12,7 @@ class ChatsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => ChatsCubit(),
+      create: (context) => ChatsCubit()..loadChats(),
       child: const ChatsView(),
     );
   }
@@ -28,179 +28,169 @@ class ChatsView extends StatefulWidget {
 class _ChatsViewState extends State<ChatsView> {
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Messages'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context)=> const SettingsScreen()));
-            },
-            tooltip: 'Settings',
-          ),
-          
-        ],
-      ),
-      body: BlocBuilder<ChatsCubit, ChatsState>(builder: (context, state) {
-        if (state is ChatsLoading) {
-          return const Center(child: CircularProgressIndicator());
-        } else if (state is ChatsLoaded) {
-          final chats = state.chats;
-          if (chats.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.message_outlined,
-                    size: 64,
-                    color: Theme.of(context).colorScheme.outline,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No messages yet',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.outline,
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Start a chat',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.outline,
-                        ),
-                  ),
-                ],
-              ),
-            );
-          } else {
-            return RefreshIndicator(
-              onRefresh: context.read<ChatsCubit>().loadChats,
-              child: ListView.builder(
-                itemCount: chats.length,
-                itemBuilder: (context, index) {
-                  final chat = chats[index];
-                  return ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor:
-                          Theme.of(context).colorScheme.primaryContainer,
-                      child: Text(
-                        chat.address.isNotEmpty
-                            ? chat.address[0].toUpperCase()
-                            : '?',
-                        style: TextStyle(
-                          color:
-                              Theme.of(context).colorScheme.onPrimaryContainer,
-                        ),
+      body: BlocBuilder<ChatsCubit, ChatsState>(
+        builder: (context, state) {
+          return RefreshIndicator(
+            onRefresh: context.read<ChatsCubit>().loadChats,
+            child: CustomScrollView(
+              slivers: [
+                // 1. M3 Large App Bar
+                SliverAppBar.large(
+                  title: const Text('Messages'),
+                  actions: [
+                    IconButton(
+                      icon: const Icon(Icons.settings_outlined),
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const SettingsScreen()),
                       ),
                     ),
-                    title: Text(
-                      chat.address,
-                      style: TextStyle(
-                        fontWeight: chat.unreadCount > 0
-                            ? FontWeight.bold
-                            : FontWeight.normal,
-                      ),
-                    ),
-                    subtitle: Text(
-                      chat.lastMessage ?? '',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontWeight: chat.unreadCount > 0
-                            ? FontWeight.w500
-                            : FontWeight.normal,
-                      ),
-                    ),
-                    trailing: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          formatDate(chat.lastMessageDate),
-                          style: Theme.of(context).textTheme.bodySmall,
+                  ],
+                ),
+                
+                // 2. Body Content
+                if (state is ChatsLoading)
+                  const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
+                else if (state is ChatsLoaded)
+                  state.chats.isEmpty 
+                    ? SliverFillRemaining(child: _buildEmptyState(theme))
+                    : SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) => _buildChatTile(state.chats[index], theme),
+                          childCount: state.chats.length,
                         ),
-                        if (chat.unreadCount > 0) ...[
-                          const SizedBox(height: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primary,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              chat.unreadCount.toString(),
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.onPrimary,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    onTap: () async {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => SingleChatScreen(
-                              threadId: chat.threadId,
-                              address: chat.address,
-                            ),
-                          ));
-                    },
-                    onLongPress: () => _deleteChat(chat.threadId),
-                  );
-                },
-              ),
-            );
-          }
-        }
-        return const Center(child: Text('Something went wrong'));
-      }),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const NewMessageScreen(),
+                      )
+                else
+                  const SliverFillRemaining(child: Center(child: Text('Something went wrong'))),
+              ],
             ),
           );
-          context.read<ChatsCubit>().loadChats();
+        },
+      ),
+      // 3. M3 Floating Action Button
+      floatingActionButton: FloatingActionButton.extended(
+        label: const Text('New'),
+
+
+        onPressed: () async {
+          await Navigator.push(context, MaterialPageRoute(builder: (context) => const NewMessageScreen()));
+          if (mounted) context.read<ChatsCubit>().loadChats();
         },
         icon: const Icon(Icons.edit_outlined),
-        label: const Text('New'),
       ),
     );
   }
 
+  Widget _buildChatTile(dynamic chat, ThemeData theme) {
+    final bool hasUnread = chat.unreadCount > 0;
 
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () => Navigator.push(context, MaterialPageRoute(
+          builder: (context) => SingleChatScreen(threadId: chat.threadId, address: chat.address),
+        )),
+        onLongPress: () => _deleteChat(chat.threadId),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            // Use tonal color for unread messages
+            color: hasUnread ? theme.colorScheme.primaryContainer.withOpacity(0.3) : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            children: [
+              // M3 Tonal Avatar
+              CircleAvatar(
+                radius: 28,
+                backgroundColor: hasUnread ? theme.colorScheme.primary : theme.colorScheme.surfaceContainerHighest,
+                child: prefix(chat.address, hasUnread ? theme.colorScheme.onPrimary : theme.colorScheme.onSurfaceVariant),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      chat.address,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      chat.lastMessage ?? '',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: hasUnread ? theme.colorScheme.onSurface : theme.colorScheme.outline,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    formatDate(chat.lastMessageDate),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: hasUnread ? theme.colorScheme.primary : theme.colorScheme.outline,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  if (hasUnread)
+                    Badge(
+                      label: Text(chat.unreadCount.toString()),
+                      backgroundColor: theme.colorScheme.primary,
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(ThemeData theme) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.chat_bubble_outline, size: 80, color: theme.colorScheme.primary.withOpacity(0.2)),
+        const SizedBox(height: 16),
+        Text('Quiet in here...', style: theme.textTheme.headlineSmall),
+        Text('Start a conversation to see it here.', style: theme.textTheme.bodyMedium),
+      ],
+    );
+  }
+
+  Widget prefix(String address, Color color) {
+    if (address.startsWith(RegExp(r'[a-zA-Z]')) && address.isNotEmpty) {
+      return Text(address[0].toUpperCase(), style: TextStyle(color: color, fontWeight: FontWeight.bold));
+    }
+    return Icon(Icons.person_outline, color: color);
+  }
 
   Future<void> _deleteChat(String threadId) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        icon: const Icon(Icons.delete_outline),
         title: const Text('Delete Chat'),
-        content: const Text('Are you sure you want to delete this chat?'),
+        content: const Text('This will remove the conversation history.'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Keep')),
+          FilledButton.tonal(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
         ],
       ),
     );
 
-    if (confirm == true) {
+    if (confirm == true && mounted) {
       context.read<ChatsCubit>().deleteChat(threadId);
     }
   }
