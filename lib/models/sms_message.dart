@@ -43,6 +43,11 @@ class AppSmsMessage {
 
   bool get isSent => type == 2;
   bool get isReceived => type == 1;
+  @override
+  bool operator ==(Object other) {
+    
+    return super == other;
+  }
 }
 
 class AppChat {
@@ -59,6 +64,31 @@ class AppChat {
     this.lastMessageDate,
     this.unreadCount = 0,
   });
+
+
+
+  bool isSameThread (String newThreadId, String newAddress) {
+    print("Comparing $threadId and $newThreadId with $address and $newAddress");
+    return newThreadId == threadId || 
+           normalize(newAddress) == normalize(address);
+  }
+
+  @override
+  int get hashCode => Object.hash(threadId, normalize(address));
+  static String normalize(String phone) {
+    if (phone.isEmpty) return '';
+    String digits = phone.replaceAll(RegExp(r'\D'), '');
+
+    if (digits.startsWith('254')) {
+      digits = digits.substring(3);
+    }
+    if (digits.startsWith('0')) {
+      digits = digits.substring(1);
+    }
+
+    return digits;
+  }
+
 
   Map<String, dynamic> toMap() {
     return {

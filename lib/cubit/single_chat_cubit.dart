@@ -15,8 +15,9 @@ class SingleChatCubit extends Cubit<SingleChatState> {
      StreamSubscription? _updateSubscription;
   SingleChatCubit(this.threadId) : super(SingleChatInitial()){
         _updateSubscription = _smsService.onMessageUpdated.listen((_) {
-      debugPrint("New sms received...");
-      getMessages(showLoading: false);
+      debugPrint("New sms received in chat...");
+      
+      Future.delayed(const Duration(milliseconds: 500), () => getMessages(showLoading: false));
     });
     getMessages();
   }

@@ -55,7 +55,7 @@ class _ChatsViewState extends State<ChatsView> {
                 if (state is ChatsLoading)
                   const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
                 else if (state is ChatsLoaded)
-                  state.chats.isEmpty 
+                    state.chats.isEmpty
                     ? SliverFillRemaining(child: _buildEmptyState(theme))
                     : SliverList(
                         delegate: SliverChildBuilderDelegate(
@@ -161,10 +161,10 @@ class _ChatsViewState extends State<ChatsView> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.chat_bubble_outline, size: 80, color: theme.colorScheme.primary.withOpacity(0.2)),
+        Icon(Icons.chat_bubble_outline, size: 70, color: theme.colorScheme.primary.withOpacity(0.2)),
         const SizedBox(height: 16),
-        Text('Quiet in here...', style: theme.textTheme.headlineSmall),
-        Text('Start a conversation to see it here.', style: theme.textTheme.bodyMedium),
+        Text('Quiet in here...', style: theme.textTheme.titleLarge),
+        Text('Start a conversation to see it here.'),
       ],
     );
   }

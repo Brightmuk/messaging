@@ -13,10 +13,8 @@ class SingleChatScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (c) => SingleChatCubit(threadId),
-        child: SingleChatScreenView(threadId: threadId, address: address)
-    );
-        
+        create: (c) => SingleChatCubit(threadId),
+        child: SingleChatScreenView(threadId: threadId, address: address));
   }
 }
 
@@ -53,6 +51,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> {
 
   @override
   Widget build(BuildContext context) {
+    print("Currently in thread: ${widget.threadId}");
     return Scaffold(
       appBar: AppBar(
         title: Column(
@@ -94,12 +93,17 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> {
           return Column(
             children: [
               messages.isEmpty
-                  ? Center(
-                      child: Text(
-                        'No messages',
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: Theme.of(context).colorScheme.outline,
-                            ),
+                  ? Expanded(
+                      child: Center(
+                        child: Text(
+                          'No messages',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyLarge
+                              ?.copyWith(
+                                color: Theme.of(context).colorScheme.outline,
+                              ),
+                        ),
                       ),
                     )
                   : Expanded(
@@ -183,56 +187,76 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> {
                       ),
                     ),
               Container(
-                padding: const EdgeInsets.all(16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.surface,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, -2),
-                    ),
-                  ],
                 ),
                 child: SafeArea(
                   child: Row(
                     children: [
+                      // Optional: Add a '+' or 'Attach' button for that pro look
+                      IconButton(
+                        onPressed: () {},
+                        icon: Icon(Icons.add,
+                            color: Theme.of(context).colorScheme.primary),
+                      ),
                       Expanded(
                         child: TextField(
                           controller: _messageController,
-                          decoration: const InputDecoration(
-                            hintText: 'Message',
-                            border: OutlineInputBorder(),
-                          ),
-                          maxLines: null,
+                          maxLines: 5,
+                          minLines: 1,
+                          onChanged: (value) {
+                            setState(() {
+                              
+                            });
+                          },
                           textCapitalization: TextCapitalization.sentences,
-                          onSubmitted: (_) => _sendMessage(),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      FilledButton(
-                        onPressed:
-                            (state is SingleChatSending) ? null : _sendMessage,
-                        style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.all(16),
-                          shape: const CircleBorder(),
-                        ),
-                        child: (state is SingleChatSending)
-                            ? SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color:
-                                      Theme.of(context).colorScheme.onPrimary,
+                          decoration: InputDecoration(
+                            hintText: 'Message',
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 10),
+                            // Use filled background with rounded corners (Pill shape)
+                            filled: true,
+                            
+                            fillColor: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(28),
+                              borderSide: BorderSide.none,
+                            ),
+                            // The Send Button nested inside the input
+                            suffixIcon: Column(
+                              children: [
+                                IconButton.filled(
+                                  color: Colors.white70,
+                                 padding: EdgeInsets.all(2),
+                                 
+                                  onPressed: (state is SingleChatSending) || _messageController.text.isEmpty
+                                      ? null
+                                      : _sendMessage,
+                                  icon: (state is SingleChatSending)
+                                      ? const SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : const Icon(Icons
+                                          .arrow_upward), // M3 uses upward arrow for "Send"
                                 ),
-                              )
-                            : const Icon(Icons.send),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),
                 ),
-              ),
+              )
             ],
           );
         },

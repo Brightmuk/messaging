@@ -48,26 +48,25 @@ class _PermissionsScreenState extends State<PermissionsScreen>  with WidgetsBind
               children: [
                 Expanded(
                   child: ListView(
-                    padding: const EdgeInsets.all(16),
                     children: [
                       _PermissionTile(
                         title: 'SMS Access',
-                        subtitle: 'Required to read and send messages',
+                        subtitle: 'Required to show and send messages',
                         status: state.statuses[Permission.sms],
                         onTap: () => context.read<PermissionsCubit>().request(Permission.sms),
                       ),
                       _PermissionTile(
                         title: 'Contacts',
-                        subtitle: 'To show names instead of numbers',
+                        subtitle: 'To show contact names and numbers',
                         status: state.statuses[Permission.contacts],
                         onTap: () => context.read<PermissionsCubit>().request(Permission.contacts),
                       ),
-                      _PermissionTile(
-                        title: 'Phone',
-                        subtitle: 'Required for technical SMS features',
-                        status: state.statuses[Permission.phone],
-                        onTap: () => context.read<PermissionsCubit>().request(Permission.phone),
-                      ),
+                      // _PermissionTile(
+                      //   title: 'Phone',
+                      //   subtitle: 'Required for technical SMS features',
+                      //   status: state.statuses[Permission.phone],
+                      //   onTap: () => context.read<PermissionsCubit>().request(Permission.phone),
+                      // ),
                       _PermissionTile(
                         title: 'Notifications',
                         subtitle: 'Alerts for new messages',

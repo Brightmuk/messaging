@@ -135,6 +135,7 @@ Future<void> syncExistingMessages() async {
 
   // Save incoming message
   Future<void> _saveIncomingMessage(SmsMessage telephonyMessage) async {
+    print("\n\nReceived new msg for thread ${telephonyMessage.threadId}\n\n");
     final smsMessage = AppSmsMessage(
       address: telephonyMessage.address ?? '',
       body: telephonyMessage.body ?? '',
@@ -172,7 +173,7 @@ Future<void> syncExistingMessages() async {
   }) async {
     final chats = await _dbHelper.getAllChats();
     final existingChat = chats.firstWhere(
-      (c) => c.threadId == threadId || c.address == address,
+      (c) => c.isSameThread(threadId, address),
       orElse: () => AppChat(
         threadId: threadId,
         address: address,

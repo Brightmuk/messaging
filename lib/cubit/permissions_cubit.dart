@@ -9,7 +9,7 @@ class PermissionsCubit extends Cubit<PermissionsState> {
 
   final List<Permission> requiredPermissions = [
     Permission.sms,
-    Permission.phone,
+    // Permission.phone,
     Permission.contacts,
     Permission.notification,
   ];
