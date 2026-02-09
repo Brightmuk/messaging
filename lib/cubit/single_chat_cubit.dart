@@ -41,7 +41,7 @@ class SingleChatCubit extends Cubit<SingleChatState> {
     if (success) {
       getMessages();
     } else {
-      emit(SingleChatError());
+      emit(SingleChatSendError(error: 'Error sending sms'));
     }
   }
 

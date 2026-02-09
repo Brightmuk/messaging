@@ -1,5 +1,7 @@
+import 'package:another_telephony/telephony.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:messaging/core/feedback_ui.dart';
 import 'package:messaging/core/utils/date_formatter.dart';
 import 'package:messaging/cubit/single_chat_cubit.dart';
 import '../models/sms_message.dart';
@@ -35,6 +37,7 @@ class SingleChatScreenView extends StatefulWidget {
 class _SingleChatScreenViewState extends State<SingleChatScreenView> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final telephony = Telephony.instance;
 
   @override
   void initState() {
@@ -51,7 +54,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> {
 
   @override
   Widget build(BuildContext context) {
-    print("Currently in thread: ${widget.threadId}");
+   FeedbackUi feedbackUi = FeedbackUi(context);
     return Scaffold(
       appBar: AppBar(
         title: Column(
@@ -81,7 +84,12 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> {
           ),
         ],
       ),
-      body: BlocBuilder<SingleChatCubit, SingleChatState>(
+      body: BlocConsumer<SingleChatCubit, SingleChatState>(
+        listener: (context, state){
+          if(state is SingleChatSendError){
+           feedbackUi.showError(state.error);
+          }
+        },
         builder: (context, state) {
           if (state is SingleChatLoading) {
             return const Center(child: CircularProgressIndicator());
@@ -196,11 +204,25 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> {
                   child: Row(
                     children: [
                       // Optional: Add a '+' or 'Attach' button for that pro look
-                      IconButton(
-                        onPressed: () {},
-                        icon: Icon(Icons.add,
-                            color: Theme.of(context).colorScheme.primary),
-                      ),
+                      // FutureBuilder<SimState>(
+                      //   future: telephony.simState,
+                      //   builder: (context, sn) {
+                      //     if(sn.connectionState == ConnectionState.waiting || sn.data == null){
+                      //       return SizedBox();
+                      //     }
+                      //     SimState state = sn.data!;
+                      //     if(state == SimState.READY){
+                      //       return IconButton(
+                      //       onPressed: () {},
+                      //       icon: Icon(Icons.sim_card_outlined,
+                      //           color: Theme.of(context).colorScheme.primary),
+                      //     );
+                      //     }else{
+                      //       return SizedBox();
+                      //     }
+                          
+                      //   }
+                      // ),
                       Expanded(
                         child: TextField(
                           controller: _messageController,
@@ -230,7 +252,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> {
                             suffixIcon: Column(
                               children: [
                                 IconButton.filled(
-                                  color: Colors.white70,
+                                  color: Colors.white,
                                  padding: EdgeInsets.all(2),
                                  
                                   onPressed: (state is SingleChatSending) || _messageController.text.isEmpty

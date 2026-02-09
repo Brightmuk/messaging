@@ -96,6 +96,7 @@ Future<void> syncExistingMessages() async {
       await telephony.sendSms(
         to: address,
         message: message,
+        subscriptionId: 1
       );
       int date = DateTime.now().millisecondsSinceEpoch;
 
@@ -208,6 +209,7 @@ Future<void> syncExistingMessages() async {
 
   // Mark thread as read
   Future<void> markThreadAsRead(String threadId) async {
+    
     await _dbHelper.markThreadAsRead(threadId);
   }
 

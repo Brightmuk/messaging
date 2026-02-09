@@ -25,6 +25,7 @@ dependencies:
   flutter_bloc: ^9.1.0
   package_info_plus: ^9.0.0
   event_bus: ^2.0.1
+  toastification: ^3.0.3
 
 dev_dependencies:
   flutter_test:

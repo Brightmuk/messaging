@@ -68,13 +68,10 @@ class AppChat {
 
 
   bool isSameThread (String newThreadId, String newAddress) {
-    print("Comparing $threadId and $newThreadId with $address and $newAddress");
     return newThreadId == threadId || 
            normalize(newAddress) == normalize(address);
   }
 
-  @override
-  int get hashCode => Object.hash(threadId, normalize(address));
   static String normalize(String phone) {
     if (phone.isEmpty) return '';
     String digits = phone.replaceAll(RegExp(r'\D'), '');
