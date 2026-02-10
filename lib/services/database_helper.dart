@@ -1,5 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:another_telephony/telephony.dart' as tel;
 import '../models/sms_message.dart';
 
 class DatabaseHelper {
@@ -26,6 +27,7 @@ class DatabaseHelper {
   }
 
   Future<void> _createDB(Database db, int version) async {
+    // 1. Messages table with an index on threadId for faster chat loading
     await db.execute('''
       CREATE TABLE messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -38,6 +40,7 @@ class DatabaseHelper {
       )
     ''');
 
+    // 2. Chats table
     await db.execute('''
       CREATE TABLE chats (
         threadId TEXT PRIMARY KEY,
@@ -47,11 +50,79 @@ class DatabaseHelper {
         unreadCount INTEGER DEFAULT 0
       )
     ''');
+
+    // Create indexes to optimize query performance as the DB grows
+    await db.execute('CREATE INDEX idx_messages_threadId ON messages (threadId)');
   }
+
+  // --- Optimized Batch Operations ---
+
+  /// Handles bulk insertion of messages using a single transaction.
+  /// This is crucial for the initial sync to prevent UI lag.
+  Future<void> batchSyncMessages(List<tel.SmsMessage> messages) async {
+    final db = await database;
+    await db.transaction((txn) async {
+      final Batch batch = txn.batch();
+
+      for (var msg in messages) {
+        final threadId = msg.threadId.toString();
+        
+        // Insert message (Ignore duplicates based on ID or timestamp if you add unique constraints)
+        batch.insert('messages', {
+          'address': msg.address,
+          'body': msg.body,
+          'date': msg.date,
+          'type': 1, // Inbox
+          'threadId': threadId,
+          'read': 1, // Historical are usually read
+        }, conflictAlgorithm: ConflictAlgorithm.ignore);
+
+        // Update/Insert chat summary
+        batch.insert('chats', {
+          'threadId': threadId,
+          'address': msg.address,
+          'lastMessage': msg.body,
+          'lastMessageDate': msg.date,
+          'unreadCount': 0,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+
+      await batch.commit(noResult: true);
+    });
+  }
+
+  // --- Standard Operations ---
 
   Future<int> insertMessage(AppSmsMessage message) async {
     final db = await database;
-    return await db.insert('messages', message.toMap(),conflictAlgorithm: ConflictAlgorithm.ignore);
+    return await db.insert(
+      'messages', 
+      message.toMap(), 
+      conflictAlgorithm: ConflictAlgorithm.ignore
+    );
+  }
+
+  /// Advanced Upsert: Inserts a new chat or updates an existing one.
+  /// If [incrementUnread] is true, it adds to the existing count in the DB.
+  Future<void> upsertChat(AppChat chat, {bool incrementUnread = false}) async {
+    final db = await database;
+    
+    if (incrementUnread) {
+      await db.rawInsert('''
+        INSERT INTO chats (threadId, address, lastMessage, lastMessageDate, unreadCount)
+        VALUES (?, ?, ?, ?, 1)
+        ON CONFLICT(threadId) DO UPDATE SET
+          lastMessage = excluded.lastMessage,
+          lastMessageDate = excluded.lastMessageDate,
+          unreadCount = unreadCount + 1
+      ''', [chat.threadId, chat.address, chat.lastMessage, chat.lastMessageDate]);
+    } else {
+      await db.insert(
+        'chats',
+        chat.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
   }
 
   Future<List<AppSmsMessage>> getMessagesForThread(String threadId) async {
@@ -62,7 +133,6 @@ class DatabaseHelper {
       whereArgs: [threadId],
       orderBy: 'date DESC',
     );
-
     return result.map((json) => AppSmsMessage.fromMap(json)).toList();
   }
 
@@ -72,67 +142,30 @@ class DatabaseHelper {
       'chats',
       orderBy: 'lastMessageDate DESC',
     );
-
     return result.map((json) => AppChat.fromMap(json)).toList();
   }
 
-  Future<void> updateChat(AppChat chat) async {
-    final db = await database;
-    await db.insert(
-      'chats',
-      chat.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
-  }
-
-  Future<void> markMessageAsRead(int messageId) async {
-    final db = await database;
-    await db.update(
-      'messages',
-      {'read': 1},
-      where: 'id = ?',
-      whereArgs: [messageId],
-    );
-  }
+  // --- State Modification ---
 
   Future<void> markThreadAsRead(String threadId) async {
     final db = await database;
-    await db.update(
-      'messages',
-      {'read': 1},
-      where: 'threadId = ?',
-      whereArgs: [threadId],
-    );
-    
-    await db.update(
-      'chats',
-      {'unreadCount': 0},
-      where: 'threadId = ?',
-      whereArgs: [threadId],
-    );
-  }
-
-  Future<void> deleteMessage(int id) async {
-    final db = await database;
-    await db.delete(
-      'messages',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    await db.transaction((txn) async {
+      await txn.update('messages', {'read': 1}, where: 'threadId = ?', whereArgs: [threadId]);
+      await txn.update('chats', {'unreadCount': 0}, where: 'threadId = ?', whereArgs: [threadId]);
+    });
   }
 
   Future<void> deleteThread(String threadId) async {
     final db = await database;
-    await db.delete(
-      'messages',
-      where: 'threadId = ?',
-      whereArgs: [threadId],
-    );
-    await db.delete(
-      'chats',
-      where: 'threadId = ?',
-      whereArgs: [threadId],
-    );
+    await db.transaction((txn) async {
+      await txn.delete('messages', where: 'threadId = ?', whereArgs: [threadId]);
+      await txn.delete('chats', where: 'threadId = ?', whereArgs: [threadId]);
+    });
+  }
+
+  Future<void> deleteMessage(int id) async {
+    final db = await database;
+    await db.delete('messages', where: 'id = ?', whereArgs: [id]);
   }
 
   Future<void> close() async {

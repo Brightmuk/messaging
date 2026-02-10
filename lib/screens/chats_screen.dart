@@ -116,7 +116,7 @@ class _ChatsViewState extends State<ChatsView> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      chat.address,
+                      chat.address  ,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
                       ),

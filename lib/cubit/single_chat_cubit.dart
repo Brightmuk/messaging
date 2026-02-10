@@ -15,7 +15,7 @@ class SingleChatCubit extends Cubit<SingleChatState> {
      StreamSubscription? _updateSubscription;
   SingleChatCubit(this.threadId) : super(SingleChatInitial()){
         _updateSubscription = _smsService.onMessageUpdated.listen((_) {
-      debugPrint("New sms received in chat...");
+     
       
       Future.delayed(const Duration(milliseconds: 500), () => getMessages(showLoading: false));
     });
@@ -23,7 +23,7 @@ class SingleChatCubit extends Cubit<SingleChatState> {
   }
 
     Future<void> setAsDefaultApp() async {
-    await _smsService.requestDefaultSmsApp();
+    await SmsService.requestDefaultSmsRole();
   }
   List<AppSmsMessage> messages = [];
   Future<void> getMessages({bool showLoading = true}) async {

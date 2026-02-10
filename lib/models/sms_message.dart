@@ -67,9 +67,8 @@ class AppChat {
 
 
 
-  bool isSameThread (String newThreadId, String newAddress) {
-    return newThreadId == threadId || 
-           normalize(newAddress) == normalize(address);
+  bool isSameThread (String? newThreadId, String newAddress) {
+    return normalize(newAddress) == normalize(address) || (newThreadId != null && newThreadId == threadId);
   }
 
   static String normalize(String phone) {

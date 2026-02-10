@@ -61,12 +61,6 @@ class _PermissionsScreenState extends State<PermissionsScreen>  with WidgetsBind
                         status: state.statuses[Permission.contacts],
                         onTap: () => context.read<PermissionsCubit>().request(Permission.contacts),
                       ),
-                      // _PermissionTile(
-                      //   title: 'Phone',
-                      //   subtitle: 'Required for technical SMS features',
-                      //   status: state.statuses[Permission.phone],
-                      //   onTap: () => context.read<PermissionsCubit>().request(Permission.phone),
-                      // ),
                       _PermissionTile(
                         title: 'Notifications',
                         subtitle: 'Alerts for new messages',

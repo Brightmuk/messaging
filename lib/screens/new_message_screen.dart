@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:messaging/models/sms_message.dart';
 import 'package:messaging/screens/single_chat_screen.dart';
+import 'package:uuid/uuid.dart';
 
 
 class NewMessageScreen extends StatefulWidget {
@@ -70,7 +71,7 @@ class _NewMessageScreenState extends State<NewMessageScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => SingleChatScreen(
-          threadId: address,
+          threadId: const Uuid().v4(),
           address: address,
         ),
       ),
