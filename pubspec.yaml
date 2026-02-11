@@ -28,11 +28,30 @@ dependencies:
   toastification: ^3.0.3
   shared_preferences: ^2.5.3
   uuid: ^4.5.2
+  sms_advanced: ^1.0.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  change_app_package_name: ^1.4.0
+  flutter_launcher_icons: "^0.14.4"
 
 flutter:
   uses-material-design: true
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: false
+  image_path: "assets/images/icon.png"
+  min_sdk_android: 21 
+  adaptive_icon_background: "#006494" 
+  # adaptive_icon_foreground: "assets/images/icon-monochrome.png"
+  # adaptive_icon_monochrome: "assets/images/icon-monochrome.png"
+
+# Color options
+# 2F9C95
+# 40C9A2
+
+# 006494
+# 1C7C54

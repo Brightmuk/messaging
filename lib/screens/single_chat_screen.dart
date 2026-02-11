@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:messaging/core/feedback_ui.dart';
 import 'package:messaging/core/utils/date_formatter.dart';
 import 'package:messaging/cubit/single_chat_cubit.dart';
+import 'package:messaging/models/sim_card_state.dart';
+import 'package:messaging/services/sms_service.dart';
 import '../models/sms_message.dart';
 
 class SingleChatScreen extends StatelessWidget {
@@ -38,6 +40,9 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final telephony = Telephony.instance;
+  final Future<AppSimCardState> _simState = SmsService().getSimState();
+
+  
 
   @override
   void initState() {
@@ -88,6 +93,9 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> {
         listener: (context, state){
           if(state is SingleChatSendError){
            feedbackUi.showError(state.error);
+          }
+          if(state is SingleChatLoaded && state.isUpdate){
+            context.read<SingleChatCubit>().markThreadAsRead();
           }
         },
         builder: (context, state) {
@@ -201,81 +209,83 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> {
                   color: Theme.of(context).colorScheme.surface,
                 ),
                 child: SafeArea(
-                  child: Row(
-                    children: [
-                      // Optional: Add a '+' or 'Attach' button for that pro look
-                      // FutureBuilder<SimState>(
-                      //   future: telephony.simState,
-                      //   builder: (context, sn) {
-                      //     if(sn.connectionState == ConnectionState.waiting || sn.data == null){
-                      //       return SizedBox();
-                      //     }
-                      //     SimState state = sn.data!;
-                      //     if(state == SimState.READY){
-                      //       return IconButton(
-                      //       onPressed: () {},
-                      //       icon: Icon(Icons.sim_card_outlined,
-                      //           color: Theme.of(context).colorScheme.primary),
-                      //     );
-                      //     }else{
-                      //       return SizedBox();
-                      //     }
-                          
-                      //   }
-                      // ),
-                      Expanded(
-                        child: TextField(
-                          controller: _messageController,
-                          maxLines: 5,
-                          minLines: 1,
-                          onChanged: (value) {
-                            setState(() {
-                              
-                            });
-                          },
-                          textCapitalization: TextCapitalization.sentences,
-                          decoration: InputDecoration(
-                            hintText: 'Message',
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 20, vertical: 10),
-                            // Use filled background with rounded corners (Pill shape)
-                            filled: true,
-                            
-                            fillColor: Theme.of(context)
-                                .colorScheme
-                                .surfaceContainerHighest,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(28),
-                              borderSide: BorderSide.none,
-                            ),
-                            // The Send Button nested inside the input
-                            suffixIcon: Column(
+                  child: FutureBuilder<AppSimCardState>(
+                    future: _simState,
+                    builder: (context, sn) {
+                    if(sn.connectionState == ConnectionState.waiting || sn.hasError) return const SizedBox();
+                    AppSimCardState simCardState = sn.data!;
+                   
+                      return Row(
+                        children: [
+                         
+                        Stack(
                               children: [
-                                IconButton.filled(
-                                  color: Colors.white,
-                                 padding: EdgeInsets.all(2),
-                                 
-                                  onPressed: (state is SingleChatSending) || _messageController.text.isEmpty
-                                      ? null
-                                      : _sendMessage,
-                                  icon: (state is SingleChatSending)
-                                      ? const SizedBox(
-                                          width: 18,
-                                          height: 18,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: Colors.white,
-                                          ),
-                                        )
-                                      : const Icon(Icons
-                                          .arrow_upward), // M3 uses upward arrow for "Send"
-                                ),
+                                IconButton(
+                                        onPressed: () {},
+                                        icon: Icon(Icons.sim_card_outlined,
+                                            color: Theme.of(context).colorScheme.primary),
+                                      ),
+                                     simCardState.defaultCard !=null? Positioned(
+                                        top: 0,
+                                        right: 0,
+                                        child: Text((simCardState.defaultCard.toString()),)): const SizedBox(),
                               ],
                             ),
+                          Expanded(
+                            child: TextField(
+                              controller: _messageController,
+                              maxLines: 5,
+                              minLines: 1,
+                              onChanged: (value) {
+                                setState(() {
+                                  
+                                });
+                              },
+                              textCapitalization: TextCapitalization.sentences,
+                              decoration: InputDecoration(
+                                hintText: 'Message',
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 20, vertical: 10),
+                                // Use filled background with rounded corners (Pill shape)
+                                filled: true,
+                                
+                                fillColor: Theme.of(context)
+                                    .colorScheme
+                                    .surfaceContainerHighest,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(28),
+                                  borderSide: BorderSide.none,
+                                ),
+                                // The Send Button nested inside the input
+                                suffixIcon: Column(
+                                  children: [
+                                    IconButton.filled(
+                                      color: Colors.white,
+                                     padding: const EdgeInsets.all(2),
+                                     
+                                      onPressed: (state is SingleChatSending) || _messageController.text.isEmpty || !simCardState.canSend()
+                                          ? null
+                                          : _sendMessage,
+                                      icon: (state is SingleChatSending)
+                                          ? const SizedBox(
+                                              width: 18,
+                                              height: 18,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: Colors.white,
+                                              ),
+                                            )
+                                          : const Icon(Icons
+                                              .arrow_upward), // M3 uses upward arrow for "Send"
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                    ],
+                        ],
+                      );
+                    }
                   ),
                 ),
               )

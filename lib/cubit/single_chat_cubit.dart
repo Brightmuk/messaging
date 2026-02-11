@@ -16,7 +16,6 @@ class SingleChatCubit extends Cubit<SingleChatState> {
   SingleChatCubit(this.threadId) : super(SingleChatInitial()){
         _updateSubscription = _smsService.onMessageUpdated.listen((_) {
      
-      
       Future.delayed(const Duration(milliseconds: 500), () => getMessages(showLoading: false));
     });
     getMessages();
@@ -33,7 +32,7 @@ class SingleChatCubit extends Cubit<SingleChatState> {
 
     final messages = await _smsService.getMessagesForThread(threadId);
     this.messages = messages;
-    emit(SingleChatLoaded(messages));
+    emit(SingleChatLoaded(messages: messages, isUpdate: !showLoading));
   }
   Future<void> sendMessage(String address, String message) async {
     emit(SingleChatSending());
