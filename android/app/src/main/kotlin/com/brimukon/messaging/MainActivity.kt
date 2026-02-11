@@ -1,4 +1,4 @@
-package com.example.messaging
+package com.brimukon.messaging
 
 import android.app.role.RoleManager
 import android.content.Context
@@ -11,7 +11,7 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity: FlutterActivity() {
     
-    private val CHANNEL = "com.example.messaging.sms_role"
+    private val CHANNEL = "com.brimukon.messaging.sms_role"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)

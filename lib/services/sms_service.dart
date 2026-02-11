@@ -23,7 +23,7 @@ class SmsService {
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
   final NotificationService _notificationService = NotificationService();
 
-  static const _channel = MethodChannel('com.example.messaging.sms_role');
+  static const _channel = MethodChannel('com.brimukon.messaging.sms_role');
 
   // Streams for UI updates
   final _messageUpdateController = StreamController<SmsEvent>.broadcast();
