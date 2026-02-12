@@ -123,12 +123,12 @@ class SmsService {
 
   Future<bool> sendSms(String address, String message, String threadId) async {
     int? defaultSim = await getDefaultSim();
-    print("Sedining with card: $defaultSim");
+    debugPrint("Sedining with card: defaultSim");
     try {
       await telephony.sendSms(
         to: address,
         message: message,
-        subscriptionId: defaultSim,
+        subscriptionId: defaultSim + 1,
         statusListener: (status) {
           if (status == SendStatus.SENT)
             _messageUpdateController.add(SmsEvent(threadId: threadId));
