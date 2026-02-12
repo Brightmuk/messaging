@@ -4,6 +4,8 @@ import 'package:another_telephony/telephony.dart';
 import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/models/sim_card_state.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:sim_card_info/sim_card_info.dart';
+import 'package:sim_card_info/sim_info.dart';
 import 'package:uuid/uuid.dart';
 import '../models/sms_message.dart';
 import 'database_helper.dart';
@@ -66,20 +68,29 @@ class SmsService {
       onBackgroundMessage: _onBackgroundMessage,
     );
   }
-  List<int> getSimcards(){
-    return [];
+
+  Future<List<SimInfo>> getSimcards() async {
+    final simCardInfoPlugin = SimCardInfo();
+    try {
+      return await simCardInfoPlugin.getSimInfo() ?? [];
+    } on PlatformException {
+      return [];
+    }
   }
-  void setDefaultSim(int id){
-    UserDefaults.setDefaultSim(id);
+
+  Future<void> setDefaultSim(int id) {
+    return UserDefaults.setDefaultSim(id);
   }
-  Future<int> getDefaultSim(){
+
+  Future<int> getDefaultSim() {
     return UserDefaults.getDefaultSim();
   }
-  Future<AppSimCardState> getSimState()async{
-    int id = await getDefaultSim();
-    
 
-    return AppSimCardState(defaultCard: id>0?id:null);
+  Future<AppSimCardState> getSimState() async {
+    int id = await getDefaultSim();
+    List<SimInfo> simcards = await getSimcards();
+
+    return AppSimCardState(defaultCard: id == -1 ? null : id, allCards: simcards);
   }
 
   // --- 3. Message Synchronization (Optimized) ---
@@ -111,16 +122,18 @@ class SmsService {
   // --- 4. Sending & Receiving ---
 
   Future<bool> sendSms(String address, String message, String threadId) async {
+    int? defaultSim = await getDefaultSim();
+    print("Sedining with card: $defaultSim");
     try {
       await telephony.sendSms(
         to: address,
         message: message,
+        subscriptionId: defaultSim,
         statusListener: (status) {
           if (status == SendStatus.SENT)
             _messageUpdateController.add(SmsEvent(threadId: threadId));
         },
       );
-
 
       final date = DateTime.now().millisecondsSinceEpoch;
       final smsMessage = AppSmsMessage(
@@ -177,7 +190,7 @@ class SmsService {
       payload: threadId,
     );
   }
-  
+
   Future<String> getThreadId(String? address) async {
     if (address == null) return const Uuid().v4();
     final chats = await _dbHelper.getAllChats();
@@ -188,7 +201,8 @@ class SmsService {
   static Future<String> _getThreadIdSt(String? address) async {
     if (address == null) return const Uuid().v4();
     final chats = await DatabaseHelper.instance.getAllChats();
-    AppChat? chat = chats.where((chat) => chat.isSameThread(null, address)).firstOrNull;
+    AppChat? chat =
+        chats.where((chat) => chat.isSameThread(null, address)).firstOrNull;
     return chat?.threadId ?? const Uuid().v4();
   }
 

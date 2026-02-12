@@ -6,6 +6,8 @@ import 'package:messaging/core/utils/date_formatter.dart';
 import 'package:messaging/cubit/single_chat_cubit.dart';
 import 'package:messaging/models/sim_card_state.dart';
 import 'package:messaging/services/sms_service.dart';
+import 'package:sim_card_info/sim_info.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/sms_message.dart';
 
 class SingleChatScreen extends StatelessWidget {
@@ -40,9 +42,8 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final telephony = Telephony.instance;
-  final Future<AppSimCardState> _simState = SmsService().getSimState();
+  Future<AppSimCardState> _simState = SmsService().getSimState();
 
-  
 
   @override
   void initState() {
@@ -59,7 +60,8 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> {
 
   @override
   Widget build(BuildContext context) {
-   FeedbackUi feedbackUi = FeedbackUi(context);
+    FeedbackUi feedbackUi = FeedbackUi(context);
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: Column(
@@ -77,8 +79,10 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> {
         actions: [
           IconButton(
             icon: const Icon(Icons.call_outlined),
-            onPressed: () {
-              // TODO: Implement call functionality
+            onPressed: int.tryParse(widget.address) == null
+                ? null
+                :() {
+              _makePhoneCall(widget.address);
             },
           ),
           IconButton(
@@ -90,11 +94,11 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> {
         ],
       ),
       body: BlocConsumer<SingleChatCubit, SingleChatState>(
-        listener: (context, state){
-          if(state is SingleChatSendError){
-           feedbackUi.showError(state.error);
+        listener: (context, state) {
+          if (state is SingleChatSendError) {
+            feedbackUi.showError(state.error);
           }
-          if(state is SingleChatLoaded && state.isUpdate){
+          if (state is SingleChatLoaded && state.isUpdate) {
             context.read<SingleChatCubit>().markThreadAsRead();
           }
         },
@@ -210,83 +214,132 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> {
                 ),
                 child: SafeArea(
                   child: FutureBuilder<AppSimCardState>(
-                    future: _simState,
-                    builder: (context, sn) {
-                    if(sn.connectionState == ConnectionState.waiting || sn.hasError) return const SizedBox();
-                    AppSimCardState simCardState = sn.data!;
-                   
-                      return Row(
-                        children: [
+                      future: _simState,
+                      builder: (context, sn) {
+                        if (sn.connectionState == ConnectionState.waiting ||
+                            sn.hasError) return const SizedBox();
+                        AppSimCardState simCardState = sn.data!;
+                        SimInfo? defaultSim() {
+                          return simCardState.allCards.where(
+                              (sim) => int.tryParse(sim.slotIndex.toString()) == simCardState.defaultCard,
+                              ).firstOrNull;
+                        }
                          
-                        Stack(
+                        return Row(
+                          children: [
+                            Stack(
                               children: [
-                                IconButton(
-                                        onPressed: () {},
-                                        icon: Icon(Icons.sim_card_outlined,
-                                            color: Theme.of(context).colorScheme.primary),
-                                      ),
-                                     simCardState.defaultCard !=null? Positioned(
+                                PopupMenuButton<int>(
+                                  initialValue: simCardState.defaultCard,
+                                  icon: Icon(
+                                    Icons.sim_card_outlined,
+                                    color: getSimcardColor(defaultSim()?.carrierName),
+                                  ),
+                                  onSelected: (int sim) {
+                                    SmsService().setDefaultSim(sim).then((v){
+                                       _simState = SmsService().getSimState();
+                                    });
+                                   
+                                  },
+                                  itemBuilder: (BuildContext context){
+                                    return simCardState.allCards.map<PopupMenuEntry<int>>((sim) {
+                                      int slot = int.tryParse(sim.slotIndex.toString()) ?? -1;
+                                      return PopupMenuItem<int>(
+                                        value: slot, 
+                                        child: ListTile(
+                                          leading:  Icon(Icons.sim_card, color: getSimcardColor(sim.carrierName),),
+                                          title: Text('SIM ${slot+1} (${sim.displayName})'),
+                                        ),
+                                      );
+                                    }).toList();
+                                  },
+                                ),
+                      
+                                
+                                simCardState.defaultCard != null
+                                    ? Positioned(
                                         top: 0,
                                         right: 0,
-                                        child: Text((simCardState.defaultCard.toString()),)): const SizedBox(),
+                                        child: Container(
+                                          height: 20,
+                                          width: 20,
+                                          
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(20),
+                                            color: getSimcardColor(defaultSim()?.carrierName),
+                                          ),
+                                          child: Center(
+                                            child: Text(
+                                              ((simCardState.defaultCard!+1).toString()),
+                                              style: theme.textTheme.bodySmall?.copyWith(
+                                                color: theme.colorScheme.onPrimary,
+                                            ),)
+                                          ),
+                                        ))
+                                    : const SizedBox(),
                               ],
                             ),
-                          Expanded(
-                            child: TextField(
-                              controller: _messageController,
-                              maxLines: 5,
-                              minLines: 1,
-                              onChanged: (value) {
-                                setState(() {
-                                  
-                                });
-                              },
-                              textCapitalization: TextCapitalization.sentences,
-                              decoration: InputDecoration(
-                                hintText: 'Message',
-                                contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 20, vertical: 10),
-                                // Use filled background with rounded corners (Pill shape)
-                                filled: true,
-                                
-                                fillColor: Theme.of(context)
-                                    .colorScheme
-                                    .surfaceContainerHighest,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(28),
-                                  borderSide: BorderSide.none,
-                                ),
-                                // The Send Button nested inside the input
-                                suffixIcon: Column(
-                                  children: [
-                                    IconButton.filled(
-                                      color: Colors.white,
-                                     padding: const EdgeInsets.all(2),
-                                     
-                                      onPressed: (state is SingleChatSending) || _messageController.text.isEmpty || !simCardState.canSend()
-                                          ? null
-                                          : _sendMessage,
-                                      icon: (state is SingleChatSending)
-                                          ? const SizedBox(
-                                              width: 18,
-                                              height: 18,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2,
-                                                color: Colors.white,
-                                              ),
-                                            )
-                                          : const Icon(Icons
-                                              .arrow_upward), // M3 uses upward arrow for "Send"
-                                    ),
-                                  ],
+                            Expanded(
+                              child: TextField(
+                                controller: _messageController,
+                                maxLines: 5,
+                                minLines: 1,
+                                onChanged: (value) {
+                                  setState(() {});
+                                },
+                                textCapitalization:
+                                    TextCapitalization.sentences,
+                                decoration: InputDecoration(
+                                  hintText: 'Message',
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 20, vertical: 10),
+                                  // Use filled background with rounded corners (Pill shape)
+                                  filled: true,
+
+                                  fillColor: Theme.of(context)
+                                      .colorScheme
+                                      .surfaceContainerHighest,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(28),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  // The Send Button nested inside the input
+                                  suffixIcon: Column(
+                                    children: [
+                                      IconButton.filled(
+                                        color: Colors.white,
+                                        padding: const EdgeInsets.all(2),
+
+                                        onPressed:
+                                            (state is SingleChatSending) ||
+                                                    _messageController
+                                                        .text.isEmpty ||
+                                                    !simCardState.canSend()
+                                                ? null
+                                                : (){
+                                                   _sendMessage();
+                                                },
+                                        icon: (state is SingleChatSending)
+                                            ? const SizedBox(
+                                                width: 18,
+                                                height: 18,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  color: Colors.white,
+                                                ),
+                                              )
+                                            : const Icon(Icons
+                                                .arrow_upward), // M3 uses upward arrow for "Send"
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
-                      );
-                    }
-                  ),
+                          ],
+                        );
+                      }),
                 ),
               )
             ],
@@ -295,6 +348,22 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> {
       ),
     );
   }
+  Color getSimcardColor(String? carrier){
+    final theme = Theme.of( context);
+    switch(carrier){
+      case "Safaricom":
+        return Colors.green;
+      case "Airtel":
+        return Colors.red;
+      case "Telkom":
+        return Colors.blueAccent;
+      default:
+        return theme.primaryColor;
+    
+
+    }
+  }
+ 
 
   void showDefaultSmsDialog() {
     showDialog(
@@ -364,4 +433,15 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> {
         currentDate.month != previousDate.month ||
         currentDate.year != previousDate.year;
   }
+  Future<void> _makePhoneCall(String phoneNumber) async {
+  final Uri launchUri = Uri(
+    scheme: 'tel',
+    path: phoneNumber,
+  );
+  if (await canLaunchUrl(launchUri)) {
+    await launchUrl(launchUri);
+  } else {
+    throw 'Could not launch $launchUri';
+  }
+}
 }
