@@ -38,7 +38,7 @@ class _ChatsViewState extends State<ChatsView> {
             child: CustomScrollView(
               slivers: [
                 // 1. M3 Large App Bar
-                SliverAppBar.large(
+                SliverAppBar.medium(
                   title: const Text('Messages'),
                   actions: [
                     IconButton(

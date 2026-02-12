@@ -13,7 +13,7 @@
     
 
     <application
-        android:label="messaging"
+        android:label="M-Ficha"
         android:name="${applicationName}"
         android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/launcher_icon">

@@ -28,7 +28,6 @@ dependencies:
   toastification: ^3.0.3
   shared_preferences: ^2.5.3
   uuid: ^4.5.2
-  sms_advanced: ^1.0.1
 
 dev_dependencies:
   flutter_test:

@@ -1,16 +1,16 @@
-import 'package:sms_advanced/sms_advanced.dart' as ss;
+
 
 class AppSimCardState {
   final int? defaultCard;
-  final List<ss.SimCard> allCards;
+  // final List<ss.SimCard> allCards;
 
-  AppSimCardState({required this.defaultCard, required this.allCards});
+  AppSimCardState({required this.defaultCard});
   bool canSend(){
-    for(var c in allCards){
-      if(c.state != ss.SimCardState.Ready){
-        return false;
-      }
-    }
+    // for(var c in allCards){
+    //   if(c.state != ss.SimCardState.Ready){
+    //     return false;
+    //   }
+    // }
     return true;
   }
 }

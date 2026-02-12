@@ -4,7 +4,6 @@ import 'package:another_telephony/telephony.dart';
 import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/models/sim_card_state.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:sms_advanced/sms_advanced.dart' as ss;
 import 'package:uuid/uuid.dart';
 import '../models/sms_message.dart';
 import 'database_helper.dart';
@@ -67,9 +66,8 @@ class SmsService {
       onBackgroundMessage: _onBackgroundMessage,
     );
   }
-  Future<List<ss.SimCard>> getSimcards(){
-    ss.SimCardsProvider p = ss.SimCardsProvider();
-    return p.getSimCards();
+  List<int> getSimcards(){
+    return [];
   }
   void setDefaultSim(int id){
     UserDefaults.setDefaultSim(id);
@@ -79,9 +77,9 @@ class SmsService {
   }
   Future<AppSimCardState> getSimState()async{
     int id = await getDefaultSim();
-    List<ss.SimCard> all = await getSimcards();
+    
 
-    return AppSimCardState(defaultCard: id>0?id:null, allCards: all);
+    return AppSimCardState(defaultCard: id>0?id:null);
   }
 
   // --- 3. Message Synchronization (Optimized) ---
@@ -114,21 +112,15 @@ class SmsService {
 
   Future<bool> sendSms(String address, String message, String threadId) async {
     try {
-      // await telephony.sendSms(
-      //   to: address,
-      //   message: message,
-      //   statusListener: (status) {
-      //     if (status == SendStatus.SENT)
-      //       _messageUpdateController.add(SmsEvent(threadId: threadId));
-      //   },
-      // );
-      ss.SmsSender sender =  ss.SmsSender();
-      sender.sendSms(ss.SmsMessage(address, message));
-      sender.onSmsDelivered.listen((ss.SmsMessage? message){
-        
-      },
-      onDone: () => _messageUpdateController.add(SmsEvent(threadId: threadId)),
+      await telephony.sendSms(
+        to: address,
+        message: message,
+        statusListener: (status) {
+          if (status == SendStatus.SENT)
+            _messageUpdateController.add(SmsEvent(threadId: threadId));
+        },
       );
+
 
       final date = DateTime.now().millisecondsSinceEpoch;
       final smsMessage = AppSmsMessage(
