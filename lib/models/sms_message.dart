@@ -1,3 +1,6 @@
+// ignore_for_file: public_member_api_docs, sort_constructors_first
+import 'dart:convert';
+
 class AppSmsMessage {
   final int? id;
   final String address;
@@ -87,7 +90,7 @@ class AppChat {
 
 
   Map<String, dynamic> toMap() {
-    return {
+    return <String, dynamic>{
       'threadId': threadId,
       'address': address,
       'lastMessage': lastMessage,
@@ -98,11 +101,57 @@ class AppChat {
 
   factory AppChat.fromMap(Map<String, dynamic> map) {
     return AppChat(
-      threadId: map['threadId'],
-      address: map['address'],
-      lastMessage: map['lastMessage'],
-      lastMessageDate: map['lastMessageDate'],
-      unreadCount: map['unreadCount'] ?? 0,
+      threadId: map['threadId'] as String,
+      address: map['address'] as String,
+      lastMessage: map['lastMessage'] != null ? map['lastMessage'] as String : null,
+      lastMessageDate: map['lastMessageDate'] != null ? map['lastMessageDate'] as int : null,
+      unreadCount: map['unreadCount'] as int,
     );
+  }
+
+  AppChat copyWith({
+    String? threadId,
+    String? address,
+    String? lastMessage,
+    int? lastMessageDate,
+    int? unreadCount,
+  }) {
+    return AppChat(
+      threadId: threadId ?? this.threadId,
+      address: address ?? this.address,
+      lastMessage: lastMessage ?? this.lastMessage,
+      lastMessageDate: lastMessageDate ?? this.lastMessageDate,
+      unreadCount: unreadCount ?? this.unreadCount,
+    );
+  }
+
+  String toJson() => json.encode(toMap());
+
+  factory AppChat.fromJson(String source) => AppChat.fromMap(json.decode(source) as Map<String, dynamic>);
+
+  @override
+  String toString() {
+    return 'AppChat(threadId: $threadId, address: $address, lastMessage: $lastMessage, lastMessageDate: $lastMessageDate, unreadCount: $unreadCount)';
+  }
+
+  @override
+  bool operator ==(covariant AppChat other) {
+    if (identical(this, other)) return true;
+  
+    return 
+      other.threadId == threadId &&
+      other.address == address &&
+      other.lastMessage == lastMessage &&
+      other.lastMessageDate == lastMessageDate &&
+      other.unreadCount == unreadCount;
+  }
+
+  @override
+  int get hashCode {
+    return threadId.hashCode ^
+      address.hashCode ^
+      lastMessage.hashCode ^
+      lastMessageDate.hashCode ^
+      unreadCount.hashCode;
   }
 }

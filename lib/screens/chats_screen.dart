@@ -4,6 +4,8 @@ import 'package:messaging/cubit/chats_cubit.dart';
 import 'package:messaging/screens/settings_screen.dart';
 import 'package:messaging/screens/single_chat_screen.dart';
 import 'package:messaging/core/utils/date_formatter.dart';
+import 'package:messaging/screens/widgets/contact_name_text.dart';
+import 'package:messaging/services/contact_service.dart';
 import 'new_message_screen.dart';
 
 class ChatsScreen extends StatelessWidget {
@@ -115,12 +117,8 @@ class _ChatsViewState extends State<ChatsView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      chat.address ,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
-                      ),
-                    ),
+                   
+                    ContactNameText(unread: hasUnread, rawAddress: chat.address, contactStream: ContactService().contactStream),
                     const SizedBox(height: 4),
                     Text(
                       chat.lastMessage ?? '',

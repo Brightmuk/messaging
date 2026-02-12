@@ -97,7 +97,7 @@ class SmsService {
 
   Future<void> syncExistingMessages() async {
     debugPrint("Syncing history from system provider...");
-
+  
     // Fetch all inbox messages
     List<SmsMessage> messages = await telephony.getInboxSms(columns: [
       SmsColumn.ADDRESS,
