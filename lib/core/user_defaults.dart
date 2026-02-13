@@ -3,6 +3,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 class UserDefaults {
   static String hasSyncedString = 'hasSynced';
   static String defaultSimString = 'defaultSim';
+  static String hideStatusString = 'hideStatus';
+
 
 
   static void setHasSynced() async {
@@ -21,7 +23,14 @@ class UserDefaults {
     final prefs = await SharedPreferences.getInstance();
     prefs.setInt(defaultSimString, simId);
   }
-
+  static Future<void> setHideStatus(bool hideStatus) async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setBool(hideStatusString, hideStatus);
+  }
+  static Future<bool> getHideStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(hideStatusString) ?? true;
+  }
 }
 
   

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:messaging/core/events.dart';
+import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/models/sms_message.dart';
 import 'package:messaging/services/sms_service.dart';
 import 'package:meta/meta.dart';
@@ -14,13 +15,19 @@ class SingleChatCubit extends Cubit<SingleChatState> {
     final SmsService _smsService = SmsService();
      StreamSubscription? _updateSubscription;
   SingleChatCubit(this.threadId) : super(SingleChatInitial()){
+    setHideStatus();
         _updateSubscription = _smsService.onMessageUpdated.listen((_) {
-       if(!isClosed)  {
-        getMessages(showLoading: false);
-       }
-      
+          Future.delayed(const Duration(milliseconds: 500)).then((_) {
+            if(!isClosed)  {
+                getMessages(showLoading: false);
+              }
+          });
     });
     getMessages();
+  }
+  bool hideStatus = true;
+  Future<void> setHideStatus() async {
+    hideStatus = await UserDefaults.getHideStatus();
   }
 
     Future<void> setAsDefaultApp() async {
@@ -55,6 +62,12 @@ class SingleChatCubit extends Cubit<SingleChatState> {
   Future<void> markThreadAsRead() async {
     await _smsService.markThreadAsRead(threadId);
     eventBus.fire(ThreadReadEvent());
+  }
+
+  Future<void> toggleHide() async {
+    hideStatus = !hideStatus;
+    await UserDefaults.setHideStatus(hideStatus);
+    emit(SingleChatLoaded(messages: messages));
   }
   @override
   Future<void> close() {

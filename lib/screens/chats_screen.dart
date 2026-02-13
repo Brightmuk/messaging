@@ -6,6 +6,7 @@ import 'package:messaging/screens/single_chat_screen.dart';
 import 'package:messaging/core/utils/date_formatter.dart';
 import 'package:messaging/screens/widgets/contact_name_text.dart';
 import 'package:messaging/services/contact_service.dart';
+import 'package:messaging/services/redact_service.dart';
 import 'new_message_screen.dart';
 
 class ChatsScreen extends StatelessWidget {
@@ -121,7 +122,8 @@ class _ChatsViewState extends State<ChatsView> {
                     ContactNameText(unread: hasUnread, rawAddress: chat.address, contactStream: ContactService().contactStream),
                     const SizedBox(height: 4),
                     Text(
-                      chat.lastMessage ?? '',
+                      RedactService.redactBalances(chat.lastMessage ?? '', chat.address),
+                      
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodyMedium?.copyWith(

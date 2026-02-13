@@ -15,7 +15,8 @@ final class SingleChatLoading extends SingleChatState {}
 final class SingleChatLoaded extends SingleChatState {
   final List<AppSmsMessage> messages;
   final bool isUpdate;
+  final bool hideStatus;
 
-  SingleChatLoaded({required this.messages, this.isUpdate = false});
+  SingleChatLoaded({required this.messages, this.isUpdate = false, this.hideStatus = false});
 }
 final class SingleChatError extends SingleChatState {}
