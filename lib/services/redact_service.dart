@@ -1,6 +1,7 @@
 class RedactService {
+  static List<String> monitoredConversations = ['mpesa', 'airtelmoney','zidii','mshwari','tkash'];
   static String redactBalances(String message, String address) {
-    if(address.toLowerCase() != 'mpesa' && address.toLowerCase() != 'airtelmoney'){
+    if(!monitoredConversations.any((keyword) => address.toLowerCase().contains(keyword))) {
       return message;
     }
     
@@ -22,4 +23,7 @@ class RedactService {
     onNonMatch: (String text) => text,
   );
 }
+static bool isMonitored(String address) {
+  return monitoredConversations.any((keyword) => address.toLowerCase().contains(keyword));
+  }
 }
