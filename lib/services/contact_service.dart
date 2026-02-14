@@ -1,67 +1,60 @@
 import 'dart:async';
-
-import 'package:flutter_contacts/flutter_contacts.dart';
+import 'dart:isolate';
+import 'dart:ui';
+import 'contact_db.dart'; // Import your DB class
 
 class ContactService {
   static final ContactService _instance = ContactService._internal();
-
-  factory ContactService() {
-    return _instance;
-  }
-
+  factory ContactService() => _instance;
   ContactService._internal();
 
   final _contactStreamController = StreamController<int>.broadcast();
   Stream<int> get contactStream => _contactStreamController.stream;
   int _version = 0;
 
+  // The high-speed memory cache for the UI
   Map<String, String> _cachedContacts = {};
 
-  Future<void> fetchContactsInBackground() async {
-   
-      final contacts = await FlutterContacts.getContacts(withProperties: true);
-      
-      final Map<String, String> newMap = {};
-      for (var contact in contacts) {
-        for (var phone in contact.phones) {
-          String clean = phone.number.replaceAll(RegExp(r'\D'), '');
-          // Keep the last 9 digits for easier matching in Kenya
-          if (clean.length >= 9) {
-            newMap[clean.substring(clean.length - 9)] = contact.displayName;
-          }
-        }
-      }
-      _cachedContacts = newMap;
-      _contactStreamController.add(++_version);
+  /// Call this on App Launch (e.g., in your Cubit or Main)
+  Future<void> init() async {
+    // 1. Load what we already have in DB into memory immediately (Fast)
+    await _loadFromDb();
+    
+    // 2. Trigger an Isolate sync to catch changes in the background (Non-blocking)
+      _startBackgroundSync();
     
   }
 
-   Future<void> refreshContacts() async {
-      List<Contact> contacts = await FlutterContacts.getContacts(withProperties: true);
-      
-      for (var contact in contacts) {
-        for (var phone in contact.phones) {
-          // Normalize the number to ensure matches (remove spaces, etc.)
-          String cleanNumber = phone.number.replaceAll(RegExp(r'\D'), '');
-          _cachedContacts[cleanNumber] = contact.displayName;
-        }
-      }
-    
+  Future<void> _loadFromDb() async {
+    final db = ContactDb();
+    final allContacts = await db.getAllContacts(); // Add this method to ContactDb
+    _cachedContacts = allContacts;
+    _contactStreamController.add(++_version);
   }
 
-String getName(String address) {
-  if (RegExp(r'[A-Z]').hasMatch(address)) {
+  void _startBackgroundSync() {
+    final receivePort = ReceivePort();
+    RootIsolateToken rootIsolateToken = RootIsolateToken.instance!;
+    Isolate.spawn(syncContactsIsolate, [receivePort.sendPort, rootIsolateToken]);
+
+    receivePort.listen((message) {
+      if (message == true) {
+        // Sync finished! Reload memory cache from DB
+        _loadFromDb();
+        receivePort.close();
+      }
+    });
+  }
+
+  /// The synchronous lookup for your Chat List
+  String getName(String address) {
+    if (RegExp(r'[A-Z]').hasMatch(address)) return address;
+    
+    String clean = address.replaceAll(RegExp(r'\D'), '');
+    if (clean.length >= 9) {
+      String key = clean.substring(clean.length - 9);
+      return _cachedContacts[key] ?? address;
+    }
     return address;
   }
-
-  String cleanNumber = address.replaceAll(RegExp(r'\D'), '');
-
-  if (cleanNumber.length >= 9) {
-    String uniqueSuffix = cleanNumber.substring(cleanNumber.length - 9);
-
-    return _cachedContacts[uniqueSuffix] ?? address;
-  }
-
-  return address;
-}
 }

@@ -19,7 +19,7 @@ class ChatsCubit extends Cubit<ChatsState> {
   ChatsCubit() : super(ChatsInitial()) {
     _setupListeners();
     loadChats(showLoading: true);
-    ContactService().fetchContactsInBackground();
+    ContactService().init();
   }
   void _setupListeners() {
     _smsSubscription = _smsService.onMessageUpdated.listen((event) {

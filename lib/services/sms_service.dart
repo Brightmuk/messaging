@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:another_telephony/telephony.dart';
 import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/models/sim_card_state.dart';
+import 'package:messaging/services/contact_db.dart';
 import 'package:messaging/services/contact_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:sim_card_info/sim_card_info.dart';
@@ -162,7 +163,7 @@ class SmsService {
 
   void _onMessageReceived(SmsMessage message) async {
     final threadId = await getThreadId(message.address);
-    await _saveIncomingMessage(message, threadId);
+    await _saveIncomingMessage(message, threadId, await getContactName(message.address ?? ''));
     _messageUpdateController
         .add(SmsEvent(threadId: message.threadId.toString()));
   }
@@ -171,11 +172,16 @@ class SmsService {
   static Future<void> _onBackgroundMessage(SmsMessage message) async {
     final service = SmsService();
     final threadId = await _getThreadIdSt(message.address);
-
-    await service._saveIncomingMessage(message, threadId);
+    final db = ContactDb();
+    // Try to get the contact name from SQLite
+    final String? contactName = await db.getName(message.address ?? "");
+   
+    // Fallback to address if name not found
+    final String title = contactName ?? message.address ?? "New Message";
+    await service._saveIncomingMessage(message, threadId, title);
   }
 
-  Future<void> _saveIncomingMessage(SmsMessage msg, String threadId) async {
+  Future<void> _saveIncomingMessage(SmsMessage msg, String threadId, String name) async {
     final appMsg = AppSmsMessage(
       address: msg.address ?? '',
       body: msg.body ?? '',
@@ -190,10 +196,10 @@ class SmsService {
         incrementUnread: true);
 
     await _notificationService.showNotification(
-      title: appMsg.address,
+      title: name,
       body: appMsg.body,
       payload: json.encode(
-          {'threadId': threadId, "address": ContactService().getName(appMsg.address)}),
+          {'threadId': threadId, "address": appMsg.address}),
     );
     
   }
@@ -249,7 +255,7 @@ class SmsService {
     _messageUpdateController.add(SmsEvent());
   }
 
-  Future<String> getContactName(String phoneNumber) async => phoneNumber;
+  Future<String> getContactName(String phoneNumber) async => ContactService().getName(phoneNumber);
 }
 
 // Helper class for Stream events
