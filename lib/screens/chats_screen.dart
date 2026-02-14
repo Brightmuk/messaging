@@ -6,6 +6,7 @@ import 'package:messaging/screens/single_chat_screen.dart';
 import 'package:messaging/core/utils/date_formatter.dart';
 import 'package:messaging/screens/widgets/contact_name_text.dart';
 import 'package:messaging/services/contact_service.dart';
+import 'package:messaging/services/notification_service.dart';
 import 'package:messaging/services/redact_service.dart';
 import 'new_message_screen.dart';
 
@@ -21,12 +22,21 @@ class ChatsScreen extends StatelessWidget {
   }
 }
 
-class ChatsView extends StatefulWidget {
+class ChatsView extends StatefulWidget with WidgetsBindingObserver{
   const ChatsView({super.key});
 
   @override
   State<ChatsView> createState() => _ChatsViewState();
 }
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+     _clearNotifications();
+    }
+  }
+  void _clearNotifications() {
+    NotificationService().removeNotifications();
+  }
 
 class _ChatsViewState extends State<ChatsView> {
   @override

@@ -1,8 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:another_telephony/telephony.dart';
 import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/models/sim_card_state.dart';
+import 'package:messaging/services/contact_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:sim_card_info/sim_card_info.dart';
 import 'package:sim_card_info/sim_info.dart';
@@ -12,6 +15,7 @@ import 'database_helper.dart';
 import 'notification_service.dart';
 import 'dart:async';
 
+@pragma('vm:entry-point')
 class SmsService {
   // Singleton pattern
   SmsService._internal() {
@@ -167,6 +171,7 @@ class SmsService {
   static Future<void> _onBackgroundMessage(SmsMessage message) async {
     final service = SmsService();
     final threadId = await _getThreadIdSt(message.address);
+
     await service._saveIncomingMessage(message, threadId);
   }
 
@@ -187,8 +192,10 @@ class SmsService {
     await _notificationService.showNotification(
       title: appMsg.address,
       body: appMsg.body,
-      payload: threadId,
+      payload: json.encode(
+          {'threadId': threadId, "address": ContactService().getName(appMsg.address)}),
     );
+    
   }
 
   Future<String> getThreadId(String? address) async {

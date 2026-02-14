@@ -2,11 +2,11 @@ import 'package:another_telephony/telephony.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:messaging/core/feedback_ui.dart';
-import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/core/utils/date_formatter.dart';
 import 'package:messaging/cubit/single_chat_cubit.dart';
 import 'package:messaging/models/sim_card_state.dart';
 import 'package:messaging/services/contact_service.dart';
+import 'package:messaging/services/notification_service.dart';
 import 'package:messaging/services/redact_service.dart';
 import 'package:messaging/services/sms_service.dart';
 import 'package:sim_card_info/sim_info.dart';
@@ -41,7 +41,7 @@ class SingleChatScreenView extends StatefulWidget {
   State<SingleChatScreenView> createState() => _SingleChatScreenViewState();
 }
 
-class _SingleChatScreenViewState extends State<SingleChatScreenView> {
+class _SingleChatScreenViewState extends State<SingleChatScreenView> with WidgetsBindingObserver{
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final telephony = Telephony.instance;
@@ -51,6 +51,16 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> {
   void initState() {
     super.initState();
     context.read<SingleChatCubit>().markThreadAsRead();
+    _clearNotifications();
+  }
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+     _clearNotifications();
+    }
+  }
+  void _clearNotifications() {
+    NotificationService().removeNotifications();
   }
 
   @override
@@ -111,7 +121,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> {
           }
           final messages = context.read<SingleChatCubit>().messages;
           bool hide = context.read<SingleChatCubit>().hideStatus;
-          print("Hide status: $hide of state $state");
+          
           return Column(
             children: [
               messages.isEmpty
@@ -222,7 +232,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> {
                       // 1. Setup State Variables
                       final bool isLoading =
                           sn.connectionState == ConnectionState.waiting;
-                      final bool hasError = sn.hasError;
+                     
                       final bool hasData =
                           sn.hasData && sn.data!.allCards.isNotEmpty;
 
@@ -322,7 +332,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> {
         },
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      floatingActionButton:  BlocBuilder<SingleChatCubit, SingleChatState>(
+      floatingActionButton:  RedactService.isMonitored(widget.address)? BlocBuilder<SingleChatCubit, SingleChatState>(
         builder: (context, state) {
 
           bool hide = context.read<SingleChatCubit>().hideStatus;
@@ -333,11 +343,11 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> {
                     onPressed: () {
                       context.read<SingleChatCubit>().toggleHide();
                     },
-                    child:  Icon(hide? Icons.visibility_outlined: Icons.visibility_off_outlined),
+                    child:  Icon(hide? Icons.visibility_off_outlined: Icons.visibility_outlined ),
                   ),
             );
         },
-      ),
+      ):null,
     );
   }
 
