@@ -376,7 +376,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> with Widget
           initialValue: simCardState.defaultCard,
           icon: Icon(
             Icons.sim_card_outlined,
-            color: getSimcardColor(defaultSim?.carrierName),
+            color: AppSimCardState.getSimcardColor(defaultSim?.carrierName),
           ),
           onSelected: (int sim) {
             setState(() {
@@ -392,7 +392,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> with Widget
                 value: slot,
                 child: ListTile(
                   leading: Icon(Icons.sim_card,
-                      color: getSimcardColor(sim.carrierName)),
+                      color: AppSimCardState.getSimcardColor(sim.carrierName)),
                   title: Text('SIM ${slot + 1} (${sim.displayName})'),
                 ),
               );
@@ -408,7 +408,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> with Widget
               width: 14,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: getSimcardColor(defaultSim?.carrierName),
+                color: AppSimCardState.getSimcardColor(defaultSim?.carrierName),
               ),
               child: Center(
                 child: Text(
@@ -425,19 +425,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> with Widget
     );
   }
 
-  Color getSimcardColor(String? carrier) {
-    final theme = Theme.of(context);
-    switch (carrier) {
-      case "Safaricom":
-        return Colors.green;
-      case "Airtel":
-        return Colors.red;
-      case "Telkom":
-        return Colors.blueAccent;
-      default:
-        return theme.primaryColor;
-    }
-  }
+
 
   void showDefaultSmsDialog() {
     showDialog(

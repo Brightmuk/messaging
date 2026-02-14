@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:messaging/models/sim_card_state.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/sms_service.dart';
@@ -14,7 +15,6 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen>
     with WidgetsBindingObserver {
-  String _selectedSim = "SIM 1";
   bool _isDefaultSmsApp = false;
   @override
   void initState() {
@@ -90,13 +90,36 @@ class _SettingsScreenState extends State<SettingsScreen>
                                 child: const Text('Set as Default')),
                       ),
                       const Divider(height: 1, indent: 16, endIndent: 16),
-                      ListTile(
-                        title: const Text("Default SIM Card"),
-                        subtitle: Text(_selectedSim),
-                        leading: const Icon(Icons.sim_card_outlined),
-                        trailing: const Icon(Icons.arrow_drop_down),
-                        onTap: _showSimPicker,
-                      ),
+                      FutureBuilder<AppSimCardState>(
+                        future: SmsService().getSimState(),
+                        builder: (context, sn) {
+                          // 1. Extract data safely. 
+                          // If it's still loading or has an error, simCardState will be null.
+                          final simCardState = sn.data;
+                          
+                          // 2. Perform safe lookup using ?. and firstOrNull
+                          final currentSim = simCardState?.allCards.where((sim) {
+                            final slot = int.tryParse(sim.slotIndex);
+                            return slot != null && slot == simCardState.defaultCard;
+                          }).firstOrNull;
+
+                          // 3. Build UI - No loaders, just logic
+                          final bool hasValidSim = currentSim != null;
+                          final int displaySlot = (int.tryParse(currentSim?.slotIndex ?? "") ?? 0) + 1;
+
+                          return ListTile(
+                            title: const Text("Default SIM Card"),
+                            subtitle: Text(
+                              hasValidSim 
+                                ? "SIM $displaySlot (${currentSim.displayName})" 
+                                : "Select default SIM"
+                            ),
+                            leading: const Icon(Icons.sim_card_outlined),
+                            trailing: const Icon(Icons.arrow_drop_down),
+                            onTap: _showSimPicker,
+                          );
+                        },
+                      )
                     ],
                   ),
                 ),
@@ -220,21 +243,62 @@ class _SettingsScreenState extends State<SettingsScreen>
     );
   }
 
-  void _showSimPicker() {
-    showModalBottomSheet(
+  void _showSimPicker() async{
+    await showModalBottomSheet(
       context: context,
       showDragHandle: true,
-      builder: (context) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: ["SIM 1", "SIM 2"]
-            .map((sim) => ListTile(
-                  title: Text(sim),
+      builder: (context) => const SimPicker(),
+    );
+    setState(() {});
+  }
+}
+
+class SimPicker extends StatefulWidget {
+  const SimPicker({super.key});
+
+  @override
+  State<SimPicker> createState() => _SimPickerState();
+}
+
+class _SimPickerState extends State<SimPicker> {
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 170,
+      child: FutureBuilder<AppSimCardState>(
+        future: SmsService().getSimState(),
+        builder: (context, sn) {
+          final bool isLoading = sn.connectionState == ConnectionState.waiting;
+      
+          final bool hasData = sn.hasData && sn.data!.allCards.isNotEmpty;
+      
+          final simCardState = sn.data;
+         
+          if (isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (!hasData) {
+            return const Center(child: Text("No SIM cards detected"));
+          }
+          return ListView.builder(
+              itemCount: simCardState?.allCards.length,
+              itemBuilder: (context, index) {
+                int slot = int.tryParse(
+                        simCardState!.allCards[index].slotIndex.toString()) ??
+                    -1;
+                return ListTile(
                   onTap: () {
-                    setState(() => _selectedSim = sim);
+                    SmsService().setDefaultSim(slot);
                     Navigator.pop(context);
                   },
-                ))
-            .toList(),
+                  selected: slot == simCardState.defaultCard,
+                  leading: Icon(Icons.sim_card,
+                      color: AppSimCardState.getSimcardColor(
+                          simCardState.allCards[index].carrierName)),
+                  title: Text(
+                      'SIM ${slot + 1} (${simCardState.allCards[index].displayName})'),
+                );
+              });
+        },
       ),
     );
   }
