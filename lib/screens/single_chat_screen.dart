@@ -218,7 +218,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> with Widget
                         },
                       ),
                     ),
-              Container(
+              AppChat.supportsReplies(widget.address)? Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
@@ -326,7 +326,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> with Widget
                     },
                   ),
                 ),
-              )
+              ): const SizedBox(height: 50,)
             ],
           );
         },

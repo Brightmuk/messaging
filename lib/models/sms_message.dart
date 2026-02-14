@@ -48,7 +48,6 @@ class AppSmsMessage {
   bool get isReceived => type == 1;
   @override
   bool operator ==(Object other) {
-    
     return super == other;
   }
 }
@@ -68,10 +67,9 @@ class AppChat {
     this.unreadCount = 0,
   });
 
-
-
-  bool isSameThread (String? newThreadId, String newAddress) {
-    return normalize(newAddress) == normalize(address) || (newThreadId != null && newThreadId == threadId);
+  bool isSameThread(String? newThreadId, String newAddress) {
+    return normalize(newAddress) == normalize(address) ||
+        (newThreadId != null && newThreadId == threadId);
   }
 
   static String normalize(String phone) {
@@ -88,7 +86,6 @@ class AppChat {
     return digits;
   }
 
-
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'threadId': threadId,
@@ -103,8 +100,10 @@ class AppChat {
     return AppChat(
       threadId: map['threadId'] as String,
       address: map['address'] as String,
-      lastMessage: map['lastMessage'] != null ? map['lastMessage'] as String : null,
-      lastMessageDate: map['lastMessageDate'] != null ? map['lastMessageDate'] as int : null,
+      lastMessage:
+          map['lastMessage'] != null ? map['lastMessage'] as String : null,
+      lastMessageDate:
+          map['lastMessageDate'] != null ? map['lastMessageDate'] as int : null,
       unreadCount: map['unreadCount'] as int,
     );
   }
@@ -127,7 +126,8 @@ class AppChat {
 
   String toJson() => json.encode(toMap());
 
-  factory AppChat.fromJson(String source) => AppChat.fromMap(json.decode(source) as Map<String, dynamic>);
+  factory AppChat.fromJson(String source) =>
+      AppChat.fromMap(json.decode(source) as Map<String, dynamic>);
 
   @override
   String toString() {
@@ -137,21 +137,28 @@ class AppChat {
   @override
   bool operator ==(covariant AppChat other) {
     if (identical(this, other)) return true;
-  
-    return 
-      other.threadId == threadId &&
-      other.address == address &&
-      other.lastMessage == lastMessage &&
-      other.lastMessageDate == lastMessageDate &&
-      other.unreadCount == unreadCount;
+
+    return other.threadId == threadId &&
+        other.address == address &&
+        other.lastMessage == lastMessage &&
+        other.lastMessageDate == lastMessageDate &&
+        other.unreadCount == unreadCount;
   }
 
   @override
   int get hashCode {
     return threadId.hashCode ^
-      address.hashCode ^
-      lastMessage.hashCode ^
-      lastMessageDate.hashCode ^
-      unreadCount.hashCode;
+        address.hashCode ^
+        lastMessage.hashCode ^
+        lastMessageDate.hashCode ^
+        unreadCount.hashCode;
+  }
+
+  static bool supportsReplies(String address) {
+    if (RegExp(r'[a-zA-Z]').hasMatch(address)) {
+      return false;
+    }
+    String clean = address.replaceAll(RegExp(r'\D'), '');
+    return clean.length >= 3;
   }
 }

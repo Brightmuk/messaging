@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:messaging/models/sms_message.dart';
 import 'package:messaging/screens/single_chat_screen.dart';
+import 'package:messaging/services/sms_service.dart';
 import 'package:uuid/uuid.dart';
 
 
@@ -66,12 +67,13 @@ class _NewMessageScreenState extends State<NewMessageScreen> {
     }
 
 
-  void _navigateToChat(String address) {
+  void _navigateToChat(String address)async {
+    String? threadId = await SmsService().getThreadId(address); 
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (context) => SingleChatScreen(
-          threadId: const Uuid().v4(),
+          threadId: threadId,
           address: address,
         ),
       ),

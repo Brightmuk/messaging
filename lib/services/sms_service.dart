@@ -207,7 +207,9 @@ class SmsService {
   Future<String> getThreadId(String? address) async {
     if (address == null) return const Uuid().v4();
     final chats = await _dbHelper.getAllChats();
-    AppChat? chat = chats.where((chat) => chat.address == address).firstOrNull;
+    AppChat? chat = chats.where((chat) {
+      return chat.isSameThread(null, address);
+    }).firstOrNull;
     return chat?.threadId ?? const Uuid().v4();
   }
 
