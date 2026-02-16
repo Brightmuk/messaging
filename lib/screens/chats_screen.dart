@@ -6,6 +6,7 @@ import 'package:messaging/cubit/chats_cubit.dart';
 import 'package:messaging/screens/settings_screen.dart';
 import 'package:messaging/screens/single_chat_screen.dart';
 import 'package:messaging/core/utils/date_formatter.dart';
+import 'package:messaging/screens/widgets/chats_loading_widget.dart';
 import 'package:messaging/screens/widgets/contact_name_text.dart';
 import 'package:messaging/services/ads/native_ads_service.dart';
 import 'package:messaging/services/contact_service.dart';
@@ -102,11 +103,12 @@ void _loadNativeAd() async {
                 ),
                 
                 if (state is ChatsLoading)
-                const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
+                 const SliverFillRemaining(child: ChatsLoadingWidget())
               else if (state is ChatsLoaded)
                 state.chats.isEmpty
-                    ? SliverFillRemaining(child: _buildEmptyState(theme))
+                    ? const SliverFillRemaining(child: ChatsLoadingWidget(isEmptyState: true))
                     : 
+                    
               SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
@@ -242,17 +244,7 @@ void _loadNativeAd() async {
   );
 }
 
-  Widget _buildEmptyState(ThemeData theme) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(Icons.chat_bubble_outline, size: 70, color: theme.colorScheme.primary.withOpacity(0.2)),
-        const SizedBox(height: 16),
-        Text('Quiet in here...', style: theme.textTheme.titleLarge),
-        const Text('Start a conversation to see it here.'),
-      ],
-    );
-  }
+
 
   Widget prefix(String address, Color color) {
     if (address.startsWith(RegExp(r'[a-zA-Z]')) && address.isNotEmpty) {
@@ -279,4 +271,6 @@ void _loadNativeAd() async {
       context.read<ChatsCubit>().deleteChat(threadId);
     }
   }
+
+
 }

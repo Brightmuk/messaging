@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:messaging/cubit/app_startup_cubit.dart';
 import 'package:messaging/screens/permissions_screen.dart';
+import 'package:messaging/screens/widgets/chats_loading_widget.dart';
 import 'package:messaging/services/purchase_service.dart';
 import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
@@ -35,8 +36,9 @@ class MyApp extends StatelessWidget {
       home: BlocBuilder<AppStartupCubit, AppStartupState>(
         builder: (context, state) {
           if (state is AppStartupLoading) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
+            return  Scaffold(
+              appBar: AppBar(),
+              body: const Center(child: ChatsLoadingWidget()),
             );
           } else if (state is AppStartupLoaded) {
             return const ChatsScreen();
