@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/cubit/chats_cubit.dart';
 import 'package:messaging/screens/settings_screen.dart';
 import 'package:messaging/screens/single_chat_screen.dart';
 import 'package:messaging/core/utils/date_formatter.dart';
 import 'package:messaging/screens/widgets/contact_name_text.dart';
+import 'package:messaging/services/ads/native_ads_service.dart';
 import 'package:messaging/services/contact_service.dart';
 import 'package:messaging/services/notification_service.dart';
 import 'package:messaging/services/redact_service.dart';
@@ -39,6 +42,28 @@ class ChatsView extends StatefulWidget with WidgetsBindingObserver{
   }
 
 class _ChatsViewState extends State<ChatsView> {
+  NativeAd? _myLoadedNativeAd;
+  bool _isAdLoaded = false;
+  @override
+  void initState() {
+    super.initState();
+    _loadNativeAd();
+  }
+
+  void _loadNativeAd() {
+    _myLoadedNativeAd = NativeAdService.loadNativeAd(onAdLoaded: (ad) {
+      setState(() {
+        _isAdLoaded = true;
+        _myLoadedNativeAd = ad;
+      });
+    });
+
+  }
+  @override
+  void dispose() {
+    _myLoadedNativeAd?.dispose();
+    super.dispose();
+  }
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -64,20 +89,35 @@ class _ChatsViewState extends State<ChatsView> {
                   ],
                 ),
                 
-                // 2. Body Content
                 if (state is ChatsLoading)
-                  const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
-                else if (state is ChatsLoaded)
-                    state.chats.isEmpty
+                const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
+              else if (state is ChatsLoaded)
+                state.chats.isEmpty
                     ? SliverFillRemaining(child: _buildEmptyState(theme))
-                    : SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) => _buildChatTile(state.chats[index], theme),
-                          childCount: state.chats.length,
-                        ),
-                      )
-                else
-                  const SliverFillRemaining(child: Center(child: Text('Something went wrong'))),
+                    : 
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    // 1. Show the ad at the specific position
+                    if (index == 6) {
+                      return _buildNativeAdTile();
+                    }
+
+                    // 2. Calculate the chat index
+                    // If we are past the ad, subtract 1 to "stay on track" with the list
+                    final int chatIndex = index > 6 ? index - 1 : index;
+
+                    // 3. Safety check for list bounds
+                    if (chatIndex >= state.chats.length) return null;
+
+                    return _buildChatTile(state.chats[chatIndex], theme);
+                  },
+                  // 4. Important: itemCount is chats + 1 (for the single ad)
+                  childCount: state.chats.length + 1,
+                ),
+              )
+              else
+                const SliverFillRemaining(child: Center(child: Text('Something went wrong'))),
               ],
             ),
           );
@@ -86,7 +126,6 @@ class _ChatsViewState extends State<ChatsView> {
       // 3. M3 Floating Action Button
       floatingActionButton: FloatingActionButton.extended(
         label: const Text('New'),
-
 
         onPressed: () async {
           await Navigator.push(context, MaterialPageRoute(builder: (context) => const NewMessageScreen()));
@@ -166,6 +205,30 @@ class _ChatsViewState extends State<ChatsView> {
       ),
     );
   }
+  Widget _buildNativeAdTile() {
+
+  return FutureBuilder<bool>(
+    future: UserDefaults.getAdsRemoved(),
+    builder: (context, asyncSnapshot) {
+      if ((asyncSnapshot.hasData && asyncSnapshot.data == true) || _myLoadedNativeAd == null || !_isAdLoaded) {
+        return const SizedBox.shrink();
+      }
+      
+      return Container(
+        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        height: 80, 
+        decoration: BoxDecoration(
+          color: Colors.grey[100],
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: AdWidget(ad: _myLoadedNativeAd!), 
+        ),
+      );
+    }
+  );
+}
 
   Widget _buildEmptyState(ThemeData theme) {
     return Column(
@@ -174,7 +237,7 @@ class _ChatsViewState extends State<ChatsView> {
         Icon(Icons.chat_bubble_outline, size: 70, color: theme.colorScheme.primary.withOpacity(0.2)),
         const SizedBox(height: 16),
         Text('Quiet in here...', style: theme.textTheme.titleLarge),
-        Text('Start a conversation to see it here.'),
+        const Text('Start a conversation to see it here.'),
       ],
     );
   }

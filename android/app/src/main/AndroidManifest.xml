@@ -49,7 +49,9 @@
             </intent-filter>
             
         </activity>
-
+    <meta-data
+      android:name="com.google.android.gms.ads.APPLICATION_ID"
+      android:value="ca-app-pub-4276933186583420~1465001465"/>
         
         <receiver android:name=".SmsReceiver"
             android:permission="android.permission.BROADCAST_SMS" 

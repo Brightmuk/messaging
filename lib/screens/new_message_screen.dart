@@ -4,7 +4,6 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:messaging/models/sms_message.dart';
 import 'package:messaging/screens/single_chat_screen.dart';
 import 'package:messaging/services/sms_service.dart';
-import 'package:uuid/uuid.dart';
 
 
 class NewMessageScreen extends StatefulWidget {
@@ -51,7 +50,6 @@ class _NewMessageScreenState extends State<NewMessageScreen> {
     void _onSearchChanged() {
       final query = _phoneController.text.toLowerCase();
       final normalizedQuery = AppChat.normalize(query);
-      print("Normalized Query: $normalizedQuery");
 
       setState(() {
         _filteredContacts = _allContacts.where((contact) {
@@ -110,8 +108,7 @@ class _NewMessageScreenState extends State<NewMessageScreen> {
                 autofocus: true,
               ),
             ),
-            
-            // ... Your Action Chips remain here ...
+          
 
             const SizedBox(height: 16),
             Padding(
