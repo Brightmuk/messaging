@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:messaging/cubit/app_startup_cubit.dart';
 import 'package:messaging/screens/permissions_screen.dart';
 import 'package:messaging/services/purchase_service.dart';
@@ -11,6 +12,7 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  MobileAds.instance.initialize();
   PurchaseService().initializeIAP();
   runApp(MultiProvider(providers: [
     BlocProvider(create: (c)=>AppStartupCubit()),

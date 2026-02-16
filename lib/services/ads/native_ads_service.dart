@@ -1,11 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:messaging/core/user_defaults.dart';
 
 class NativeAdService {
 
-   static NativeAd loadNativeAd({required Function(NativeAd) onAdLoaded}) {
-    // final theme = Theme.of(context);
+   static Future<NativeAd?> loadNativeAd(BuildContext context, {required Function(NativeAd) onAdLoaded}) async{
+    final theme = Theme.of(context);
+    if(await UserDefaults.getAdsRemoved()) return null;
     return NativeAd(
       adUnitId: kDebugMode
           ? 'ca-app-pub-3940256099942544/2247696110'
@@ -20,9 +22,9 @@ class NativeAdService {
       request: const AdRequest(),
       nativeTemplateStyle: NativeTemplateStyle(
        
-        templateType: TemplateType.small, // 'small' is perfect for chat lists
-        mainBackgroundColor: Colors.white,
-        cornerRadius: 10.0,
+        templateType: TemplateType.small,
+        mainBackgroundColor: theme.cardColor,
+        cornerRadius: 20.0,
         callToActionTextStyle: NativeTemplateTextStyle(
           textColor: Colors.white,
           backgroundColor: Colors.blue,

@@ -44,20 +44,32 @@ class ChatsView extends StatefulWidget with WidgetsBindingObserver{
 class _ChatsViewState extends State<ChatsView> {
   NativeAd? _myLoadedNativeAd;
   bool _isAdLoaded = false;
+  bool _isAdLoading = false;
   @override
-  void initState() {
-    super.initState();
-    _loadNativeAd();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+   if (!_isAdLoaded && !_isAdLoading) {
+      _loadNativeAd();
+    }
   }
 
-  void _loadNativeAd() {
-    _myLoadedNativeAd = NativeAdService.loadNativeAd(onAdLoaded: (ad) {
-      setState(() {
-        _isAdLoaded = true;
-        _myLoadedNativeAd = ad;
-      });
-    });
+void _loadNativeAd() async {
+    _isAdLoading = true;
 
+   await NativeAdService.loadNativeAd(
+      context, 
+      onAdLoaded: (loadedAd) {
+        if (!mounted) {
+          loadedAd.dispose();
+          return;
+        }
+        setState(() {
+          _isAdLoaded = true;
+          _isAdLoading = false;
+          _myLoadedNativeAd = loadedAd;
+        });
+      },
+    );
   }
   @override
   void dispose() {
