@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:messaging/models/sim_card_state.dart';
+import 'package:messaging/services/notification_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/sms_service.dart';
@@ -244,12 +245,16 @@ class _SettingsScreenState extends State<SettingsScreen>
   }
 
   void _showSimPicker() async{
-    await showModalBottomSheet(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => const SimPicker(),
-    );
-    setState(() {});
+    NotificationService().showNotification(
+      title: "SIM Selection",
+      body: "Please select your default SIM card",
+       payload: '{"action":"open_sim_picker"}');
+    // await showModalBottomSheet(
+    //   context: context,
+    //   showDragHandle: true,
+    //   builder: (context) => const SimPicker(),
+    // );
+    // setState(() {});
   }
 }
 
