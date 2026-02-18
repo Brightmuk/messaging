@@ -33,10 +33,10 @@ class ChatsCubit extends Cubit<ChatsState> {
   List<AppChat> chats = [];
   Future<void> loadChats({bool showLoading = true}) async {
     if (showLoading) emit(ChatsLoading());
-    
+
     try {
       final hasSynced = await UserDefaults.hasSynced();
-      
+
       if (!hasSynced) {
         _smsService.syncExistingMessages();
       }
@@ -49,41 +49,46 @@ class ChatsCubit extends Cubit<ChatsState> {
     }
   }
 
-
   Future<void> deleteChat(String threadId) async {
     await _smsService.deleteThread(threadId);
     loadChats();
   }
+
   Future<void> deleteMultipleChats(Iterable<String> threadIds) async {
-  // Option: emit(ChatsLoading()) if you want a full-screen spinner
-  for (var id in threadIds) {
-    await _smsService.deleteThread(id);
+    // Option: emit(ChatsLoading()) if you want a full-screen spinner
+    for (var id in threadIds) {
+      await _smsService.deleteThread(id);
+    }
+    await loadChats(showLoading: false);
   }
-  await loadChats(showLoading: false);
-}
 
-Future<void> archiveChats(Iterable<String> threadIds) async {
-  for (var id in threadIds) {
-     _smsService.markThreadAsArchived(id, true); 
+  Future<void> archiveChats(Iterable<String> threadIds) async {
+    for (var id in threadIds) {
+      _smsService.markThreadAsArchived(id, true);
+    }
+    await loadChats(showLoading: false);
   }
-  await loadChats(showLoading: false);
-}
 
-Future<void> pinChats(Iterable<String> threadIds,) async {
-  for (var id in threadIds) {
-    await _smsService.markThreadAsPinned(id, true);
+  Future<void> unArchiveChats(Iterable<String> threadIds) async {
+    for (var id in threadIds) {
+      await _smsService.markThreadAsArchived(id, false);
+    }
+    await loadChats(showLoading: false);
   }
-  await loadChats(showLoading: false);
-}
-Future<void> unpinChat(String threadId) async {
-  await _smsService.markThreadAsPinned(threadId, false);
-  await loadChats(showLoading: false);
-}
-Future<void> unArchiveChat(String threadId) async {
-  await _smsService.markThreadAsArchived(threadId, false);
-  await loadChats(showLoading: false);
-}
 
+  Future<void> pinChats(Iterable<String> threadIds) async {
+    for (var id in threadIds) {
+      await _smsService.markThreadAsPinned(id, true);
+    }
+    await loadChats(showLoading: false);
+  }
+
+  Future<void> unpinChats(Iterable<String> threadIds) async {
+    for (var id in threadIds) {
+      await _smsService.markThreadAsPinned(id, false);
+    }
+    await loadChats(showLoading: false);
+  }
 
   @override
   Future<void> close() {

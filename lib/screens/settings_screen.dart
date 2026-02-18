@@ -245,16 +245,16 @@ class _SettingsScreenState extends State<SettingsScreen>
   }
 
   void _showSimPicker() async{
-    NotificationService().showNotification(
-      title: "SIM Selection",
-      body: "Please select your default SIM card",
-       payload: '{"action":"open_sim_picker"}');
-    // await showModalBottomSheet(
-    //   context: context,
-    //   showDragHandle: true,
-    //   builder: (context) => const SimPicker(),
-    // );
-    // setState(() {});
+    // NotificationService().showNotification(
+    //   title: "SIM Selection",
+    //   body: "Please select your default SIM card",
+    //    payload: '{"action":"open_sim_picker"}');
+    await showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => const SimPicker(),
+    );
+    setState(() {});
   }
 }
 

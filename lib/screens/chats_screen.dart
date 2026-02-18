@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/cubit/chats_cubit.dart';
+import 'package:messaging/models/sms_message.dart';
 import 'package:messaging/screens/settings_screen.dart';
 import 'package:messaging/screens/single_chat_screen.dart';
 import 'package:messaging/core/utils/date_formatter.dart';
@@ -83,7 +84,8 @@ bool _isAllSelected(List<dynamic> chats) {
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_isAdLoaded && !_isAdLoading) {
-      _loadNativeAd();
+      //Disabled temporarily
+      // _loadNativeAd();
     }
   }
 
@@ -111,6 +113,11 @@ bool _isAllSelected(List<dynamic> chats) {
     _myLoadedNativeAd?.dispose();
     super.dispose();
   }
+  bool areAllSelectedPinned(List<AppChat> chats) {
+    final selectedChats = chats.where((chat) => _selectedThreadIds.contains(chat.threadId));
+    return selectedChats.every((chat) => chat.isPinned);
+
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -123,9 +130,10 @@ bool _isAllSelected(List<dynamic> chats) {
             onRefresh: context.read<ChatsCubit>().loadChats,
             child: CustomScrollView(
               slivers: [
-                // 1. M3 Large App Bar
+                if (state is ChatsLoading || state is ChatsError)
+                  const SliverAppBar.medium()
+                else if (state is ChatsLoaded)
                 SliverAppBar.medium(
-                  // If in selection mode, show "X selected", else show "Messages"
                   title: Text(_isSelectionMode
                       ? '${_selectedThreadIds.length} selected'
                       : 'Messages'),
@@ -138,16 +146,25 @@ bool _isAllSelected(List<dynamic> chats) {
                   actions: _isSelectionMode
                       ? [
                           IconButton(
-                            icon:  Icon(_selectedThreadIds.length == 1 && context.read<ChatsCubit>().chats.firstWhere((chat) => chat.threadId == _selectedThreadIds.first).isPinned ? Icons.push_pin : Icons.push_pin_outlined),
+                            icon:  Icon(areAllSelectedPinned(state.chats) ? Icons.push_pin : Icons.push_pin_outlined),
                             onPressed: () async {
                               final count = _selectedThreadIds.length;
-                              await context.read<ChatsCubit>().pinChats(_selectedThreadIds);
-                              _clearSelection();
-                              if (mounted) {
+                              if(areAllSelectedPinned(state.chats)) {
+                                await context.read<ChatsCubit>().unpinChats(_selectedThreadIds);
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('$count chat(s) unpinned')),
+                                  );
+                                }}else{
+                                   await context.read<ChatsCubit>().pinChats(_selectedThreadIds);
+                                   if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('$count chats pinned')),
+                                  SnackBar(content: Text('$count chat(s) pinned')),
                                 );
                               }
+                              }
+                              _clearSelection();
+                             
                             },
                           ),
                           IconButton(
@@ -169,7 +186,7 @@ bool _isAllSelected(List<dynamic> chats) {
                                 _deleteSelectedChats(), // Updated bulk delete
                           ),
                          
-                          (state is ChatsLoaded && state.chats.isNotEmpty)?
+                         
                           IconButton(
                               icon: Icon(_isAllSelected(state.chats) ? Icons.playlist_remove_outlined : Icons.playlist_add_check_outlined),
                               onPressed: () {
@@ -179,7 +196,7 @@ bool _isAllSelected(List<dynamic> chats) {
                                   _selectAll(state.chats);
                                 }
                               },
-                            ): const SizedBox.shrink(),
+                            ),
                             IconButton(
                               icon: const Icon(Icons.delete_outline),
                               onPressed: () => _deleteSelectedChats(),

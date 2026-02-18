@@ -41,7 +41,8 @@ class SingleChatScreenView extends StatefulWidget {
   State<SingleChatScreenView> createState() => _SingleChatScreenViewState();
 }
 
-class _SingleChatScreenViewState extends State<SingleChatScreenView> with WidgetsBindingObserver{
+class _SingleChatScreenViewState extends State<SingleChatScreenView>
+    with WidgetsBindingObserver {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final telephony = Telephony.instance;
@@ -53,12 +54,14 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> with Widget
     context.read<SingleChatCubit>().markThreadAsRead();
     _clearNotifications();
   }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-     _clearNotifications();
+      _clearNotifications();
     }
   }
+
   void _clearNotifications() {
     NotificationService().removeNotifications();
   }
@@ -73,56 +76,55 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> with Widget
   @override
   Widget build(BuildContext context) {
     FeedbackUi feedbackUi = FeedbackUi(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(ContactService().getName(widget.address)),
-            Text(
-              'SMS',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.outline,
-                  ),
+    return BlocConsumer<SingleChatCubit, SingleChatState>(
+      listener: (context, state) {
+        if (state is SingleChatSendError) {
+          feedbackUi.showError(state.error);
+        }
+        if (state is SingleChatLoaded && state.isUpdate) {
+          context.read<SingleChatCubit>().markThreadAsRead();
+        }
+      },
+      builder: (context, state) {
+        if (state is SingleChatLoading) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (state is SingleChatError) {
+          return const Center(child: Text('Something went wrong'));
+        }
+        final messages = context.read<SingleChatCubit>().messages;
+        bool hide = context.read<SingleChatCubit>().hideStatus;
+        return Scaffold(
+          appBar: AppBar(
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(ContactService().getName(widget.address)),
+                Text(
+                  'SMS',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                ),
+              ],
             ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.call_outlined),
-            onPressed: int.tryParse(widget.address) == null
-                ? null
-                : () {
-                    _makePhoneCall(widget.address);
-                  },
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.call_outlined),
+                onPressed: int.tryParse(widget.address) == null
+                    ? null
+                    : () {
+                        _makePhoneCall(widget.address);
+                      },
+              ),
+              IconButton(
+                icon: const Icon(Icons.more_vert),
+                onPressed: () {
+                  // TODO: Implement more options
+                },
+              ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.more_vert),
-            onPressed: () {
-              // TODO: Implement more options
-            },
-          ),
-        ],
-      ),
-      body: BlocConsumer<SingleChatCubit, SingleChatState>(
-        listener: (context, state) {
-          if (state is SingleChatSendError) {
-            feedbackUi.showError(state.error);
-          }
-          if (state is SingleChatLoaded && state.isUpdate) {
-            context.read<SingleChatCubit>().markThreadAsRead();
-          }
-        },
-        builder: (context, state) {
-          if (state is SingleChatLoading) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (state is SingleChatError) {
-            return const Center(child: Text('Something went wrong'));
-          }
-          final messages = context.read<SingleChatCubit>().messages;
-          bool hide = context.read<SingleChatCubit>().hideStatus;
-          
-          return Column(
+          body: Column(
             children: [
               messages.isEmpty
                   ? Expanded(
@@ -181,7 +183,10 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> with Widget
                                     crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
                                       Text(
-                                        hide? RedactService.redactBalances(message.body, message.address): message.body,
+                                        hide
+                                            ? RedactService.redactBalances(
+                                                message.body, message.address)
+                                            : message.body,
                                         style: TextStyle(
                                           color: isSent
                                               ? Theme.of(context)
@@ -218,136 +223,149 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> with Widget
                         },
                       ),
                     ),
-              AppChat.supportsReplies(widget.address)? Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  
-                ),
-                child: SafeArea(
-                  child: FutureBuilder<AppSimCardState>(
-                    future: _simState,
-                    builder: (context, sn) {
-                      // 1. Setup State Variables
-                      final bool isLoading =
-                          sn.connectionState == ConnectionState.waiting;
-                     
-                      final bool hasData =
-                          sn.hasData && sn.data!.allCards.isNotEmpty;
+              AppChat.supportsReplies(widget.address)
+                  ? Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                      ),
+                      child: SafeArea(
+                        child: FutureBuilder<AppSimCardState>(
+                          future: _simState,
+                          builder: (context, sn) {
+                            // 1. Setup State Variables
+                            final bool isLoading =
+                                sn.connectionState == ConnectionState.waiting;
 
-                      final simCardState = sn.data;
-                      final defaultSim = hasData
-                          ? simCardState!.allCards
-                              .where(
-                                (sim) =>
-                                    int.tryParse(sim.slotIndex.toString()) ==
-                                    simCardState.defaultCard,
-                              )
-                              .firstOrNull
-                          : null;
+                            final bool hasData =
+                                sn.hasData && sn.data!.allCards.isNotEmpty;
 
-                      // 2. Return a consistent Row structure
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment
-                            .end, // Aligns items to bottom as text grows
-                        children: [
-                          // --- SIM SELECTOR SECTION ---
-                          SizedBox(
-                            width: 48,
-                            height: 48,
-                            child: _buildSimSlot(
-                              isLoading: isLoading,
-                              hasData: hasData,
-                              simCardState: simCardState,
-                              defaultSim: defaultSim,
-                            ),
-                          ),
+                            final simCardState = sn.data;
+                            final defaultSim = hasData
+                                ? simCardState!.allCards
+                                    .where(
+                                      (sim) =>
+                                          int.tryParse(
+                                              sim.slotIndex.toString()) ==
+                                          simCardState.defaultCard,
+                                    )
+                                    .firstOrNull
+                                : null;
 
-                          const SizedBox(width: 8),
-
-                          // --- TEXT FIELD SECTION ---
-                          Expanded(
-                            child: TextField(
-                              controller: _messageController,
-                              maxLines: 5,
-                              minLines: 1,
-                              // Disable input if loading or if no SIM cards are available
-                              enabled: !isLoading && hasData,
-                              onChanged: (value) => setState(() {}),
-                              textCapitalization: TextCapitalization.sentences,
-                              decoration: InputDecoration(
-                                hintText: isLoading
-                                    ? 'Checking SIMs...'
-                                    : (hasData ? 'Message' : 'No SIM detected'),
-                                contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 20, vertical: 10),
-                                filled: true,
-                                fillColor: Theme.of(context)
-                                    .colorScheme
-                                    .surfaceContainerHighest,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(28),
-                                  borderSide: BorderSide.none,
-                                ),
-                                suffixIcon: Padding(
-                                  padding: const EdgeInsets.only(right: 4),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      IconButton.filled(
-                                        onPressed: (isLoading ||
-                                                !hasData ||
-                                                _messageController
-                                                    .text.isEmpty ||
-                                                (state is SingleChatSending))
-                                            ? null
-                                            : () => _sendMessage(),
-                                        icon: (state is SingleChatSending)
-                                            ? const SizedBox(
-                                                width: 18,
-                                                height: 18,
-                                                child:
-                                                    CircularProgressIndicator(
-                                                        strokeWidth: 2,
-                                                        color: Colors.white),
-                                              )
-                                            : const Icon(Icons.arrow_upward),
-                                      ),
-                                    ],
+                            return Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                SizedBox(
+                                  width: 48,
+                                  height: 48,
+                                  child: _buildSimSlot(
+                                    isLoading: isLoading,
+                                    hasData: hasData,
+                                    simCardState: simCardState,
+                                    defaultSim: defaultSim,
                                   ),
                                 ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-              ): const SizedBox(height: 50,)
-            ],
-          );
-        },
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      floatingActionButton:  RedactService.isMonitored(widget.address)? BlocBuilder<SingleChatCubit, SingleChatState>(
-        builder: (context, state) {
 
-          bool hide = context.read<SingleChatCubit>().hideStatus;
-          return Padding(
-              padding: const EdgeInsets.only(bottom: 50),
-              child: FloatingActionButton.small(
-                    heroTag: 'Toggle Hide',
-                    onPressed: () {
-                      context.read<SingleChatCubit>().toggleHide();
-                    },
-                    child:  Icon(hide? Icons.visibility_off_outlined: Icons.visibility_outlined ),
-                  ),
-            );
-        },
-      ):null,
+                                const SizedBox(width: 8),
+
+                                // --- TEXT FIELD SECTION ---
+                                Expanded(
+                                  child: TextField(
+                                    controller: _messageController,
+                                    maxLines: 5,
+                                    minLines: 1,
+                                    // Disable input if loading or if no SIM cards are available
+                                    enabled: !isLoading && hasData,
+                                    onChanged: (value) => setState(() {}),
+                                    textCapitalization:
+                                        TextCapitalization.sentences,
+                                    decoration: InputDecoration(
+                                      hintText: isLoading
+                                          ? 'Checking SIMs...'
+                                          : (hasData
+                                              ? 'Message'
+                                              : 'No SIM detected'),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                              horizontal: 20, vertical: 10),
+                                      filled: true,
+                                      fillColor: Theme.of(context)
+                                          .colorScheme
+                                          .surfaceContainerHighest,
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(28),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                      suffixIcon: Padding(
+                                        padding:
+                                            const EdgeInsets.only(right: 4),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            IconButton.filled(
+                                              onPressed: (isLoading ||
+                                                      !hasData ||
+                                                      _messageController
+                                                          .text.isEmpty ||
+                                                      (state
+                                                          is SingleChatSending))
+                                                  ? null
+                                                  : () => _sendMessage(),
+                                              icon: (state is SingleChatSending)
+                                                  ? const SizedBox(
+                                                      width: 18,
+                                                      height: 18,
+                                                      child:
+                                                          CircularProgressIndicator(
+                                                              strokeWidth: 2,
+                                                              color:
+                                                                  Colors.white),
+                                                    )
+                                                  : const Icon(
+                                                      Icons.arrow_upward),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                    )
+                  : const SizedBox(
+                      height: 50,
+                    )
+            ],
+          ),
+          floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+          floatingActionButton: RedactService.isMonitored(widget.address)
+              ? BlocBuilder<SingleChatCubit, SingleChatState>(
+                  builder: (context, state) {
+                    bool hide = context.read<SingleChatCubit>().hideStatus;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 50),
+                      child: FloatingActionButton.small(
+                        heroTag: 'Toggle Hide',
+                        onPressed: () {
+                          context.read<SingleChatCubit>().toggleHide();
+                        },
+                        child: Icon(hide
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined),
+                      ),
+                    );
+                  },
+                )
+              : null,
+        );
+      },
     );
   }
 
@@ -425,8 +443,6 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> with Widget
     );
   }
 
-
-
   void showDefaultSmsDialog() {
     showDialog(
       context: context,
@@ -439,7 +455,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView> with Widget
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Not Now'),
+            child: const Text('Not Now '),
           ),
           FilledButton(
             onPressed: () {
