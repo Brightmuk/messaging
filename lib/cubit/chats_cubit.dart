@@ -62,21 +62,28 @@ class ChatsCubit extends Cubit<ChatsState> {
   await loadChats(showLoading: false);
 }
 
-Future<void> archiveMultipleChats(Iterable<String> threadIds) async {
+Future<void> archiveChats(Iterable<String> threadIds) async {
   for (var id in threadIds) {
-    // Ensure your SmsService has an archiveThread method
-    // await _smsService.archiveThread(id); 
+     _smsService.markThreadAsArchived(id, true); 
   }
   await loadChats(showLoading: false);
 }
 
-Future<void> pinMultipleChats(Iterable<String> threadIds) async {
+Future<void> pinChats(Iterable<String> threadIds,) async {
   for (var id in threadIds) {
-    // Ensure your SmsService has a pinThread method
-    // await _smsService.pinThread(id);
+    await _smsService.markThreadAsPinned(id, true);
   }
   await loadChats(showLoading: false);
 }
+Future<void> unpinChat(String threadId) async {
+  await _smsService.markThreadAsPinned(threadId, false);
+  await loadChats(showLoading: false);
+}
+Future<void> unArchiveChat(String threadId) async {
+  await _smsService.markThreadAsArchived(threadId, false);
+  await loadChats(showLoading: false);
+}
+
 
   @override
   Future<void> close() {

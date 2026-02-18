@@ -160,6 +160,12 @@ class SmsService {
       return false;
     }
   }
+  Future<void> markThreadAsPinned(String threadId, bool isPinned) async {
+    await _dbHelper.markThreadAsPinned(threadId, isPinned);
+  }
+  Future<void> markThreadAsArchived(String threadId, bool isArchived) async {
+    await _dbHelper.markThreadAsArchived(threadId, isArchived);
+  }
 
   void _onMessageReceived(SmsMessage message) async {
     final threadId = await getThreadId(message.address);

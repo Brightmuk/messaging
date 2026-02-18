@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:another_telephony/telephony.dart' as tel;
@@ -21,10 +22,20 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createDB,
+      onUpgrade:  _onUpgrade,
     );
   }
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+  if (oldVersion < 2) {
+    // SQLite requires separate statements for each column
+    await db.execute('ALTER TABLE chats ADD COLUMN isPinned INTEGER DEFAULT 0');
+    await db.execute('ALTER TABLE chats ADD COLUMN isArchived INTEGER DEFAULT 0');
+    
+    debugPrint("Database upgraded from $oldVersion to $newVersion");
+  }
+}
 
   Future<void> _createDB(Database db, int version) async {
     // 1. Messages table with an index on threadId for faster chat loading
@@ -47,6 +58,8 @@ class DatabaseHelper {
         address TEXT NOT NULL,
         lastMessage TEXT,
         lastMessageDate INTEGER,
+        isArchived INTEGER DEFAULT 0,
+        isPinned INTEGER DEFAULT 0,
         unreadCount INTEGER DEFAULT 0
       )
     ''');
@@ -140,7 +153,9 @@ class DatabaseHelper {
     final db = await database;
     final result = await db.query(
       'chats',
-      orderBy: 'lastMessageDate DESC',
+      where: 'isArchived = ?',
+      whereArgs: [0],
+      orderBy: 'isPinned DESC, lastMessageDate DESC',
     );
     return result.map((json) => AppChat.fromMap(json)).toList();
   }
@@ -153,6 +168,14 @@ class DatabaseHelper {
       await txn.update('messages', {'read': 1}, where: 'threadId = ?', whereArgs: [threadId]);
       await txn.update('chats', {'unreadCount': 0}, where: 'threadId = ?', whereArgs: [threadId]);
     });
+  }
+  Future<void> markThreadAsArchived(String threadId, bool isArchived) async {
+    final db = await database;
+    await db.update('chats', {'isArchived': isArchived ? 1 : 0}, where: 'threadId = ?', whereArgs: [threadId]);
+  }
+  Future<void> markThreadAsPinned(String threadId, bool isPinned) async {
+    final db = await database;
+    await db.update('chats', {'isPinned': isPinned ? 1 : 0}, where: 'threadId = ?', whereArgs: [threadId]);
   }
 
   Future<void> deleteThread(String threadId) async {

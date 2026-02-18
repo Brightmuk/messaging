@@ -58,6 +58,8 @@ class AppChat {
   final String? lastMessage;
   final int? lastMessageDate;
   final int unreadCount;
+  final bool isPinned;
+  final bool isArchived;
 
   AppChat({
     required this.threadId,
@@ -65,6 +67,8 @@ class AppChat {
     this.lastMessage,
     this.lastMessageDate,
     this.unreadCount = 0,
+    this.isPinned = false,
+    this.isArchived = false,
   });
 
   bool isSameThread(String? newThreadId, String newAddress) {
@@ -93,6 +97,8 @@ class AppChat {
       'lastMessage': lastMessage,
       'lastMessageDate': lastMessageDate,
       'unreadCount': unreadCount,
+      'isPinned': isPinned ? 1 : 0,
+      'isArchived': isArchived ? 1 : 0,
     };
   }
 
@@ -105,6 +111,8 @@ class AppChat {
       lastMessageDate:
           map['lastMessageDate'] != null ? map['lastMessageDate'] as int : null,
       unreadCount: map['unreadCount'] as int,
+      isPinned: (map['isPinned'] as int?) == 1,
+      isArchived: (map['isArchived'] as int?) == 1,
     );
   }
 

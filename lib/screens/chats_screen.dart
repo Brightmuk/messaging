@@ -138,10 +138,10 @@ bool _isAllSelected(List<dynamic> chats) {
                   actions: _isSelectionMode
                       ? [
                           IconButton(
-                            icon: const Icon(Icons.push_pin_outlined),
+                            icon:  Icon(_selectedThreadIds.length == 1 && context.read<ChatsCubit>().chats.firstWhere((chat) => chat.threadId == _selectedThreadIds.first).isPinned ? Icons.push_pin : Icons.push_pin_outlined),
                             onPressed: () async {
                               final count = _selectedThreadIds.length;
-                              await context.read<ChatsCubit>().pinMultipleChats(_selectedThreadIds);
+                              await context.read<ChatsCubit>().pinChats(_selectedThreadIds);
                               _clearSelection();
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
@@ -154,7 +154,7 @@ bool _isAllSelected(List<dynamic> chats) {
                             icon: const Icon(Icons.archive_outlined),
                             onPressed: () async {
                               final count = _selectedThreadIds.length;
-                              await context.read<ChatsCubit>().archiveMultipleChats(_selectedThreadIds);
+                              await context.read<ChatsCubit>().archiveChats(_selectedThreadIds);
                               _clearSelection();
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
@@ -227,8 +227,14 @@ bool _isAllSelected(List<dynamic> chats) {
                           ),
                         )
                 else
-                  const SliverFillRemaining(
-                      child: Center(child: Text('Something went wrong'))),
+                   SliverFillRemaining(
+                      child: Center(child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.error_outline, size: 30,color: theme.colorScheme.tertiaryContainer,),
+                          Text('Something went wrong'),
+                        ],
+                      ))),
               ],
             ),
           );
@@ -293,19 +299,32 @@ bool _isAllSelected(List<dynamic> chats) {
                 children: [
                   CircleAvatar(
                     radius: 28,
-                    backgroundColor: isSelected
-                        ? theme.colorScheme.primary
-                        : (hasUnread
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.surfaceContainerHighest),
-                    child: isSelected
+                    backgroundColor: isSelected 
+                        ? theme.colorScheme.primary 
+                        : (hasUnread ? theme.colorScheme.primary : theme.colorScheme.surfaceContainerHighest),
+                    child: isSelected 
                         ? Icon(Icons.check, color: theme.colorScheme.onPrimary)
-                        : prefix(
-                            chat.address,
-                            hasUnread
-                                ? theme.colorScheme.onPrimary
-                                : theme.colorScheme.onSurfaceVariant),
+                        : prefix(chat.address, hasUnread ? theme.colorScheme.onPrimary : theme.colorScheme.onSurfaceVariant),
                   ),
+                  // Show a small pin badge if the chat is pinned
+                  if (chat.isPinned && !isSelected)
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surface,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: theme.colorScheme.outlineVariant, width: 1),
+                        ),
+                        child: Icon(
+                          Icons.push_pin,
+                          size: 12,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ),
                 ],
               ),
               const SizedBox(width: 16),

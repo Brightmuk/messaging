@@ -68,6 +68,12 @@ class _PermissionsScreenState extends State<PermissionsScreen>  with WidgetsBind
                         onTap: () => context.read<PermissionsCubit>().request(Permission.notification),
                       ),
                       _PermissionTile(
+                        title: 'Phone',
+                        subtitle: 'Required for controlling Sim cards',
+                        status: state.statuses[Permission.phone],
+                        onTap: () => context.read<PermissionsCubit>().request(Permission.phone),
+                      ),
+                      _PermissionTile(
                         title: 'Default SMS App',
                         subtitle: 'Necessary to handle system messaging',
                         isGrantedOverride: state.isDefaultApp,

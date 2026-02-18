@@ -13,10 +13,12 @@ class AppStartupCubit extends Cubit<AppStartupState> {
     var smsStatus = await Permission.sms.status;
     var contactsStatus = await Permission.contacts.status;
     var notificationStatus = await Permission.notification.status;
+    var phoneStatus = await Permission.phone.status;
     
 
     return smsStatus.isGranted &&
         contactsStatus.isGranted &&
+        phoneStatus.isGranted &&
         notificationStatus.isGranted;
   }
  
