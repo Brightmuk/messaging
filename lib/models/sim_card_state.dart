@@ -15,9 +15,9 @@ class AppSimCardState {
     
     switch (carrier) {
       case "Safaricom":
-        return Colors.green;
+        return Color(0xFF48BF84);
       case "Airtel":
-        return Colors.red;
+        return Color(0xFFED4D6E);
       case "Telkom":
         return Colors.blueAccent;
       default:

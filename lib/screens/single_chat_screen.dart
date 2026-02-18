@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:messaging/core/feedback_ui.dart';
 import 'package:messaging/core/utils/date_formatter.dart';
+import 'package:messaging/cubit/sim_card_cubit.dart';
 import 'package:messaging/cubit/single_chat_cubit.dart';
 import 'package:messaging/models/sim_card_state.dart';
 import 'package:messaging/screens/select_contact_screen.dart';
@@ -11,6 +12,7 @@ import 'package:messaging/services/contact_service.dart';
 import 'package:messaging/services/notification_service.dart';
 import 'package:messaging/services/redact_service.dart';
 import 'package:messaging/services/sms_service.dart';
+import 'package:provider/provider.dart';
 import 'package:sim_card_info/sim_info.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/sms_message.dart';
@@ -24,8 +26,11 @@ class SingleChatScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-        create: (c) => SingleChatCubit(threadId),
+    return MultiProvider(
+      providers: [
+        BlocProvider(create: (c) => SimCardCubit()),
+        BlocProvider(create: (c) => SingleChatCubit(threadId)),
+      ],
         child: SingleChatScreenView(threadId: threadId, address: address, initialMessage: initialMessage,));
   }
 }
@@ -51,7 +56,6 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final telephony = Telephony.instance;
-  Future<AppSimCardState> _simState = SmsService().getSimState();
   final Set<AppSmsMessage> _selectedMessages = {};
   bool get _isSelectionMode => _selectedMessages.isNotEmpty;
 
@@ -182,27 +186,22 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                         color: Theme.of(context).colorScheme.surface,
                       ),
                       child: SafeArea(
-                        child: FutureBuilder<AppSimCardState>(
-                          future: _simState,
-                          builder: (context, sn) {
-                            // 1. Setup State Variables
-                            final bool isLoading =
-                                sn.connectionState == ConnectionState.waiting;
+                        child: BlocBuilder<SimCardCubit, SimCardState>(
+                          builder: (context, state) {
+                          
+                            final isLoading = state is SimCardInitial;
 
-                            final bool hasData =
-                                sn.hasData && sn.data!.allCards.isNotEmpty;
-
-                            final simCardState = sn.data;
-                            final defaultSim = hasData
-                                ? simCardState!.allCards
+                            final simCardState = state is SimCardLoaded ? state.state : null;
+                            final hasData = simCardState != null && simCardState.allCards.isNotEmpty;
+                            final defaultSim = simCardState?.allCards
                                     .where(
                                       (sim) =>
                                           int.tryParse(
                                               sim.slotIndex.toString()) ==
                                           simCardState.defaultCard,
                                     )
-                                    .firstOrNull
-                                : null;
+                                    .firstOrNull;
+                                
 
                             return Row(
                               crossAxisAlignment: CrossAxisAlignment.end,
@@ -212,7 +211,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                                   height: 48,
                                   child: _buildSimSlot(
                                     isLoading: isLoading,
-                                    hasData: hasData,
+                                    hasData: simCardState != null && simCardState.allCards.isNotEmpty,
                                     simCardState: simCardState,
                                     defaultSim: defaultSim,
                                   ),
@@ -276,7 +275,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                                                                   Colors.white),
                                                     )
                                                   : const Icon(
-                                                      Icons.arrow_upward),
+                                                      Icons.arrow_upward,color: Colors.white,),
                                             ),
                                           ],
                                         ),
@@ -498,12 +497,8 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
             Icons.sim_card_outlined,
             color: AppSimCardState.getSimcardColor(defaultSim?.carrierName),
           ),
-          onSelected: (int sim) {
-            setState(() {
-              _simState = SmsService()
-                  .setDefaultSim(sim)
-                  .then((v) => SmsService().getSimState());
-            });
+          onSelected: (int sim) async {
+            await context.read<SimCardCubit>().setDefaultSim(sim);
           },
           itemBuilder: (BuildContext context) {
             return simCardState.allCards.map<PopupMenuEntry<int>>((sim) {
