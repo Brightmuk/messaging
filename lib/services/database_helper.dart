@@ -22,20 +22,14 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 1,
       onCreate: _createDB,
       onUpgrade:  _onUpgrade,
     );
   }
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-  if (oldVersion < 2) {
-    // SQLite requires separate statements for each column
-    await db.execute('ALTER TABLE chats ADD COLUMN isPinned INTEGER DEFAULT 0');
-    await db.execute('ALTER TABLE chats ADD COLUMN isArchived INTEGER DEFAULT 0');
-    
-    debugPrint("Database upgraded from $oldVersion to $newVersion");
+
   }
-}
 
   Future<void> _createDB(Database db, int version) async {
     // 1. Messages table with an index on threadId for faster chat loading

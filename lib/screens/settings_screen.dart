@@ -1,8 +1,6 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:messaging/models/sim_card_state.dart';
-import 'package:messaging/services/notification_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/sms_service.dart';
@@ -231,7 +229,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '© ${DateTime.now().year} Brimukon Labs',
+                  '© ${DateTime.now().year} Proudly Kenyan',
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant.withOpacity(0.4),
                   ),
