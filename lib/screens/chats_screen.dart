@@ -14,7 +14,7 @@ import 'package:messaging/services/ads/native_ads_service.dart';
 import 'package:messaging/services/contact_service.dart';
 import 'package:messaging/services/notification_service.dart';
 import 'package:messaging/services/redact_service.dart';
-import 'new_message_screen.dart';
+import 'select_contact_screen.dart';
 
 class ChatsScreen extends StatelessWidget {
   const ChatsScreen({super.key});
@@ -264,7 +264,7 @@ bool _isAllSelected(List<dynamic> chats) {
           await Navigator.push(
               context,
               MaterialPageRoute(
-                  builder: (context) => const NewMessageScreen()));
+                  builder: (context) => const SelectContactScreen()));
           if (mounted) context.read<ChatsCubit>().loadChats();
         },
         icon: const Icon(Icons.edit_outlined),

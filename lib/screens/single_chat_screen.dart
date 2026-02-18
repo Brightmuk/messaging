@@ -6,6 +6,7 @@ import 'package:messaging/core/feedback_ui.dart';
 import 'package:messaging/core/utils/date_formatter.dart';
 import 'package:messaging/cubit/single_chat_cubit.dart';
 import 'package:messaging/models/sim_card_state.dart';
+import 'package:messaging/screens/select_contact_screen.dart';
 import 'package:messaging/services/contact_service.dart';
 import 'package:messaging/services/notification_service.dart';
 import 'package:messaging/services/redact_service.dart';
@@ -17,25 +18,28 @@ import '../models/sms_message.dart';
 class SingleChatScreen extends StatelessWidget {
   final String threadId;
   final String address;
+  final String? initialMessage; 
   const SingleChatScreen(
-      {super.key, required this.threadId, required this.address});
+      {super.key, required this.threadId, required this.address, this.initialMessage});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
         create: (c) => SingleChatCubit(threadId),
-        child: SingleChatScreenView(threadId: threadId, address: address));
+        child: SingleChatScreenView(threadId: threadId, address: address, initialMessage: initialMessage,));
   }
 }
 
 class SingleChatScreenView extends StatefulWidget {
   final String threadId;
   final String address;
+  final String? initialMessage;
 
   const SingleChatScreenView({
     super.key,
     required this.threadId,
     required this.address,
+    this.initialMessage,
   });
 
   @override
@@ -70,6 +74,9 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
   void initState() {
     super.initState();
     context.read<SingleChatCubit>().markThreadAsRead();
+      if (widget.initialMessage != null) {
+        _messageController.text = widget.initialMessage!;
+      }
     _clearNotifications();
   }
 
@@ -397,11 +404,14 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
               icon: const Icon(Icons.forward_to_inbox_outlined),
               onPressed: () {
                 final body = _selectedMessages.first.body;
-                setState(() => _selectedMessages.clear());
-                // Navigate to contacts screen to select recipient with message body pre-filled
-                // Navigator.push(context, MaterialPageRoute(
-                //   builder: (context) => NewMessageScreen(initialBody: body),
-                // ));
+                
+                
+                Navigator.push(context, MaterialPageRoute(
+                  builder: (context) => SelectContactScreen(
+                    isForwarding: true,
+                    forwardMessage: RedactService.redactBalances(body, _selectedMessages.first.address),
+                  ),
+                ));
               },
             ),
           IconButton(

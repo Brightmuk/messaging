@@ -6,14 +6,16 @@ import 'package:messaging/screens/single_chat_screen.dart';
 import 'package:messaging/services/sms_service.dart';
 
 
-class NewMessageScreen extends StatefulWidget {
-  const NewMessageScreen({super.key});
+class SelectContactScreen extends StatefulWidget {
+  final bool isForwarding;
+  final String? forwardMessage;
+  const SelectContactScreen({super.key, this.isForwarding = false, this.forwardMessage});
 
   @override
-  State<NewMessageScreen> createState() => _NewMessageScreenState();
+  State<SelectContactScreen> createState() => _SelectContactScreenState();
 }
 
-class _NewMessageScreenState extends State<NewMessageScreen> {
+class _SelectContactScreenState extends State<SelectContactScreen> {
   final TextEditingController _phoneController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   
@@ -67,12 +69,14 @@ class _NewMessageScreenState extends State<NewMessageScreen> {
 
   void _navigateToChat(String address)async {
     String? threadId = await SmsService().getThreadId(address); 
+    Navigator.pop(context); // Close the select contact screen before navigating
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (context) => SingleChatScreen(
           threadId: threadId,
           address: address,
+          initialMessage: widget.isForwarding ? widget.forwardMessage : null,
         ),
       ),
     );
@@ -86,7 +90,7 @@ class _NewMessageScreenState extends State<NewMessageScreen> {
     final isNumber = RegExp(r'^[0-9+\-() ]+$').hasMatch(query);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('New Message'), centerTitle: false),
+      appBar: AppBar(title:  Text(widget.isForwarding ? 'Forward Message' : 'New Message'), centerTitle: false),
       body: Form(
         key: _formKey,
         child: Column(
