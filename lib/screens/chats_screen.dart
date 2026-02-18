@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:messaging/core/user_defaults.dart';
@@ -26,39 +27,71 @@ class ChatsScreen extends StatelessWidget {
   }
 }
 
-class ChatsView extends StatefulWidget with WidgetsBindingObserver{
+class ChatsView extends StatefulWidget with WidgetsBindingObserver {
   const ChatsView({super.key});
 
   @override
   State<ChatsView> createState() => _ChatsViewState();
 }
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-     _clearNotifications();
-    }
+
+@override
+void didChangeAppLifecycleState(AppLifecycleState state) {
+  if (state == AppLifecycleState.resumed) {
+    _clearNotifications();
   }
-  void _clearNotifications() {
-    NotificationService().removeNotifications();
-  }
+}
+
+void _clearNotifications() {
+  NotificationService().removeNotifications();
+}
 
 class _ChatsViewState extends State<ChatsView> {
   NativeAd? _myLoadedNativeAd;
   bool _isAdLoaded = false;
   bool _isAdLoading = false;
+  Set<String> _selectedThreadIds = {}; // Stores IDs of selected chats
+  bool get _isSelectionMode => _selectedThreadIds.isNotEmpty;
+
+  void _toggleSelection(String threadId) {
+    HapticFeedback.mediumImpact();
+    setState(() {
+      if (_selectedThreadIds.contains(threadId)) {
+        _selectedThreadIds.remove(threadId);
+      } else {
+        _selectedThreadIds.add(threadId);
+      }
+    });
+  }
+
+  void _clearSelection() {
+    setState(() {
+      _selectedThreadIds.clear();
+    });
+  }
+  void _selectAll(List<dynamic> chats) {
+  setState(() {
+    _selectedThreadIds = chats.map((chat) => chat.threadId as String).toSet();
+  });
+}
+
+// Check if everything is already selected to toggle the icon
+bool _isAllSelected(List<dynamic> chats) {
+  return _selectedThreadIds.length == chats.length && chats.isNotEmpty;
+}
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-   if (!_isAdLoaded && !_isAdLoading) {
+    if (!_isAdLoaded && !_isAdLoading) {
       _loadNativeAd();
     }
   }
 
-void _loadNativeAd() async {
+  void _loadNativeAd() async {
     _isAdLoading = true;
 
-   await NativeAdService.loadNativeAd(
-      context, 
+    await NativeAdService.loadNativeAd(
+      context,
       onAdLoaded: (loadedAd) {
         if (!mounted) {
           loadedAd.dispose();
@@ -72,15 +105,17 @@ void _loadNativeAd() async {
       },
     );
   }
+
   @override
   void dispose() {
     _myLoadedNativeAd?.dispose();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       body: BlocBuilder<ChatsCubit, ChatsState>(
         builder: (context, state) {
@@ -90,48 +125,110 @@ void _loadNativeAd() async {
               slivers: [
                 // 1. M3 Large App Bar
                 SliverAppBar.medium(
-                  title: const Text('Messages'),
-                  actions: [
-                    IconButton(
-                      icon: const Icon(Icons.settings_outlined),
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const SettingsScreen()),
-                      ),
-                    ),
-                  ],
+                  // If in selection mode, show "X selected", else show "Messages"
+                  title: Text(_isSelectionMode
+                      ? '${_selectedThreadIds.length} selected'
+                      : 'Messages'),
+                  leading: _isSelectionMode
+                      ? IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: _clearSelection,
+                        )
+                      : null,
+                  actions: _isSelectionMode
+                      ? [
+                          IconButton(
+                            icon: const Icon(Icons.push_pin_outlined),
+                            onPressed: () async {
+                              final count = _selectedThreadIds.length;
+                              await context.read<ChatsCubit>().pinMultipleChats(_selectedThreadIds);
+                              _clearSelection();
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('$count chats pinned')),
+                                );
+                              }
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.archive_outlined),
+                            onPressed: () async {
+                              final count = _selectedThreadIds.length;
+                              await context.read<ChatsCubit>().archiveMultipleChats(_selectedThreadIds);
+                              _clearSelection();
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('$count chats archived')),
+                                );
+                              }
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline),
+                            onPressed: () =>
+                                _deleteSelectedChats(), // Updated bulk delete
+                          ),
+                         
+                          (state is ChatsLoaded && state.chats.isNotEmpty)?
+                          IconButton(
+                              icon: Icon(_isAllSelected(state.chats) ? Icons.playlist_remove_outlined : Icons.playlist_add_check_outlined),
+                              onPressed: () {
+                                if (_isAllSelected(state.chats)) {
+                                  _clearSelection();
+                                } else {
+                                  _selectAll(state.chats);
+                                }
+                              },
+                            ): const SizedBox.shrink(),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline),
+                              onPressed: () => _deleteSelectedChats(),
+                            ),
+                        ]
+                      : [
+                          IconButton(
+                            icon: const Icon(Icons.settings_outlined),
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => const SettingsScreen()),
+                            ),
+                          ),
+                        ],
                 ),
-                
+
                 if (state is ChatsLoading)
-                 const SliverFillRemaining(child: ChatsLoadingWidget())
-              else if (state is ChatsLoaded)
-                state.chats.isEmpty
-                    ? const SliverFillRemaining(child: ChatsLoadingWidget(isEmptyState: true))
-                    : 
-                    
-              SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    // 1. Show the ad at the specific position
-                    if (index == 6) {
-                      return _buildNativeAdTile();
-                    }
+                  const SliverFillRemaining(child: ChatsLoadingWidget())
+                else if (state is ChatsLoaded)
+                  state.chats.isEmpty
+                      ? const SliverFillRemaining(
+                          child: ChatsLoadingWidget(isEmptyState: true))
+                      : SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              // 1. Show the ad at the specific position
+                              if (index == 6) {
+                                return _buildNativeAdTile();
+                              }
 
-                    // 2. Calculate the chat index
-                    // If we are past the ad, subtract 1 to "stay on track" with the list
-                    final int chatIndex = index > 6 ? index - 1 : index;
+                              // 2. Calculate the chat index
+                              // If we are past the ad, subtract 1 to "stay on track" with the list
+                              final int chatIndex =
+                                  index > 6 ? index - 1 : index;
 
-                    // 3. Safety check for list bounds
-                    if (chatIndex >= state.chats.length) return null;
+                              // 3. Safety check for list bounds
+                              if (chatIndex >= state.chats.length) return null;
 
-                    return _buildChatTile(state.chats[chatIndex], theme);
-                  },
-                  // 4. Important: itemCount is chats + 1 (for the single ad)
-                  childCount: state.chats.length + 1,
-                ),
-              )
-              else
-                const SliverFillRemaining(child: Center(child: Text('Something went wrong'))),
+                              return _buildChatTile(
+                                  state.chats[chatIndex], theme);
+                            },
+                            // 4. Important: itemCount is chats + 1 (for the single ad)
+                            childCount: state.chats.length + 1,
+                          ),
+                        )
+                else
+                  const SliverFillRemaining(
+                      child: Center(child: Text('Something went wrong'))),
               ],
             ),
           );
@@ -140,9 +237,11 @@ void _loadNativeAd() async {
       // 3. M3 Floating Action Button
       floatingActionButton: FloatingActionButton.extended(
         label: const Text('New'),
-
         onPressed: () async {
-          await Navigator.push(context, MaterialPageRoute(builder: (context) => const NewMessageScreen()));
+          await Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => const NewMessageScreen()));
           if (mounted) context.read<ChatsCubit>().loadChats();
         },
         icon: const Icon(Icons.edit_outlined),
@@ -151,46 +250,85 @@ void _loadNativeAd() async {
   }
 
   Widget _buildChatTile(dynamic chat, ThemeData theme) {
+    final bool isSelected = _selectedThreadIds.contains(chat.threadId);
     final bool hasUnread = chat.unreadCount > 0;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: () => Navigator.push(context, MaterialPageRoute(
-          builder: (context) => SingleChatScreen(threadId: chat.threadId, address: chat.address),
-        )),
-        onLongPress: () => _deleteChat(chat.threadId),
-        child: Container(
+        onTap: () {
+          if (_isSelectionMode) {
+            _toggleSelection(chat.threadId);
+          } else {
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => SingleChatScreen(
+                      threadId: chat.threadId, address: chat.address),
+                ));
+          }
+        },
+        onLongPress: () {
+          if (!_isSelectionMode) {
+            _toggleSelection(chat.threadId);
+          }
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            // Use tonal color for unread messages
-            color: hasUnread ? theme.colorScheme.primaryContainer.withOpacity(0.3) : Colors.transparent,
+            // If selected, use a strong primary container tint
+            color: isSelected
+                ? theme.colorScheme.primaryContainer
+                : (hasUnread
+                    ? theme.colorScheme.primaryContainer.withAlpha(100)
+                    : Colors.transparent),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Row(
             children: [
               // M3 Tonal Avatar
-              CircleAvatar(
-                radius: 28,
-                backgroundColor: hasUnread ? theme.colorScheme.primary : theme.colorScheme.surfaceContainerHighest,
-                child: prefix(chat.address, hasUnread ? theme.colorScheme.onPrimary : theme.colorScheme.onSurfaceVariant),
+              Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 28,
+                    backgroundColor: isSelected
+                        ? theme.colorScheme.primary
+                        : (hasUnread
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.surfaceContainerHighest),
+                    child: isSelected
+                        ? Icon(Icons.check, color: theme.colorScheme.onPrimary)
+                        : prefix(
+                            chat.address,
+                            hasUnread
+                                ? theme.colorScheme.onPrimary
+                                : theme.colorScheme.onSurfaceVariant),
+                  ),
+                ],
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                   
-                    ContactNameText(unread: hasUnread, rawAddress: chat.address, contactStream: ContactService().contactStream),
+                    ContactNameText(
+                        unread: hasUnread,
+                        rawAddress: chat.address,
+                        contactStream: ContactService().contactStream),
                     const SizedBox(height: 4),
                     Text(
-                      RedactService.redactBalances(chat.lastMessage ?? '', chat.address),
-                      
+                      RedactService.redactBalances(
+                          chat.lastMessage ?? '', chat.address),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: hasUnread ? theme.colorScheme.onSurface : theme.colorScheme.outline,
+                        color: isSelected
+                            ? theme.colorScheme.onPrimaryContainer
+                            : (hasUnread
+                                ? theme.colorScheme.onSurface
+                                : theme.colorScheme.outline),
                       ),
                     ),
                   ],
@@ -202,7 +340,9 @@ void _loadNativeAd() async {
                   Text(
                     formatDate(chat.lastMessageDate),
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: hasUnread ? theme.colorScheme.primary : theme.colorScheme.outline,
+                      color: hasUnread
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.outline,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -219,58 +359,62 @@ void _loadNativeAd() async {
       ),
     );
   }
+
   Widget _buildNativeAdTile() {
+    return FutureBuilder<bool>(
+        future: UserDefaults.getAdsRemoved(),
+        builder: (context, asyncSnapshot) {
+          if ((asyncSnapshot.hasData && asyncSnapshot.data == true) ||
+              _myLoadedNativeAd == null ||
+              !_isAdLoaded) {
+            return const SizedBox.shrink();
+          }
 
-  return FutureBuilder<bool>(
-    future: UserDefaults.getAdsRemoved(),
-    builder: (context, asyncSnapshot) {
-      if ((asyncSnapshot.hasData && asyncSnapshot.data == true) || _myLoadedNativeAd == null || !_isAdLoaded) {
-        return const SizedBox.shrink();
-      }
-      
-      return Container(
-        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-        height: 80, 
-        decoration: BoxDecoration(
-          color: Colors.grey[100],
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: AdWidget(ad: _myLoadedNativeAd!), 
-        ),
-      );
-    }
-  );
-}
-
-
+          return Container(
+            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            height: 80,
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: AdWidget(ad: _myLoadedNativeAd!),
+            ),
+          );
+        });
+  }
 
   Widget prefix(String address, Color color) {
     if (address.startsWith(RegExp(r'[a-zA-Z]')) && address.isNotEmpty) {
-      return Text(address[0].toUpperCase(), style: TextStyle(color: color, fontWeight: FontWeight.bold));
+      return Text(address[0].toUpperCase(),
+          style: TextStyle(color: color, fontWeight: FontWeight.bold));
     }
     return Icon(Icons.person_outline, color: color);
   }
 
-  Future<void> _deleteChat(String threadId) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        icon: const Icon(Icons.delete_outline),
-        title: const Text('Delete Chat'),
-        content: const Text('This will remove the conversation history.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Keep')),
-          FilledButton.tonal(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
-        ],
-      ),
-    );
+Future<void> _deleteSelectedChats() async {
+  final count = _selectedThreadIds.length;
+  final confirm = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      icon: const Icon(Icons.delete_outline),
+      title: Text('Delete $count ${count == 1 ? 'chat' : 'chats'}?'),
+      content: const Text('This will remove these conversations from your device.'),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+        FilledButton.tonal(
+          onPressed: () => Navigator.pop(context, true), 
+          child: const Text('Delete'),
+        ),
+      ],
+    ),
+  );
 
-    if (confirm == true && mounted) {
-      context.read<ChatsCubit>().deleteChat(threadId);
-    }
+  if (confirm == true && mounted) {
+    // Call the Cubit bulk delete instead of a local loop
+    await context.read<ChatsCubit>().deleteMultipleChats(_selectedThreadIds);
+    _clearSelection();
   }
-
-
+}
 }
