@@ -48,8 +48,30 @@ class AppSmsMessage {
   bool get isReceived => type == 1;
   @override
   bool operator ==(Object other) {
-    return super == other;
+    if (identical(this, other)) return true;
+
+    return other is AppSmsMessage &&
+        other.id == id &&
+        other.address == address &&
+        other.body == body &&
+        other.date == date &&
+        other.type == type &&
+        other.threadId == threadId &&
+        other.read == read;
   }
+
+  @override
+  int get hashCode {
+    return id.hashCode ^
+        address.hashCode ^
+        body.hashCode ^
+        date.hashCode ^
+        type.hashCode ^
+        threadId.hashCode ^
+        read.hashCode;
+  
+  }
+ 
 }
 
 class AppChat {

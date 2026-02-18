@@ -1,5 +1,6 @@
 import 'package:another_telephony/telephony.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:messaging/core/feedback_ui.dart';
 import 'package:messaging/core/utils/date_formatter.dart';
@@ -47,6 +48,23 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
   final ScrollController _scrollController = ScrollController();
   final telephony = Telephony.instance;
   Future<AppSimCardState> _simState = SmsService().getSimState();
+  final Set<AppSmsMessage> _selectedMessages = {};
+  bool get _isSelectionMode => _selectedMessages.isNotEmpty;
+
+// Search State
+  bool _isSearching = false;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  void _toggleSelection(AppSmsMessage message) {
+    setState(() {
+      if (_selectedMessages.contains(message)) {
+        _selectedMessages.remove(message);
+      } else {
+        _selectedMessages.add(message);
+      }
+    });
+  }
 
   @override
   void initState() {
@@ -87,43 +105,25 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
       },
       builder: (context, state) {
         if (state is SingleChatLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return  Scaffold(
+            appBar: AppBar(),
+            body: const Center(child: CircularProgressIndicator()),
+          );
         } else if (state is SingleChatError) {
-          return const Center(child: Text('Something went wrong'));
+          return Scaffold(
+            appBar: AppBar(),
+            body: const Center(child: Text("Error loading messages")),
+          );
         }
-        final messages = context.read<SingleChatCubit>().messages;
+        final allMessages = context.read<SingleChatCubit>().messages;
+
+        // Filter messages based on search
+        final messages = allMessages.where((m) {
+          return m.body.toLowerCase().contains(_searchQuery);
+        }).toList();
         bool hide = context.read<SingleChatCubit>().hideStatus;
         return Scaffold(
-          appBar: AppBar(
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(ContactService().getName(widget.address)),
-                Text(
-                  'SMS',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.outline,
-                      ),
-                ),
-              ],
-            ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.call_outlined),
-                onPressed: int.tryParse(widget.address) == null
-                    ? null
-                    : () {
-                        _makePhoneCall(widget.address);
-                      },
-              ),
-              IconButton(
-                icon: const Icon(Icons.more_vert),
-                onPressed: () {
-                  // TODO: Implement more options
-                },
-              ),
-            ],
-          ),
+          appBar: _buildAppBar(messages),
           body: Column(
             children: [
               messages.isEmpty
@@ -149,76 +149,20 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                         itemBuilder: (context, index) {
                           final message = messages[index];
                           final isSent = message.isSent;
+                          final isSelected =
+                              _selectedMessages.contains(message);
                           final showDateSeparator =
                               _shouldShowDateSeparator(index, messages);
 
-                          return Column(
-                            children: [
-                              if (showDateSeparator)
-                                _buildDateSeparator(message.date),
-                              Align(
-                                alignment: isSent
-                                    ? Alignment.centerRight
-                                    : Alignment.centerLeft,
-                                child: Container(
-                                  margin: const EdgeInsets.only(bottom: 8),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 10,
-                                  ),
-                                  constraints: BoxConstraints(
-                                    maxWidth:
-                                        MediaQuery.of(context).size.width *
-                                            0.75,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: isSent
-                                        ? Theme.of(context).colorScheme.primary
-                                        : Theme.of(context)
-                                            .colorScheme
-                                            .surfaceContainerHighest,
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text(
-                                        hide
-                                            ? RedactService.redactBalances(
-                                                message.body, message.address)
-                                            : message.body,
-                                        style: TextStyle(
-                                          color: isSent
-                                              ? Theme.of(context)
-                                                  .colorScheme
-                                                  .onPrimary
-                                              : Theme.of(context)
-                                                  .colorScheme
-                                                  .onSurface,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        formatMessageTime(message.date),
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodySmall
-                                            ?.copyWith(
-                                              color: isSent
-                                                  ? Theme.of(context)
-                                                      .colorScheme
-                                                      .onPrimary
-                                                      .withOpacity(0.7)
-                                                  : Theme.of(context)
-                                                      .colorScheme
-                                                      .outline,
-                                            ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
+                          return GestureDetector(
+                            onLongPress: () => _toggleSelection(message),
+                            onTap: () {
+                              if (_isSelectionMode) {
+                                _toggleSelection(message);
+                              }
+                            },
+                            child: _buildMessageBubble(
+                                message: message, isSent: isSent, showDateSeparator: showDateSeparator, hide: hide, selected: isSelected),
                           );
                         },
                       ),
@@ -366,6 +310,154 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
               : null,
         );
       },
+    );
+  }
+
+  Widget _buildMessageBubble({
+      required AppSmsMessage message, required bool isSent, required bool showDateSeparator, required bool hide, required bool selected} ) {
+    return Column(
+      children: [
+        if (showDateSeparator) _buildDateSeparator(message.date),
+        Align(
+          alignment: isSent ? Alignment.centerRight : Alignment.centerLeft,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 10,
+            ),
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.75,
+            ),
+            decoration: BoxDecoration(
+              color: selected
+                  ? Theme.of(context).colorScheme.primaryContainer
+                  : isSent
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  hide
+                      ? RedactService.redactBalances(
+                          message.body, message.address)
+                      : message.body,
+                  style: TextStyle(
+                    color: isSent
+                        ? Theme.of(context).colorScheme.onPrimary
+                        : Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  formatMessageTime(message.date),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: isSent
+                            ? Theme.of(context)
+                                .colorScheme
+                                .onPrimary
+                                .withOpacity(0.7)
+                            : Theme.of(context).colorScheme.outline,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  AppBar _buildAppBar(List<AppSmsMessage> messages) {
+    // 1. SELECTION MODE
+    if (_isSelectionMode) {
+      return AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => setState(() => _selectedMessages.clear()),
+        ),
+        title: Text('${_selectedMessages.length} selected'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.content_copy_outlined),
+            onPressed: () {
+              final text = _selectedMessages.map((m) => RedactService.redactBalances(m.body, m.address)).join('\n');
+              Clipboard.setData(ClipboardData(text: text));
+              setState(() => _selectedMessages.clear());
+              ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Copied to clipboard')));
+            },
+          ),
+          if (_selectedMessages.length == 1) // Forward only for single
+            IconButton(
+              icon: const Icon(Icons.forward_to_inbox_outlined),
+              onPressed: () {
+                final body = _selectedMessages.first.body;
+                setState(() => _selectedMessages.clear());
+                // Navigate to contacts screen to select recipient with message body pre-filled
+                // Navigator.push(context, MaterialPageRoute(
+                //   builder: (context) => NewMessageScreen(initialBody: body),
+                // ));
+              },
+            ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            onPressed: () => _deleteSelectedMessages(),
+          ),
+        ],
+      );
+    }
+
+    // 2. SEARCH MODE
+    if (_isSearching) {
+      return AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => setState(() {
+            _isSearching = false;
+            _searchQuery = '';
+            _searchController.clear();
+          }),
+        ),
+        title: TextField(
+          controller: _searchController,
+          autofocus: true,
+          decoration: const InputDecoration(
+              hintText: 'Search messages...', border: InputBorder.none),
+          onChanged: (value) =>
+              setState(() => _searchQuery = value.toLowerCase()),
+        ),
+      );
+    }
+
+    // 3. NORMAL MODE
+    return AppBar(
+      title: InkWell(
+        // Tap title to search (common UX) or use search icon
+        onTap: () => setState(() => _isSearching = true),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(ContactService().getName(widget.address)),
+            Text('SMS', style: Theme.of(context).textTheme.bodySmall),
+          ],
+        ),
+      ),
+      actions: [
+        IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () => setState(() => _isSearching = true)),
+        IconButton(
+          icon: const Icon(Icons.call_outlined),
+          onPressed: int.tryParse(widget.address) == null
+              ? null
+              : () => _makePhoneCall(widget.address),
+        ),
+      ],
     );
   }
 
@@ -522,5 +614,30 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
     } else {
       throw 'Could not launch $launchUri';
     }
+  }
+
+  Future<void> _deleteSelectedMessages() async {
+    final count = _selectedMessages.length;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Delete $count message(s)?'),
+        content: const Text('This action cannot be undone.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Delete')),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await context.read<SingleChatCubit>().deleteMessages(_selectedMessages);
+    }
+    setState(() => _selectedMessages.clear());
+    
   }
 }

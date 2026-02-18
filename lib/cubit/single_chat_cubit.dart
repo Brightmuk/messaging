@@ -54,8 +54,12 @@ class SingleChatCubit extends Cubit<SingleChatState> {
   }
 
 
-  Future<void> deleteMessage(int messageId) async {
-    await _smsService.deleteMessage(messageId);
+  Future<void> deleteMessages(Iterable<AppSmsMessage> messages) async {
+    for (var message in messages) {
+      if(message.id != null) {
+        await _smsService.deleteMessage(message.id!);
+      }
+    }
     getMessages();
   }
 
