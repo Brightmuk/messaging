@@ -15,7 +15,7 @@ class SingleChatCubit extends Cubit<SingleChatState> {
     final SmsService _smsService = SmsService();
      StreamSubscription? _updateSubscription;
   SingleChatCubit(this.threadId) : super(SingleChatInitial()){
-    setHideStatus();
+    getHideStatus();
         _updateSubscription = _smsService.onMessageUpdated.listen((_) {
           Future.delayed(const Duration(milliseconds: 500)).then((_) {
             if(!isClosed)  {
@@ -26,8 +26,12 @@ class SingleChatCubit extends Cubit<SingleChatState> {
     getMessages();
   }
   bool hideStatus = true;
-  Future<void> setHideStatus() async {
+  Future<void> getHideStatus() async {
     hideStatus = await UserDefaults.getHideStatus();
+  }
+  Future<void> toggleHide() async {
+    hideStatus = !hideStatus;
+    emit(SingleChatLoaded(messages: messages, hideStatus: hideStatus));
   }
 
     Future<void> setAsDefaultApp() async {
@@ -41,7 +45,7 @@ class SingleChatCubit extends Cubit<SingleChatState> {
 
     final messages = await _smsService.getMessagesForThread(threadId);
     this.messages = messages;
-    emit(SingleChatLoaded(messages: messages, isUpdate: !showLoading));
+    emit(SingleChatLoaded(messages: messages, isUpdate: !showLoading, hideStatus: hideStatus));
   }
   Future<void> sendMessage(String address, String message) async {
     emit(SingleChatSending());
@@ -68,11 +72,7 @@ class SingleChatCubit extends Cubit<SingleChatState> {
     eventBus.fire(ThreadReadEvent());
   }
 
-  Future<void> toggleHide() async {
-    hideStatus = !hideStatus;
-    await UserDefaults.setHideStatus(hideStatus);
-    emit(SingleChatLoaded(messages: messages));
-  }
+
   @override
   Future<void> close() {
     _updateSubscription?.cancel();

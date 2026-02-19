@@ -41,7 +41,7 @@ class _PermissionsScreenState extends State<PermissionsScreen>  with WidgetsBind
     return BlocProvider(
       create: (context) => PermissionsCubit()..checkAll(),
       child: Scaffold(
-        appBar: AppBar(title: const Text('Setup Permissions')),
+        appBar: AppBar(title: const Text('Required Permissions')),
         body: BlocBuilder<PermissionsCubit, PermissionsState>(
           builder: (context, state) {
             return Column(
@@ -69,7 +69,7 @@ class _PermissionsScreenState extends State<PermissionsScreen>  with WidgetsBind
                       ),
                       _PermissionTile(
                         title: 'Phone',
-                        subtitle: 'Required for controlling Sim cards',
+                        subtitle: 'Required for selecting default sim card',
                         status: state.statuses[Permission.phone],
                         onTap: () => context.read<PermissionsCubit>().request(Permission.phone),
                       ),

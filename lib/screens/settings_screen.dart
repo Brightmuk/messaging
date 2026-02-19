@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/models/sim_card_state.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -119,6 +120,37 @@ class _SettingsScreenState extends State<SettingsScreen>
                           );
                         },
                       )
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24), // Space between cards
+
+                _buildSectionHeader("Preferences"),
+                Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(
+                        color: Theme.of(context).colorScheme.outlineVariant),
+                  ),
+                  color: Theme.of(context).colorScheme.surfaceContainerLow,
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(
+                    children: [
+                      FutureBuilder(
+                        future: UserDefaults.getHideStatus(),
+                        builder: (context, asyncSnapshot) {
+                          return SwitchListTile(
+                            title: const Text("Always hide balances"),
+                            value: asyncSnapshot.data ?? false, 
+                            onChanged: (value) async {
+                              await UserDefaults.setHideStatus(value);
+                              setState(() {});
+                            }
+                            );
+                        }
+                      )
+                      
                     ],
                   ),
                 ),

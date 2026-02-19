@@ -69,7 +69,10 @@ class _SelectContactScreenState extends State<SelectContactScreen> {
 
   void _navigateToChat(String address)async {
     String? threadId = await SmsService().getThreadId(address); 
-    Navigator.pop(context); // Close the select contact screen before navigating
+    if(widget.isForwarding) {
+       Navigator.pop(context);
+    }
+   
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(

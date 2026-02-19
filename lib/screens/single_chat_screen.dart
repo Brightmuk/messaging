@@ -82,6 +82,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
         _messageController.text = widget.initialMessage!;
       }
     _clearNotifications();
+    
   }
 
   @override
@@ -296,10 +297,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
           ),
           floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
           floatingActionButton: RedactService.isMonitored(widget.address)
-              ? BlocBuilder<SingleChatCubit, SingleChatState>(
-                  builder: (context, state) {
-                    bool hide = context.read<SingleChatCubit>().hideStatus;
-                    return Padding(
+              ? Padding(
                       padding: const EdgeInsets.only(bottom: 50),
                       child: FloatingActionButton.small(
                         heroTag: 'Toggle Hide',
@@ -310,9 +308,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                             ? Icons.visibility_off_outlined
                             : Icons.visibility_outlined),
                       ),
-                    );
-                  },
-                )
+                    )
               : null,
         );
       },
