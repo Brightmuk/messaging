@@ -1,4 +1,6 @@
 import 'package:bloc/bloc.dart';
+import 'package:equatable/equatable.dart';
+import 'package:messaging/core/user_defaults.dart';
 import 'package:meta/meta.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -25,10 +27,19 @@ class AppStartupCubit extends Cubit<AppStartupState> {
   void _initialize() async {
     emit(AppStartupLoading());
     final granted = await _checkStartupPermissions();
+    final hasOnboarded = await UserDefaults.hasOnboarded();
+    if (!hasOnboarded) {
+      emit(AppStartupNotOnboarded());
+      return;
+    }
     if (granted) {
       emit(AppStartupLoaded());
     } else {
-      emit(AppStartupPermissionsDenied());
+      emit(AppStartupGrantPermissions());
     }
+  }
+  Future<void> viewOnboarding() async {
+    await UserDefaults.setHasOnboarded();
+    emit(AppStartupGrantPermissions());
   }
 }

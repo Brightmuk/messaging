@@ -4,8 +4,17 @@ class UserDefaults {
   static String hasSyncedString = 'hasSynced';
   static String defaultSimString = 'defaultSim';
   static String hideStatusString = 'hideStatus';
+  static String hasOnboardedString = 'hasOnboarded';
   static bool isAdsRemoved = false;
 
+  static Future<void> setHasOnboarded() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setBool(hasOnboardedString, true);
+  }
+  static Future<bool> hasOnboarded() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(hasOnboardedString) ?? false;
+  }
 
   static void setHasSynced() async {
     final prefs = await SharedPreferences.getInstance();

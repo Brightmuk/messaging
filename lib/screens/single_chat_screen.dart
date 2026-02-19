@@ -11,7 +11,6 @@ import 'package:messaging/screens/select_contact_screen.dart';
 import 'package:messaging/services/contact_service.dart';
 import 'package:messaging/services/notification_service.dart';
 import 'package:messaging/services/redact_service.dart';
-import 'package:messaging/services/sms_service.dart';
 import 'package:provider/provider.dart';
 import 'package:sim_card_info/sim_info.dart';
 import 'package:url_launcher/url_launcher.dart';

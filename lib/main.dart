@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:messaging/cubit/app_startup_cubit.dart';
+import 'package:messaging/screens/onboarding.dart';
 import 'package:messaging/screens/permissions_screen.dart';
 import 'package:messaging/screens/widgets/chats_loading_widget.dart';
 import 'package:messaging/services/purchase_service.dart';
@@ -15,14 +16,18 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MobileAds.instance.initialize();
   PurchaseService().initializeIAP();
-  runApp(MultiProvider(providers: [
-    BlocProvider(create: (c)=>AppStartupCubit()),
-  ],child: const MyApp(),),);
+  runApp(
+    MultiProvider(
+      providers: [
+        BlocProvider(create: (c) => AppStartupCubit()),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
 
   @override
   Widget build(BuildContext context) {
@@ -35,16 +40,17 @@ class MyApp extends StatelessWidget {
       themeMode: ThemeMode.system,
       home: BlocBuilder<AppStartupCubit, AppStartupState>(
         builder: (context, state) {
-          if (state is AppStartupLoading) {
-            return  Scaffold(
+          if (state is AppStartupGrantPermissions) {
+            return const PermissionsScreen();
+          } else if (state is AppStartupNotOnboarded) {
+            return const MfichaOnboarding();
+          } else if (state is AppStartupLoaded) {
+            return const ChatsScreen();
+          } else {
+            return Scaffold(
               appBar: AppBar(),
               body: const Center(child: ChatsLoadingWidget()),
             );
-          } else if (state is AppStartupLoaded) {
-            return const ChatsScreen();
-            // return const MyWidget();
-          } else {
-            return const PermissionsScreen();
           }
         },
       ),

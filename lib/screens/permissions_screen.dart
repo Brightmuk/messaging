@@ -45,7 +45,15 @@ class _PermissionsScreenState extends State<PermissionsScreen>  with WidgetsBind
         body: BlocBuilder<PermissionsCubit, PermissionsState>(
           builder: (context, state) {
             return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical:2),
+                  child: Text(
+                    'To get started, please grant the following permissions:',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
                 Expanded(
                   child: ListView(
                     children: [
