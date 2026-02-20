@@ -159,7 +159,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                         itemCount: messages.length,
                         itemBuilder: (context, index) {
                           final message = messages[index];
-                          final isSent = message.isSent;
+                          final isOutgoing = message.isOutgoing;
                           final isSelected =
                               _selectedMessages.contains(message);
                           final showDateSeparator =
@@ -173,7 +173,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                               }
                             },
                             child: _buildMessageBubble(
-                                message: message, isSent: isSent, showDateSeparator: showDateSeparator, hide: hide, selected: isSelected),
+                                message: message, isOutgoing: isOutgoing, showDateSeparator: showDateSeparator, hide: hide, selected: isSelected),
                           );
                         },
                       ),
@@ -314,64 +314,110 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
     );
   }
 
-  Widget _buildMessageBubble({
-      required AppSmsMessage message, required bool isSent, required bool showDateSeparator, required bool hide, required bool selected} ) {
-    return Column(
-      children: [
-        if (showDateSeparator) _buildDateSeparator(message.date),
-        Align(
-          alignment: isSent ? Alignment.centerRight : Alignment.centerLeft,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 10,
-            ),
-            constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.75,
-            ),
-            decoration: BoxDecoration(
-              color: selected
-                  ? Theme.of(context).colorScheme.primaryContainer
-                  : isSent
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  hide
-                      ? RedactService.redactBalances(
-                          message.body, message.address)
-                      : message.body,
-                  style: TextStyle(
-                    color: isSent
-                        ? Theme.of(context).colorScheme.onPrimary
-                        : Theme.of(context).colorScheme.onSurface,
+Widget _buildMessageBubble({
+  required AppSmsMessage message,
+  required bool isOutgoing,
+  required bool showDateSeparator,
+  required bool hide,
+  required bool selected,
+}) {
+  return Column(
+    children: [
+      if (showDateSeparator) _buildDateSeparator(message.date),
+      Align(
+        alignment: isOutgoing ? Alignment.centerRight : Alignment.centerLeft,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              margin: EdgeInsets.only(
+                bottom: 4,
+                left: isOutgoing ? 50 : 12, // More space on the opposite side
+                right: isOutgoing ? 12 : 50,
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.8,
+              ),
+              decoration: BoxDecoration(
+                color: selected
+                    ? Theme.of(context).colorScheme.primaryContainer
+                    : isOutgoing
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(20),
+                  topRight: const Radius.circular(20),
+                  bottomLeft: Radius.circular(isOutgoing ? 20 : 4),
+                  bottomRight: Radius.circular(isOutgoing ? 4 : 20),
+                ),
+                boxShadow: selected ? [BoxShadow(color: Colors.black12, blurRadius: 4)] : null,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 1. Message Text
+                  Text(
+                    hide ? RedactService.redactBalances(message.body, message.address) : message.body,
+                    style: TextStyle(
+                     
+                      color: isOutgoing
+                          ? Theme.of(context).colorScheme.onPrimary
+                          : Theme.of(context).colorScheme.onSurface,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  formatMessageTime(message.date),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: isSent
-                            ? Theme.of(context)
-                                .colorScheme
-                                .onPrimary
-                                .withOpacity(0.7)
-                            : Theme.of(context).colorScheme.outline,
-                      ),
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  // 2. Metadata Row (Time + Ticks)
+                  Text(
+                    formatMessageTime(message.date),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontSize: 11,
+                          color: isOutgoing
+                              ? Theme.of(context).colorScheme.onPrimary.withOpacity(0.8)
+                              : Theme.of(context).colorScheme.outline,
+                        ),
+                  ),
+                ],
+              ),
+              
             ),
-          ),
+             if (isOutgoing) ...[
+                    const SizedBox(width: 4),
+                    _buildStatusIcon(message.status),
+                  ],
+          ],
         ),
-      ],
-    );
+      ),
+    ],
+  );
+}
+
+// Helper to show the correct status icon
+Widget _buildStatusIcon(MessageStatus? status) {
+  IconData icon;
+  final theme = Theme.of(context);
+   Color color = theme.colorScheme.outline;
+
+  switch (status) {
+    case MessageStatus.delivered:
+      icon = Icons.done_all; // Double ticks
+      color = theme.colorScheme.primary; // Optional: Highlight delivered status
+      break;
+    case MessageStatus.sent:
+      icon = Icons.check; // Single tick
+      break;
+    default:
+      icon = Icons.access_time; // Pending/Clock icon
+       // Optional: Muted color for pending
   }
+
+  return Padding(
+    padding: const EdgeInsets.only(right: 10),
+    child: Icon(icon, size: 14, color: color),
+  );
+}
 
   AppBar _buildAppBar(List<AppSmsMessage> messages) {
     // 1. SELECTION MODE

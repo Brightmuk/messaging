@@ -31,7 +31,6 @@ class DatabaseHelper {
   }
 
   Future<void> _createDB(Database db, int version) async {
-    // 1. Messages table with an index on threadId for faster chat loading
     await db.execute('''
       CREATE TABLE messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -40,7 +39,10 @@ class DatabaseHelper {
         date INTEGER NOT NULL,
         type INTEGER NOT NULL,
         threadId TEXT,
-        read INTEGER NOT NULL DEFAULT 0
+        isSent INTEGER NOT NULL DEFAULT 0,
+        isDelivered INTEGER NOT NULL DEFAULT 0,
+        read INTEGER NOT NULL DEFAULT 0,
+        UNIQUE(address, body, date) ON CONFLICT IGNORE
       )
     ''');
 
@@ -80,7 +82,9 @@ class DatabaseHelper {
           'date': msg.date,
           'type': 1, // Inbox
           'threadId': threadId,
-          'read': 1, // Historical are usually read
+          'read': 1, 
+          'isSent': 1,
+          'isDelivered': 1,
         }, conflictAlgorithm: ConflictAlgorithm.ignore);
 
         // Update/Insert chat summary
@@ -154,7 +158,14 @@ class DatabaseHelper {
   }
 
   // --- State Modification ---
-
+  Future<void> markMessageAsSent(int messageId) async {
+    final db = await database;
+    await db.update('messages', {'isSent': 1}, where: 'id = ?', whereArgs: [messageId]);
+  }
+  Future<void> markMessageAsDelivered(int messageId) async {
+    final db = await database;
+    await db.update('messages', {'isDelivered': 1}, where: 'id = ?', whereArgs: [messageId]);
+  }
   Future<void> markThreadAsRead(String threadId) async {
     final db = await database;
     await db.transaction((txn) async {

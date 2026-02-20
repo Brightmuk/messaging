@@ -1,6 +1,5 @@
-// ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'dart:convert';
-
+ enum MessageStatus { pending, sent, delivered, failed }
 class AppSmsMessage {
   final int? id;
   final String address;
@@ -8,6 +7,8 @@ class AppSmsMessage {
   final int date;
   final int type; // 1 = received, 2 = sent
   final String threadId;
+  final bool isSent;
+  final bool isDelivered;
   final bool read;
 
   AppSmsMessage({
@@ -17,6 +18,8 @@ class AppSmsMessage {
     required this.date,
     required this.type,
     required this.threadId,
+    this.isSent = false,
+    this.isDelivered = false,
     this.read = false,
   });
 
@@ -28,6 +31,8 @@ class AppSmsMessage {
       'date': date,
       'type': type,
       'threadId': threadId,
+      'isSent': isSent ? 1 : 0,
+      'isDelivered': isDelivered ? 1 : 0,
       'read': read ? 1 : 0,
     };
   }
@@ -40,12 +45,24 @@ class AppSmsMessage {
       date: map['date'],
       type: map['type'],
       threadId: map['threadId'],
+      isSent: map['isSent'] == 1,
+      isDelivered: map['isDelivered'] == 1,
       read: map['read'] == 1,
     );
   }
 
-  bool get isSent => type == 2;
-  bool get isReceived => type == 1;
+  bool get isOutgoing => type == 2;
+  bool get isIncoming => type == 1;
+  MessageStatus get status {
+    if (isSent && isDelivered) {
+      return MessageStatus.delivered;
+    } else if (isSent) {
+      return MessageStatus.sent;
+    }
+    return MessageStatus.pending;
+  }
+
+
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
@@ -57,6 +74,8 @@ class AppSmsMessage {
         other.date == date &&
         other.type == type &&
         other.threadId == threadId &&
+        other.isSent == isSent &&
+        other.isDelivered == isDelivered &&
         other.read == read;
   }
 
@@ -68,6 +87,8 @@ class AppSmsMessage {
         date.hashCode ^
         type.hashCode ^
         threadId.hashCode ^
+        isSent.hashCode ^
+        isDelivered.hashCode ^
         read.hashCode;
   
   }

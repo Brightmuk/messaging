@@ -121,22 +121,23 @@ class SmsService {
     await _dbHelper.batchSyncMessages(messages);
 
     UserDefaults.setHasSynced(); // Mark as synced
-    _messageUpdateController.add(SmsEvent(isSync: true));
+    _messageUpdateController.add(SmsEvent(type: SmsEventType.syncCompleted));
   }
 
   // --- 4. Sending & Receiving ---
 
   Future<bool> sendSms(String address, String message, String threadId) async {
     int? defaultSim = await getDefaultSim();
-    debugPrint("Sedining with card: defaultSim");
     try {
       await telephony.sendSms(
         to: address,
         message: message,
         subscriptionId: defaultSim + 1,
         statusListener: (status) {
-          if (status == SendStatus.SENT)
-            _messageUpdateController.add(SmsEvent(threadId: threadId));
+          if (status == SendStatus.SENT) {
+            _messageUpdateController.add(SmsEvent(type: SmsEventType.messageSent));
+            
+          }
         },
       );
 
@@ -153,12 +154,21 @@ class SmsService {
       await _dbHelper.insertMessage(smsMessage);
       await _updateChat(threadId, address, message, date);
 
-      _messageUpdateController.add(SmsEvent(threadId: threadId));
+      _messageUpdateController.add(SmsEvent(type: SmsEventType.messagePending, message: smsMessage));
       return true;
     } catch (e) {
       debugPrint('Send error: $e');
       return false;
     }
+  }
+  Future<void> markMessageAsSent(int messageId) async {
+    await _dbHelper.markMessageAsSent(messageId);
+    _messageUpdateController.add(SmsEvent(type: SmsEventType.messageSent));
+  }
+  Future<void> markMessageAsDelivered(int messageId) async {
+    await _dbHelper.markMessageAsDelivered(messageId);
+    _messageUpdateController.add(SmsEvent(type: SmsEventType.messageDelivered));
+
   }
   Future<void> markThreadAsPinned(String threadId, bool isPinned) async {
     await _dbHelper.markThreadAsPinned(threadId, isPinned);
@@ -170,8 +180,6 @@ class SmsService {
   void _onMessageReceived(SmsMessage message) async {
     final threadId = await getThreadId(message.address);
     await _saveIncomingMessage(message, threadId, await getContactName(message.address ?? ''));
-    _messageUpdateController
-        .add(SmsEvent(threadId: message.threadId.toString()));
   }
 
   @pragma('vm:entry-point')
@@ -200,6 +208,8 @@ class SmsService {
     await _dbHelper.insertMessage(appMsg);
     await _updateChat(threadId, appMsg.address, appMsg.body, appMsg.date,
         incrementUnread: true);
+         _messageUpdateController
+        .add(SmsEvent(type: SmsEventType.messageReceived, message: appMsg));
 
     await _notificationService.showNotification(
       title: name,
@@ -250,25 +260,26 @@ class SmsService {
 
   Future<void> markThreadAsRead(String threadId) async {
     await _dbHelper.markThreadAsRead(threadId);
-    _messageUpdateController.add(SmsEvent(threadId: threadId));
+    _messageUpdateController.add(SmsEvent(type: SmsEventType.threadUpdated));
   }
 
   Future<void> deleteThread(String threadId) async {
     await _dbHelper.deleteThread(threadId);
-    _messageUpdateController.add(SmsEvent());
+    _messageUpdateController.add(SmsEvent(type: SmsEventType.threadUpdated));
   }
 
   Future<void> deleteMessage(int messageId) async {
     await _dbHelper.deleteMessage(messageId);
-    _messageUpdateController.add(SmsEvent());
+    _messageUpdateController.add(SmsEvent(type: SmsEventType.messageDeleted));
   }
 
   Future<String> getContactName(String phoneNumber) async => ContactService().getName(phoneNumber);
 }
 
-// Helper class for Stream events
+
+enum SmsEventType { messageSent, messageSendFailure, messagePending, messageDelivered, messageReceived, messageDeleted, threadUpdated, syncCompleted }
 class SmsEvent {
-  final String? threadId;
-  final bool isSync;
-  SmsEvent({this.threadId, this.isSync = false});
+  final AppSmsMessage? message;
+  final SmsEventType type;
+  SmsEvent({this.message, required this.type});
 }
