@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
-import 'package:messaging/models/sms_message.dart';
 import 'package:messaging/screens/single_chat_screen.dart';
 import 'package:messaging/services/sms_service.dart';
+import 'package:path/path.dart' as AppChat;
 
 
 class SelectContactScreen extends StatefulWidget {

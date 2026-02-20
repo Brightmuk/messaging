@@ -4,7 +4,7 @@ import 'package:bloc/bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:messaging/core/events.dart';
 import 'package:messaging/core/user_defaults.dart';
-import 'package:messaging/models/sms_message.dart';
+import 'package:messaging/models/app_message.dart';
 import 'package:messaging/services/sms_service.dart';
 import 'package:meta/meta.dart';
 

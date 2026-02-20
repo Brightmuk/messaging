@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:messaging/core/events.dart';
 import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/cubit/single_chat_cubit.dart';
-import 'package:messaging/models/sms_message.dart';
+import 'package:messaging/models/app_chat.dart';
 import 'package:messaging/services/contact_service.dart';
 import 'package:messaging/services/sms_service.dart';
 

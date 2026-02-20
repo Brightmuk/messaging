@@ -6,6 +6,7 @@ import 'package:messaging/core/feedback_ui.dart';
 import 'package:messaging/core/utils/date_formatter.dart';
 import 'package:messaging/cubit/sim_card_cubit.dart';
 import 'package:messaging/cubit/single_chat_cubit.dart';
+import 'package:messaging/models/app_chat.dart';
 import 'package:messaging/models/sim_card_state.dart';
 import 'package:messaging/screens/select_contact_screen.dart';
 import 'package:messaging/services/contact_service.dart';
@@ -14,23 +15,30 @@ import 'package:messaging/services/redact_service.dart';
 import 'package:provider/provider.dart';
 import 'package:sim_card_info/sim_info.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../models/sms_message.dart';
+import '../models/app_message.dart';
 
 class SingleChatScreen extends StatelessWidget {
   final String threadId;
   final String address;
-  final String? initialMessage; 
+  final String? initialMessage;
   const SingleChatScreen(
-      {super.key, required this.threadId, required this.address, this.initialMessage});
+      {super.key,
+      required this.threadId,
+      required this.address,
+      this.initialMessage});
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [
-        BlocProvider(create: (c) => SimCardCubit()),
-        BlocProvider(create: (c) => SingleChatCubit(threadId)),
-      ],
-        child: SingleChatScreenView(threadId: threadId, address: address, initialMessage: initialMessage,));
+        providers: [
+          BlocProvider(create: (c) => SimCardCubit()),
+          BlocProvider(create: (c) => SingleChatCubit(threadId)),
+        ],
+        child: SingleChatScreenView(
+          threadId: threadId,
+          address: address,
+          initialMessage: initialMessage,
+        ));
   }
 }
 
@@ -77,11 +85,10 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
   void initState() {
     super.initState();
     context.read<SingleChatCubit>().markThreadAsRead();
-      if (widget.initialMessage != null) {
-        _messageController.text = widget.initialMessage!;
-      }
+    if (widget.initialMessage != null) {
+      _messageController.text = widget.initialMessage!;
+    }
     _clearNotifications();
-    
   }
 
   @override
@@ -116,7 +123,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
       },
       builder: (context, state) {
         if (state is SingleChatLoading) {
-          return  Scaffold(
+          return Scaffold(
             appBar: AppBar(),
             body: const Center(child: CircularProgressIndicator()),
           );
@@ -173,7 +180,11 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                               }
                             },
                             child: _buildMessageBubble(
-                                message: message, isOutgoing: isOutgoing, showDateSeparator: showDateSeparator, hide: hide, selected: isSelected),
+                                message: message,
+                                isOutgoing: isOutgoing,
+                                showDateSeparator: showDateSeparator,
+                                hide: hide,
+                                selected: isSelected),
                           );
                         },
                       ),
@@ -188,20 +199,19 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                       child: SafeArea(
                         child: BlocBuilder<SimCardCubit, SimCardState>(
                           builder: (context, state) {
-                          
                             final isLoading = state is SimCardInitial;
 
-                            final simCardState = state is SimCardLoaded ? state.state : null;
-                            final hasData = simCardState != null && simCardState.allCards.isNotEmpty;
+                            final simCardState =
+                                state is SimCardLoaded ? state.state : null;
+                            final hasData = simCardState != null &&
+                                simCardState.allCards.isNotEmpty;
                             final defaultSim = simCardState?.allCards
-                                    .where(
-                                      (sim) =>
-                                          int.tryParse(
-                                              sim.slotIndex.toString()) ==
-                                          simCardState.defaultCard,
-                                    )
-                                    .firstOrNull;
-                                
+                                .where(
+                                  (sim) =>
+                                      int.tryParse(sim.slotIndex.toString()) ==
+                                      simCardState.defaultCard,
+                                )
+                                .firstOrNull;
 
                             return Row(
                               crossAxisAlignment: CrossAxisAlignment.end,
@@ -211,7 +221,8 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                                   height: 48,
                                   child: _buildSimSlot(
                                     isLoading: isLoading,
-                                    hasData: simCardState != null && simCardState.allCards.isNotEmpty,
+                                    hasData: simCardState != null &&
+                                        simCardState.allCards.isNotEmpty,
                                     simCardState: simCardState,
                                     defaultSim: defaultSim,
                                   ),
@@ -275,7 +286,9 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                                                                   Colors.white),
                                                     )
                                                   : const Icon(
-                                                      Icons.arrow_upward,color: Colors.white,),
+                                                      Icons.arrow_upward,
+                                                      color: Colors.white,
+                                                    ),
                                             ),
                                           ],
                                         ),
@@ -297,127 +310,139 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
           floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
           floatingActionButton: RedactService.isMonitored(widget.address)
               ? Padding(
-                      padding: const EdgeInsets.only(bottom: 50),
-                      child: FloatingActionButton.small(
-                        heroTag: 'Toggle Hide',
-                        onPressed: () {
-                          context.read<SingleChatCubit>().toggleHide();
-                        },
-                        child: Icon(hide
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined),
-                      ),
-                    )
+                  padding: const EdgeInsets.only(bottom: 50),
+                  child: FloatingActionButton.small(
+                    heroTag: 'Toggle Hide',
+                    onPressed: () {
+                      context.read<SingleChatCubit>().toggleHide();
+                    },
+                    child: Icon(hide
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined),
+                  ),
+                )
               : null,
         );
       },
     );
   }
 
-Widget _buildMessageBubble({
-  required AppSmsMessage message,
-  required bool isOutgoing,
-  required bool showDateSeparator,
-  required bool hide,
-  required bool selected,
-}) {
-  return Column(
-    children: [
-      if (showDateSeparator) _buildDateSeparator(message.date),
-      Align(
-        alignment: isOutgoing ? Alignment.centerRight : Alignment.centerLeft,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              margin: EdgeInsets.only(
-                bottom: 4,
-                left: isOutgoing ? 50 : 12, // More space on the opposite side
-                right: isOutgoing ? 12 : 50,
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.8,
-              ),
-              decoration: BoxDecoration(
-                color: selected
-                    ? Theme.of(context).colorScheme.primaryContainer
-                    : isOutgoing
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(20),
-                  topRight: const Radius.circular(20),
-                  bottomLeft: Radius.circular(isOutgoing ? 20 : 4),
-                  bottomRight: Radius.circular(isOutgoing ? 4 : 20),
+  Widget _buildMessageBubble({
+    required AppSmsMessage message,
+    required bool isOutgoing,
+    required bool showDateSeparator,
+    required bool hide,
+    required bool selected,
+  }) {
+    return Column(
+      children: [
+        if (showDateSeparator) _buildDateSeparator(message.date),
+        Align(
+          alignment: isOutgoing ? Alignment.centerRight : Alignment.centerLeft,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                margin: EdgeInsets.only(
+                  bottom: 4,
+                  left: isOutgoing ? 50 : 12, // More space on the opposite side
+                  right: isOutgoing ? 12 : 50,
                 ),
-                boxShadow: selected ? [BoxShadow(color: Colors.black12, blurRadius: 4)] : null,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // 1. Message Text
-                  Text(
-                    hide ? RedactService.redactBalances(message.body, message.address) : message.body,
-                    style: TextStyle(
-                     
-                      color: isOutgoing
-                          ? Theme.of(context).colorScheme.onPrimary
-                          : Theme.of(context).colorScheme.onSurface,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                constraints: BoxConstraints(
+                  maxWidth: MediaQuery.of(context).size.width * 0.8,
+                ),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? Theme.of(context).colorScheme.primaryContainer
+                      : isOutgoing
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest,
+                  borderRadius: BorderRadius.only(
+                    topLeft: const Radius.circular(20),
+                    topRight: const Radius.circular(20),
+                    bottomLeft: Radius.circular(isOutgoing ? 20 : 4),
+                    bottomRight: Radius.circular(isOutgoing ? 4 : 20),
+                  ),
+                  boxShadow: selected
+                      ? [BoxShadow(color: Colors.black12, blurRadius: 4)]
+                      : null,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 1. Message Text
+                    Text(
+                      hide
+                          ? RedactService.redactBalances(
+                              message.body, message.address)
+                          : message.body,
+                      style: TextStyle(
+                        color: isOutgoing && !selected
+                            ? Theme.of(context).colorScheme.onPrimary
+                            : Theme.of(context).colorScheme.onSurface,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  // 2. Metadata Row (Time + Ticks)
-                  Text(
-                    formatMessageTime(message.date),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          fontSize: 11,
-                          color: isOutgoing
-                              ? Theme.of(context).colorScheme.onPrimary.withOpacity(0.8)
-                              : Theme.of(context).colorScheme.outline,
-                        ),
-                  ),
-                ],
-              ),
-              
-            ),
-             if (isOutgoing) ...[
-                    const SizedBox(width: 4),
-                    _buildStatusIcon(message.status),
+                    const SizedBox(height: 4),
+                    // 2. Metadata Row (Time + Ticks)
+                    Text(
+                      formatMessageTime(message.date),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontSize: 11,
+                            color: isOutgoing && !selected
+                                ? Theme.of(context)
+                                    .colorScheme
+                                    .onPrimary
+                                    .withOpacity(0.8)
+                                : Theme.of(context).colorScheme.outline,
+                          ),
+                    ),
                   ],
-          ],
+                ),
+              ),
+              if (isOutgoing) ...[
+                const SizedBox(width: 4),
+                GestureDetector(
+                    onTap: message.status == MessageStatus.failed
+                        ? () => _handleRetry(message)
+                        : null,
+                    child: _buildStatusIcon(message.status)),
+              ],
+            ],
+          ),
         ),
-      ),
-    ],
-  );
-}
-
-// Helper to show the correct status icon
-Widget _buildStatusIcon(MessageStatus? status) {
-  IconData icon;
-  final theme = Theme.of(context);
-   Color color = theme.colorScheme.outline;
-
-  switch (status) {
-    case MessageStatus.delivered:
-      icon = Icons.done_all; // Double ticks
-      color = theme.colorScheme.primary; // Optional: Highlight delivered status
-      break;
-    case MessageStatus.sent:
-      icon = Icons.check; // Single tick
-      break;
-    default:
-      icon = Icons.access_time; // Pending/Clock icon
-       // Optional: Muted color for pending
+      ],
+    );
   }
 
-  return Padding(
-    padding: const EdgeInsets.only(right: 10),
-    child: Icon(icon, size: 14, color: color),
-  );
-}
+  void _handleRetry(AppSmsMessage message) async {
+    _sendMessage();
+  }
+
+// Helper to show the correct status icon
+  Widget _buildStatusIcon(MessageStatus status) {
+    final theme = Theme.of(context);
+    switch (status) {
+      case MessageStatus.unknown:
+        return const SizedBox();
+      case MessageStatus.delivered:
+        return Icon(Icons.done_all, size: 15, color: theme.primaryColor);
+      case MessageStatus.sent:
+        return Icon(Icons.done,
+            size: 15, color: theme.colorScheme.onSurfaceVariant);
+      case MessageStatus.failed:
+        return const Icon(Icons.error_outline,
+            size: 15, color: Colors.redAccent);
+      case MessageStatus.pending:
+        return Icon(Icons.access_time,
+            size: 15, color: theme.colorScheme.onSurfaceVariant);
+    }
+  }
 
   AppBar _buildAppBar(List<AppSmsMessage> messages) {
     // 1. SELECTION MODE
@@ -432,7 +457,9 @@ Widget _buildStatusIcon(MessageStatus? status) {
           IconButton(
             icon: const Icon(Icons.content_copy_outlined),
             onPressed: () {
-              final text = _selectedMessages.map((m) => RedactService.redactBalances(m.body, m.address)).join('\n');
+              final text = _selectedMessages
+                  .map((m) => RedactService.redactBalances(m.body, m.address))
+                  .join('\n');
               Clipboard.setData(ClipboardData(text: text));
               setState(() => _selectedMessages.clear());
               ScaffoldMessenger.of(context).showSnackBar(
@@ -444,14 +471,16 @@ Widget _buildStatusIcon(MessageStatus? status) {
               icon: const Icon(Icons.forward_to_inbox_outlined),
               onPressed: () {
                 final body = _selectedMessages.first.body;
-                
-                
-                Navigator.push(context, MaterialPageRoute(
-                  builder: (context) => SelectContactScreen(
-                    isForwarding: true,
-                    forwardMessage: RedactService.redactBalances(body, _selectedMessages.first.address),
-                  ),
-                ));
+
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SelectContactScreen(
+                        isForwarding: true,
+                        forwardMessage: RedactService.redactBalances(
+                            body, _selectedMessages.first.address),
+                      ),
+                    ));
               },
             ),
           IconButton(
@@ -684,6 +713,5 @@ Widget _buildStatusIcon(MessageStatus? status) {
       await context.read<SingleChatCubit>().deleteMessages(_selectedMessages);
     }
     setState(() => _selectedMessages.clear());
-    
   }
 }

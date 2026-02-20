@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:another_telephony/telephony.dart';
 import 'package:messaging/core/user_defaults.dart';
+import 'package:messaging/models/app_chat.dart';
 import 'package:messaging/models/sim_card_state.dart';
 import 'package:messaging/services/contact_db.dart';
 import 'package:messaging/services/contact_service.dart';
@@ -11,7 +12,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:sim_card_info/sim_card_info.dart';
 import 'package:sim_card_info/sim_info.dart';
 import 'package:uuid/uuid.dart';
-import '../models/sms_message.dart';
+import '../models/app_message.dart';
 import 'database_helper.dart';
 import 'notification_service.dart';
 import 'dart:async';
@@ -31,11 +32,10 @@ class SmsService {
 
   static const _channel = MethodChannel('com.brimukon.messaging.sms_role');
 
-  // Streams for UI updates
   final _messageUpdateController = StreamController<SmsEvent>.broadcast();
   Stream<SmsEvent> get onMessageUpdated => _messageUpdateController.stream;
 
-  // --- 1. Role & Permissions Management ---
+  final Map<int, Timer> _activeTimeouts = {};
 
   static Future<bool> isDefaultSmsApp() async {
     try {
@@ -64,7 +64,6 @@ class SmsService {
     return statuses.values.every((status) => status.isGranted);
   }
 
-  // --- 2. Lifecycle & Initialization ---
 
   Future<void> initialize() async {
     await _notificationService.initialize();
@@ -95,14 +94,14 @@ class SmsService {
     int id = await getDefaultSim();
     List<SimInfo> simcards = await getSimcards();
 
-    return AppSimCardState(defaultCard: id == -1 ? null : id, allCards: simcards);
+    return AppSimCardState(
+        defaultCard: id == -1 ? null : id, allCards: simcards);
   }
 
-  // --- 3. Message Synchronization (Optimized) ---
 
   Future<void> syncExistingMessages() async {
     debugPrint("Syncing history from system provider...");
-  
+
     // Fetch all inbox messages
     List<SmsMessage> messages = await telephony.getInboxSms(columns: [
       SmsColumn.ADDRESS,
@@ -116,70 +115,96 @@ class SmsService {
 
     if (messages.isEmpty) return;
 
-    // Use a batch transaction in the DatabaseHelper to avoid UI jank
-    // This is 100x faster than inserting one by one
     await _dbHelper.batchSyncMessages(messages);
 
-    UserDefaults.setHasSynced(); // Mark as synced
+    UserDefaults.setHasSynced();
     _messageUpdateController.add(SmsEvent(type: SmsEventType.syncCompleted));
   }
 
-  // --- 4. Sending & Receiving ---
+  Future<void> startSendTimeout(int messageId) async {
+    _activeTimeouts[messageId] = Timer(const Duration(seconds: 15), () async {
+      await markMessageAsFailed(messageId);
+      _activeTimeouts.remove(messageId);
+    });
+  }
+
+  Future<void> cancelSendTimeout(int messageId) async {
+    _activeTimeouts[messageId]?.cancel();
+    _activeTimeouts.remove(messageId);
+  }
 
   Future<bool> sendSms(String address, String message, String threadId) async {
     int? defaultSim = await getDefaultSim();
+    final date = DateTime.now().millisecondsSinceEpoch;
+    final smsMessage = AppSmsMessage(
+      status: MessageStatus.pending,
+      address: address,
+      body: message,
+      date: date,
+      type: 2, // Sent
+      threadId: threadId,
+      read: true,
+    );
+    int messageId = await _dbHelper.insertMessage(smsMessage);
+    await _updateChat(threadId, address, message, date);
+    await startSendTimeout(messageId);
+
     try {
       await telephony.sendSms(
         to: address,
         message: message,
         subscriptionId: defaultSim + 1,
-        statusListener: (status) {
+        statusListener: (status) async {
           if (status == SendStatus.SENT) {
-            _messageUpdateController.add(SmsEvent(type: SmsEventType.messageSent));
-            
+            await cancelSendTimeout(messageId);
+            await markMessageAsSent(messageId);
+          }
+
+          if (status == SendStatus.DELIVERED) {
+            await markMessageAsDelivered(messageId);
           }
         },
       );
 
-      final date = DateTime.now().millisecondsSinceEpoch;
-      final smsMessage = AppSmsMessage(
-        address: address,
-        body: message,
-        date: date,
-        type: 2, // Sent
-        threadId: threadId,
-        read: true,
-      );
-
-      await _dbHelper.insertMessage(smsMessage);
-      await _updateChat(threadId, address, message, date);
-
-      _messageUpdateController.add(SmsEvent(type: SmsEventType.messagePending, message: smsMessage));
+      _messageUpdateController.add(
+          SmsEvent(type: SmsEventType.messagePending, message: smsMessage));
       return true;
     } catch (e) {
+      await cancelSendTimeout(messageId);
+      await markMessageAsFailed(messageId);
       debugPrint('Send error: $e');
       return false;
     }
   }
+
   Future<void> markMessageAsSent(int messageId) async {
     await _dbHelper.markMessageAsSent(messageId);
     _messageUpdateController.add(SmsEvent(type: SmsEventType.messageSent));
   }
+
   Future<void> markMessageAsDelivered(int messageId) async {
     await _dbHelper.markMessageAsDelivered(messageId);
     _messageUpdateController.add(SmsEvent(type: SmsEventType.messageDelivered));
-
   }
+
+  Future<void> markMessageAsFailed(int messageId) async {
+    await _dbHelper.markMessageAsFailed(messageId);
+    _messageUpdateController
+        .add(SmsEvent(type: SmsEventType.messageSendFailure));
+  }
+
   Future<void> markThreadAsPinned(String threadId, bool isPinned) async {
     await _dbHelper.markThreadAsPinned(threadId, isPinned);
   }
+
   Future<void> markThreadAsArchived(String threadId, bool isArchived) async {
     await _dbHelper.markThreadAsArchived(threadId, isArchived);
   }
 
   void _onMessageReceived(SmsMessage message) async {
     final threadId = await getThreadId(message.address);
-    await _saveIncomingMessage(message, threadId, await getContactName(message.address ?? ''));
+    await _saveIncomingMessage(
+        message, threadId, await getContactName(message.address ?? ''));
   }
 
   @pragma('vm:entry-point')
@@ -187,16 +212,16 @@ class SmsService {
     final service = SmsService();
     final threadId = await _getThreadIdSt(message.address);
     final db = ContactDb();
-    // Try to get the contact name from SQLite
     final String? contactName = await db.getName(message.address ?? "");
-   
-    // Fallback to address if name not found
+
     final String title = contactName ?? message.address ?? "New Message";
     await service._saveIncomingMessage(message, threadId, title);
   }
 
-  Future<void> _saveIncomingMessage(SmsMessage msg, String threadId, String name) async {
+  Future<void> _saveIncomingMessage(
+      SmsMessage msg, String threadId, String name) async {
     final appMsg = AppSmsMessage(
+      status: MessageStatus.unknown,
       address: msg.address ?? '',
       body: msg.body ?? '',
       date: msg.date ?? DateTime.now().millisecondsSinceEpoch,
@@ -208,16 +233,14 @@ class SmsService {
     await _dbHelper.insertMessage(appMsg);
     await _updateChat(threadId, appMsg.address, appMsg.body, appMsg.date,
         incrementUnread: true);
-         _messageUpdateController
+    _messageUpdateController
         .add(SmsEvent(type: SmsEventType.messageReceived, message: appMsg));
 
     await _notificationService.showNotification(
       title: name,
       body: appMsg.body,
-      payload: json.encode(
-          {'threadId': threadId, "address": appMsg.address}),
+      payload: json.encode({'threadId': threadId, "address": appMsg.address}),
     );
-    
   }
 
   Future<String> getThreadId(String? address) async {
@@ -237,7 +260,6 @@ class SmsService {
     return chat?.threadId ?? const Uuid().v4();
   }
 
-  // --- 5. Database Operations ---
 
   Future<void> _updateChat(String tId, String addr, String msg, int date,
       {bool incrementUnread = false}) async {
@@ -248,7 +270,7 @@ class SmsService {
           lastMessage: msg,
           lastMessageDate: date,
           unreadCount:
-              0, // DatabaseHelper will handle the actual count increment
+              0, 
         ),
         incrementUnread: incrementUnread);
   }
@@ -273,11 +295,21 @@ class SmsService {
     _messageUpdateController.add(SmsEvent(type: SmsEventType.messageDeleted));
   }
 
-  Future<String> getContactName(String phoneNumber) async => ContactService().getName(phoneNumber);
+  Future<String> getContactName(String phoneNumber) async =>
+      ContactService().getName(phoneNumber);
 }
 
+enum SmsEventType {
+  messageSent,
+  messageSendFailure,
+  messagePending,
+  messageDelivered,
+  messageReceived,
+  messageDeleted,
+  threadUpdated,
+  syncCompleted
+}
 
-enum SmsEventType { messageSent, messageSendFailure, messagePending, messageDelivered, messageReceived, messageDeleted, threadUpdated, syncCompleted }
 class SmsEvent {
   final AppSmsMessage? message;
   final SmsEventType type;

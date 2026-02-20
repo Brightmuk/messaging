@@ -1,7 +1,8 @@
+import 'package:messaging/models/app_chat.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:another_telephony/telephony.dart' as tel;
-import '../models/sms_message.dart';
+import '../models/app_message.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -39,8 +40,7 @@ class DatabaseHelper {
         date INTEGER NOT NULL,
         type INTEGER NOT NULL,
         threadId TEXT,
-        isSent INTEGER NOT NULL DEFAULT 0,
-        isDelivered INTEGER NOT NULL DEFAULT 0,
+        status INTEGER DEFAULT 0,
         read INTEGER NOT NULL DEFAULT 0,
         UNIQUE(address, body, date) ON CONFLICT IGNORE
       )
@@ -51,6 +51,7 @@ class DatabaseHelper {
       CREATE TABLE chats (
         threadId TEXT PRIMARY KEY,
         address TEXT NOT NULL,
+        normalizedAddress TEXT NOT NULL,
         lastMessage TEXT,
         lastMessageDate INTEGER,
         isArchived INTEGER DEFAULT 0,
@@ -76,25 +77,27 @@ class DatabaseHelper {
         final threadId = msg.threadId.toString();
         
         // Insert message (Ignore duplicates based on ID or timestamp if you add unique constraints)
+        if(msg.address != null && msg.body != null && msg.date != null) {
         batch.insert('messages', {
           'address': msg.address,
           'body': msg.body,
           'date': msg.date,
-          'type': 1, // Inbox
+          'type': msg.type == tel.SmsType.MESSAGE_TYPE_INBOX ? 1 : 2,
+          'read': msg.read != null && msg.read! ? 1 : 0,
           'threadId': threadId,
-          'read': 1, 
-          'isSent': 1,
-          'isDelivered': 1,
+          'status': msg.status == tel.SmsStatus.STATUS_COMPLETE ? MessageStatus.sent.value : MessageStatus.unknown.value,
         }, conflictAlgorithm: ConflictAlgorithm.ignore);
 
         // Update/Insert chat summary
         batch.insert('chats', {
           'threadId': threadId,
           'address': msg.address,
+          'normalizedAddress': AppChat.normalizeAddress(msg.address!),
           'lastMessage': msg.body,
           'lastMessageDate': msg.date,
           'unreadCount': 0,
         }, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
       }
 
       await batch.commit(noResult: true);
@@ -119,13 +122,13 @@ class DatabaseHelper {
     
     if (incrementUnread) {
       await db.rawInsert('''
-        INSERT INTO chats (threadId, address, lastMessage, lastMessageDate, unreadCount)
-        VALUES (?, ?, ?, ?, 1)
+        INSERT INTO chats (threadId, address, normalizedAddress, lastMessage, lastMessageDate, unreadCount)
+        VALUES (?, ?, ?, ?, ?, 1)
         ON CONFLICT(threadId) DO UPDATE SET
           lastMessage = excluded.lastMessage,
           lastMessageDate = excluded.lastMessageDate,
           unreadCount = unreadCount + 1
-      ''', [chat.threadId, chat.address, chat.lastMessage, chat.lastMessageDate]);
+      ''', [chat.threadId, chat.address, chat.normalizedAddress, chat.lastMessage, chat.lastMessageDate]);
     } else {
       await db.insert(
         'chats',
@@ -145,6 +148,18 @@ class DatabaseHelper {
     );
     return result.map((json) => AppSmsMessage.fromMap(json)).toList();
   }
+  Future<AppChat?> getChatByNormalizedAddress(String normalizedAddress) async {
+    final db = await database;
+    final result = await db.query(
+      'chats',
+      where: 'normalizedAddress = ?',
+      whereArgs: [normalizedAddress],
+    );
+    if (result.isNotEmpty) {
+      return AppChat.fromMap(result.first);
+    }
+    return null;
+  }
 
   Future<List<AppChat>> getAllChats() async {
     final db = await database;
@@ -160,12 +175,17 @@ class DatabaseHelper {
   // --- State Modification ---
   Future<void> markMessageAsSent(int messageId) async {
     final db = await database;
-    await db.update('messages', {'isSent': 1}, where: 'id = ?', whereArgs: [messageId]);
+    await db.update('messages', {'status': MessageStatus.sent.value}, where: 'id = ?', whereArgs: [messageId]);
   }
   Future<void> markMessageAsDelivered(int messageId) async {
     final db = await database;
-    await db.update('messages', {'isDelivered': 1}, where: 'id = ?', whereArgs: [messageId]);
+    await db.update('messages', {'status': MessageStatus.delivered.value}, where: 'id = ?', whereArgs: [messageId]);
   }
+  Future<void> markMessageAsFailed(int messageId) async {
+    final db = await database;
+    await db.update('messages', {'status': MessageStatus.failed.value}, where: 'id = ?', whereArgs: [messageId]);
+  }
+
   Future<void> markThreadAsRead(String threadId) async {
     final db = await database;
     await db.transaction((txn) async {

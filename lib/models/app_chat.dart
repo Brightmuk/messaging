@@ -1,142 +1,51 @@
 import 'dart:convert';
- enum MessageStatus { pending, sent, delivered, failed }
-class AppSmsMessage {
-  final int? id;
-  final String address;
-  final String body;
-  final int date;
-  final int type; // 1 = received, 2 = sent
-  final String threadId;
-  final bool isSent;
-  final bool isDelivered;
-  final bool read;
-
-  AppSmsMessage({
-    this.id,
-    required this.address,
-    required this.body,
-    required this.date,
-    required this.type,
-    required this.threadId,
-    this.isSent = false,
-    this.isDelivered = false,
-    this.read = false,
-  });
-
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'address': address,
-      'body': body,
-      'date': date,
-      'type': type,
-      'threadId': threadId,
-      'isSent': isSent ? 1 : 0,
-      'isDelivered': isDelivered ? 1 : 0,
-      'read': read ? 1 : 0,
-    };
-  }
-
-  factory AppSmsMessage.fromMap(Map<String, dynamic> map) {
-    return AppSmsMessage(
-      id: map['id'],
-      address: map['address'],
-      body: map['body'],
-      date: map['date'],
-      type: map['type'],
-      threadId: map['threadId'],
-      isSent: map['isSent'] == 1,
-      isDelivered: map['isDelivered'] == 1,
-      read: map['read'] == 1,
-    );
-  }
-
-  bool get isOutgoing => type == 2;
-  bool get isIncoming => type == 1;
-  MessageStatus get status {
-    if (isSent && isDelivered) {
-      return MessageStatus.delivered;
-    } else if (isSent) {
-      return MessageStatus.sent;
-    }
-    return MessageStatus.pending;
-  }
-
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-
-    return other is AppSmsMessage &&
-        other.id == id &&
-        other.address == address &&
-        other.body == body &&
-        other.date == date &&
-        other.type == type &&
-        other.threadId == threadId &&
-        other.isSent == isSent &&
-        other.isDelivered == isDelivered &&
-        other.read == read;
-  }
-
-  @override
-  int get hashCode {
-    return id.hashCode ^
-        address.hashCode ^
-        body.hashCode ^
-        date.hashCode ^
-        type.hashCode ^
-        threadId.hashCode ^
-        isSent.hashCode ^
-        isDelivered.hashCode ^
-        read.hashCode;
-  
-  }
- 
-}
 
 class AppChat {
   final String threadId;
   final String address;
+  final String normalizedAddress;
   final String? lastMessage;
   final int? lastMessageDate;
   final int unreadCount;
   final bool isPinned;
   final bool isArchived;
 
-  AppChat({
+  AppChat._internal({
     required this.threadId,
     required this.address,
+    required this.normalizedAddress,
     this.lastMessage,
     this.lastMessageDate,
     this.unreadCount = 0,
     this.isPinned = false,
     this.isArchived = false,
   });
-
-  bool isSameThread(String? newThreadId, String newAddress) {
-    return normalize(newAddress) == normalize(address) ||
-        (newThreadId != null && newThreadId == threadId);
-  }
-
-  static String normalize(String phone) {
-    if (phone.isEmpty) return '';
-    String digits = phone.replaceAll(RegExp(r'\D'), '');
-
-    if (digits.startsWith('254')) {
-      digits = digits.substring(3);
-    }
-    if (digits.startsWith('0')) {
-      digits = digits.substring(1);
-    }
-
-    return digits;
+  factory AppChat({
+    required String threadId,
+    required String address,
+    String? lastMessage,
+    int? lastMessageDate,
+    int unreadCount = 0,
+    bool isPinned = false,
+    bool isArchived = false,
+  }) {
+    return AppChat._internal(
+      threadId: threadId,
+      address: address,
+      normalizedAddress: normalizeAddress(address),
+      lastMessage: lastMessage,
+      lastMessageDate: lastMessageDate,
+      unreadCount: unreadCount,
+      isPinned: isPinned,
+      isArchived: isArchived,
+    );
   }
 
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'threadId': threadId,
       'address': address,
+      'normalizedAddress': normalizedAddress,
       'lastMessage': lastMessage,
       'lastMessageDate': lastMessageDate,
       'unreadCount': unreadCount,
@@ -191,6 +100,7 @@ class AppChat {
 
     return other.threadId == threadId &&
         other.address == address &&
+        other.normalizedAddress == normalizedAddress &&
         other.lastMessage == lastMessage &&
         other.lastMessageDate == lastMessageDate &&
         other.unreadCount == unreadCount;
@@ -200,6 +110,7 @@ class AppChat {
   int get hashCode {
     return threadId.hashCode ^
         address.hashCode ^
+        normalizedAddress.hashCode ^
         lastMessage.hashCode ^
         lastMessageDate.hashCode ^
         unreadCount.hashCode;
@@ -211,5 +122,38 @@ class AppChat {
     }
     String clean = address.replaceAll(RegExp(r'\D'), '');
     return clean.length >= 3;
+  }
+
+  static String normalizeAddress(String address) {
+    // 1. Remove whitespace and convert to uppercase for consistency (e.g., "m-pesa" vs "MPESA")
+    String clean = address.trim().toUpperCase();
+
+    // 2. Identify if it's an Alphanumeric Sender ID (Labels like "MPESA", "ADMTXT")
+    // If it contains any letters, we treat it as a literal label.
+    if (RegExp(r'[A-Z]').hasMatch(clean)) {
+      return clean;
+    }
+
+    // 3. Identify if it's a Shortcode (e.g., "555", "20205")
+    // Shortcodes are digits-only but usually very short (3-6 digits).
+    // We don't want to slice these; we want the exact code.
+    String digitsOnly = clean.replaceAll(RegExp(r'\D'), '');
+    if (digitsOnly.length <= 6) {
+      return digitsOnly;
+    }
+
+    // 4. Handle Standard Phone Numbers (e.g., +2547..., 07..., 01...)
+    // We take the last 9 digits to ensure +254722... and 0722... match.
+    if (digitsOnly.length >= 9) {
+      return digitsOnly.substring(digitsOnly.length - 9);
+    }
+
+    // Fallback for anything else
+    return digitsOnly.isEmpty ? clean : digitsOnly;
+  }
+
+  bool isSameThread(String? newThreadId, String newAddress) {
+    return normalizeAddress(newAddress) == normalizeAddress(address) ||
+        (newThreadId != null && newThreadId == threadId);
   }
 }
