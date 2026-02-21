@@ -15,7 +15,7 @@ class NotificationService {
 
   Future<void> initialize() async {
     const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('ic_notification');
+        AndroidInitializationSettings('@mipmap/ic_notification');
 
     const InitializationSettings initializationSettings =
         InitializationSettings(
@@ -47,6 +47,7 @@ class NotificationService {
       importance: Importance.high,
       enableVibration: true,
       playSound: true,
+      
     );
 
     await _notifications
@@ -70,7 +71,6 @@ class NotificationService {
       showWhen: true,
       enableVibration: true,
       playSound: true,
-      icon: '@mipmap/ic_launcher',
     );
 
     const NotificationDetails notificationDetails = NotificationDetails(
