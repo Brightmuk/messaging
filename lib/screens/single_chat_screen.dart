@@ -144,7 +144,6 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
           );
         }
         final allMessages = context.read<SingleChatCubit>().messages;
-        final hasReachedMax = context.read<SingleChatCubit>().hasReachedMax;
         // Filter messages based on search
         final messages = allMessages.where((m) {
           return m.body.toLowerCase().contains(_searchQuery);
@@ -282,22 +281,10 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                                               onPressed: (isLoading ||
                                                       !hasData ||
                                                       _messageController
-                                                          .text.isEmpty ||
-                                                      (state
-                                                          is SingleChatSending))
+                                                          .text.isEmpty)
                                                   ? null
                                                   : () => _sendMessage(),
-                                              icon: (state is SingleChatSending)
-                                                  ? const SizedBox(
-                                                      width: 18,
-                                                      height: 18,
-                                                      child:
-                                                          CircularProgressIndicator(
-                                                              strokeWidth: 2,
-                                                              color:
-                                                                  Colors.white),
-                                                    )
-                                                  :  Icon(
+                                              icon: Icon(
                                                       Icons.arrow_upward,
                                                       color: theme.colorScheme.onPrimary,
                                                     ),
@@ -346,6 +333,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
     required bool hide,
     required bool selected,
   }) {
+
     return Column(
       children: [
         if (showDateSeparator) _buildDateSeparator(message.date),
@@ -418,12 +406,15 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                 ),
               ),
               if (isOutgoing) ...[
-                const SizedBox(width: 4),
-                GestureDetector(
-                    onTap: message.status == MessageStatus.failed
-                        ? () => _handleRetry(message)
-                        : null,
-                    child: _buildStatusIcon(message.status)),
+                const SizedBox(width: 2),
+                Padding(
+                  padding: const EdgeInsets.only(right: 10),
+                  child: GestureDetector(
+                      onTap: message.status == MessageStatus.failed
+                          ? () => _handleRetry(message)
+                          : null,
+                      child: _buildStatusIcon(message.status)),
+                ),
               ],
             ],
           ),
@@ -433,7 +424,26 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
   }
 
   void _handleRetry(AppSmsMessage message) async {
-    _sendMessage();
+       final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Message not sent'),
+        content: const Text('Retry sending this message?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Retry')),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      context.read<SingleChatCubit>().sendMessage(widget.address, message.body);
+    }
+    
   }
 
 // Helper to show the correct status icon
@@ -449,7 +459,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
             size: 15, color: theme.colorScheme.onSurfaceVariant);
       case MessageStatus.failed:
         return const Icon(Icons.error_outline,
-            size: 15, color: Colors.redAccent);
+            size: 18, color: Colors.redAccent);
       case MessageStatus.pending:
         return Icon(Icons.access_time,
             size: 15, color: theme.colorScheme.onSurfaceVariant);
@@ -457,6 +467,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
   }
 
   AppBar _buildAppBar(List<AppSmsMessage> messages) {
+
     // 1. SELECTION MODE
     if (_isSelectionMode) {
       return AppBar(
@@ -517,7 +528,8 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
         title: TextField(
           controller: _searchController,
           autofocus: true,
-          decoration: const InputDecoration(
+          decoration:  const InputDecoration(
+            filled: false,
               hintText: 'Search messages...', border: InputBorder.none),
           onChanged: (value) =>
               setState(() => _searchQuery = value.toLowerCase()),
@@ -678,18 +690,16 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
     );
   }
 
-  bool _shouldShowDateSeparator(int index, List<AppSmsMessage> messages) {
-    if (index == 0) return true;
+bool _shouldShowDateSeparator(int index, List<AppSmsMessage> messages) {
+  if (index == messages.length - 1) return true;
 
-    final currentDate =
-        DateTime.fromMillisecondsSinceEpoch(messages[index].date);
-    final previousDate =
-        DateTime.fromMillisecondsSinceEpoch(messages[index - 1].date);
+  final currentMsgDate = DateTime.fromMillisecondsSinceEpoch(messages[index].date);
+  final olderMsgDate = DateTime.fromMillisecondsSinceEpoch(messages[index + 1].date);
 
-    return currentDate.day != previousDate.day ||
-        currentDate.month != previousDate.month ||
-        currentDate.year != previousDate.year;
-  }
+  return currentMsgDate.day != olderMsgDate.day ||
+      currentMsgDate.month != olderMsgDate.month ||
+      currentMsgDate.year != olderMsgDate.year;
+}
 
   Future<void> _makePhoneCall(String phoneNumber) async {
     final Uri launchUri = Uri(

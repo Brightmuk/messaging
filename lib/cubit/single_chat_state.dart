@@ -4,7 +4,6 @@ part of 'single_chat_cubit.dart';
 sealed class SingleChatState {}
 
 final class SingleChatInitial extends SingleChatState {}
-final class SingleChatSending extends SingleChatState {}
 final class SingleChatSendError extends SingleChatState {
   final String error;
 

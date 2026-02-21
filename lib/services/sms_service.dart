@@ -121,9 +121,11 @@ class SmsService {
     _messageUpdateController.add(SmsEvent(type: SmsEventType.syncCompleted));
   }
 
-  Future<void> startSendTimeout(int messageId) async {
+  Future<void> startSendTimeout(AppSmsMessage smsMessage) async {
+    if (smsMessage.id == null) return;
+    final messageId = smsMessage.id!;
     _activeTimeouts[messageId] = Timer(const Duration(seconds: 15), () async {
-      await markMessageAsFailed(messageId);
+      await markMessageAsFailed(smsMessage.copyWith(id: messageId));
       _activeTimeouts.remove(messageId);
     });
   }
@@ -147,7 +149,7 @@ class SmsService {
     );
     int messageId = await _dbHelper.insertMessage(smsMessage);
     await _updateChat(threadId, address, message, date);
-    await startSendTimeout(messageId);
+    await startSendTimeout(smsMessage.copyWith(id: messageId));
 
     try {
       await telephony.sendSms(
@@ -155,42 +157,82 @@ class SmsService {
         message: message,
         subscriptionId: defaultSim + 1,
         statusListener: (status) async {
-          if (status == SendStatus.SENT) {
-            await cancelSendTimeout(messageId);
-            await markMessageAsSent(messageId);
-          }
+          debugPrint("\nSend Status: $status\n");
+          //Seems like sent doesnt always guarantee the message left the device
+          // if (status == SendStatus.SENT) {
+          //   await cancelSendTimeout(messageId);
+          //   await markMessageAsSent(smsMessage.copyWith(id: messageId));
+          // }
 
           if (status == SendStatus.DELIVERED) {
-            await markMessageAsDelivered(messageId);
+             await cancelSendTimeout(messageId);
+            await markMessageAsDelivered(smsMessage.copyWith(id: messageId));
           }
         },
       );
 
       _messageUpdateController.add(
-          SmsEvent(type: SmsEventType.messagePending, message: smsMessage));
+          SmsEvent(type: SmsEventType.messagePending, message: smsMessage.copyWith(id: messageId)));
       return true;
     } catch (e) {
       await cancelSendTimeout(messageId);
-      await markMessageAsFailed(messageId);
+      await markMessageAsFailed(smsMessage.copyWith(id: messageId));
       debugPrint('Send error: $e');
       return false;
     }
   }
+  Future<void> retrySending(AppSmsMessage message) async {
+    int? defaultSim = await getDefaultSim();
+    if(message.id == null) return;
+    await startSendTimeout(message);
 
-  Future<void> markMessageAsSent(int messageId) async {
-    await _dbHelper.markMessageAsSent(messageId);
-    _messageUpdateController.add(SmsEvent(type: SmsEventType.messageSent));
+    try {
+      await telephony.sendSms(
+        to: message.address,
+        message: message.body,
+        subscriptionId: defaultSim + 1,
+        statusListener: (status) async {
+          debugPrint("\nSend Status: $status\n");
+          //Seems like sent doesnt always guarantee the message left the device
+          // if (status == SendStatus.SENT) {
+          //   await cancelSendTimeout(messageId);
+          //   await markMessageAsSent(smsMessage.copyWith(id: messageId));
+          // }
+
+          if (status == SendStatus.DELIVERED) {
+            await markMessageAsDelivered(message);
+          }
+        },
+      );
+
+      _messageUpdateController.add(
+          SmsEvent(type: SmsEventType.messagePending, message: message));
+     
+    } catch (e) {
+      await cancelSendTimeout(message.id!);
+      await markMessageAsFailed(message);
+      debugPrint('Send error: $e');
+    }
   }
 
-  Future<void> markMessageAsDelivered(int messageId) async {
-    await _dbHelper.markMessageAsDelivered(messageId);
-    _messageUpdateController.add(SmsEvent(type: SmsEventType.messageDelivered));
+
+  Future<void> markMessageAsSent(AppSmsMessage message) async {
+    if(message.id == null) return;
+    await _dbHelper.markMessageAsSent(message.id!);
+    _messageUpdateController.add(SmsEvent(type: SmsEventType.messageSent, message: message.copyWith(status: MessageStatus.sent)));
   }
 
-  Future<void> markMessageAsFailed(int messageId) async {
-    await _dbHelper.markMessageAsFailed(messageId);
+  Future<void> markMessageAsDelivered(AppSmsMessage message) async {
+    if(message.id == null) return;
+    await _dbHelper.markMessageAsDelivered(message.id!);
+    _messageUpdateController.add(SmsEvent(type: SmsEventType.messageDelivered, message: message.copyWith(status: MessageStatus.delivered)));
+  }
+
+  Future<void> markMessageAsFailed(AppSmsMessage message) async {
+    if(message.id == null) return;
+    await _dbHelper.markMessageAsFailed(message.id!);
     _messageUpdateController
-        .add(SmsEvent(type: SmsEventType.messageSendFailure));
+        .add(SmsEvent(type: SmsEventType.messageSendFailure, message: message.copyWith(status: MessageStatus.failed)));
   }
 
   Future<void> markThreadAsPinned(String threadId, bool isPinned) async {
@@ -341,4 +383,19 @@ class SmsEvent {
   final List<AppSmsMessage> messages;
 
   SmsEvent({this.message, required this.type,  this.messages = const []});
+}
+
+enum ChatEventType {
+  newMessage,
+  deletedMessage,
+  deletedChat,
+  threadUpdated
+}
+
+class ChatEvent {
+  final AppChat? chat;
+  final ChatEventType type;
+
+  ChatEvent({this.chat, required this.type});
+
 }

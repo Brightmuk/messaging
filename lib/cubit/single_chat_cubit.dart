@@ -32,26 +32,29 @@ class SingleChatCubit extends Cubit<SingleChatState> {
   bool _hasReachedMax = false;
   bool get hasReachedMax => _hasReachedMax;
 
-
   void handleSmsUpdates(SmsEvent event) {
+    debugPrint("Handling event: ${event.type}");
     switch (event.type) {
       case SmsEventType.messageSent:
       case SmsEventType.messageDelivered:
       case SmsEventType.messageSendFailure:
-        final failedMessage = event.message;
-        if (failedMessage != null) {
-          messages = messages
-              .map((msg) => msg.id == failedMessage.id
-                  ? failedMessage.copyWith(status: msg.status)
-                  : msg)
-              .toList();
+        final updatedMessage = event.message;
+        if (updatedMessage != null) {
+          debugPrint("To update message: ${updatedMessage.id} body: ${updatedMessage.body}");
+          messages = messages.map((msg) {
+            if (msg.id == updatedMessage.id) {
+              debugPrint("Updating message: ${msg.id}");
+              return msg.copyWith(status: updatedMessage.status);
+            }
+            return msg;
+          }).toList();
           emit(SingleChatLoaded(messages: messages, hideStatus: hideStatus));
         }
         break;
       case SmsEventType.messagePending:
       case SmsEventType.messageReceived:
         final newMessage = event.message;
-        if (newMessage != null) {
+        if (newMessage != null && newMessage.threadId == threadId) {
           messages = [newMessage, ...messages];
           emit(SingleChatLoaded(messages: messages, hideStatus: hideStatus));
         }
@@ -80,7 +83,7 @@ class SingleChatCubit extends Cubit<SingleChatState> {
         break;
 
       default:
-        debugPrint("Update: ${event.type}");
+        debugPrint("Fallen through: ${event.type}");
     }
   }
 
@@ -98,48 +101,49 @@ class SingleChatCubit extends Cubit<SingleChatState> {
     await SmsService.requestDefaultSmsRole();
   }
 
-Future<void> getMessages({bool isInitialLoad = true}) async {
-  if(!isInitialLoad) debugPrint("Loading more...");
-  if (_isFetching || (_hasReachedMax && !isInitialLoad)) return;
+  Future<void> getMessages({bool isInitialLoad = true}) async {
+    if (!isInitialLoad) debugPrint("Loading more...");
+    if (_isFetching || (_hasReachedMax && !isInitialLoad)) return;
 
-  _isFetching = true;
+    _isFetching = true;
 
-  if (isInitialLoad) {
-    _currentPage = 0;
-    _hasReachedMax = false;
-    emit(SingleChatLoading());
+    if (isInitialLoad) {
+      _currentPage = 0;
+      _hasReachedMax = false;
+      emit(SingleChatLoading());
+    }
+
+    final newMessages = await _smsService.getMessagesForThread(
+      threadId,
+      limit: _pageSize,
+      offset: _currentPage * _pageSize,
+    );
+
+    if (newMessages.length < _pageSize) {
+      _hasReachedMax = true;
+    }
+
+    if (isInitialLoad) {
+      messages = newMessages;
+    } else {
+      messages.addAll(newMessages);
+    }
+
+    _currentPage++;
+    _isFetching = false;
+
+    emit(SingleChatLoaded(
+      messages: List.from(messages),
+      hideStatus: hideStatus,
+      hasReachedMax: _hasReachedMax,
+    ));
   }
-
-  final newMessages = await _smsService.getMessagesForThread(
-    threadId,
-    limit: _pageSize,
-    offset: _currentPage * _pageSize,
-  );
-
-  if (newMessages.length < _pageSize) {
-    _hasReachedMax = true;
-  }
-
-  if (isInitialLoad) {
-    messages = newMessages;
-  } else {
-
-    messages.addAll(newMessages);
-  }
-
-  _currentPage++;
-  _isFetching = false;
-
-  emit(SingleChatLoaded(
-    messages: List.from(messages), 
-    hideStatus: hideStatus,
-    hasReachedMax: _hasReachedMax,
-  ));
-}
 
   Future<void> sendMessage(String address, String message) async {
-    emit(SingleChatSending());
     await _smsService.sendSms(address, message, threadId);
+  }
+  Future<void> retrySend(AppSmsMessage message) async {
+    await _smsService.retrySending(message);
   }
 
   Future<void> deleteMessages(Iterable<AppSmsMessage> messages) async {
