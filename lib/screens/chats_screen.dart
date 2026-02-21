@@ -422,6 +422,7 @@ bool _isAllSelected(List<dynamic> chats) {
   }
 
   Widget prefix(String address, Color color) {
+    if (AppChat.isBusiness(address)) return Icon(Icons.business_outlined, color: color,);
     if (address.startsWith(RegExp(r'[a-zA-Z]')) && address.isNotEmpty) {
       return Text(address[0].toUpperCase(),
           style: TextStyle(color: color, fontWeight: FontWeight.bold));

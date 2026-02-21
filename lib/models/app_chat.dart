@@ -123,6 +123,9 @@ class AppChat {
     String clean = address.replaceAll(RegExp(r'\D'), '');
     return clean.length >= 3;
   }
+  static bool isBusiness(String address){
+     return !supportsReplies(address) || address.length < 6;
+  }
 
   static String normalizeAddress(String address) {
     // 1. Remove whitespace and convert to uppercase for consistency (e.g., "m-pesa" vs "MPESA")

@@ -80,9 +80,9 @@ class DatabaseHelper {
         if(msg.address != null && msg.body != null && msg.date != null) {
         batch.insert('messages', {
           'address': msg.address,
-          'body': msg.body,
+          'body': msg.body, 
           'date': msg.date,
-          'type': msg.type == tel.SmsType.MESSAGE_TYPE_INBOX ? 1 : 2,
+          'type': 1,
           'read': msg.read != null && msg.read! ? 1 : 0,
           'threadId': threadId,
           'status': msg.status == tel.SmsStatus.STATUS_COMPLETE ? MessageStatus.sent.value : MessageStatus.unknown.value,

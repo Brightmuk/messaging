@@ -19,7 +19,7 @@ class MfichaOnboarding extends StatelessWidget {
       pages: [
           PageViewModel(
           title: "\"Onyesha message\"",
-          body: "Optionally redact your account balances from M-PESA and Airtel Money messages, keeping your financial information private.",
+          body: "Optionally hide your account balances from M-PESA and Airtel Money messages, keeping your financial information private.",
           image: Image.asset('assets/images/balance_redaction.png', height: 200),
         ),
         PageViewModel(

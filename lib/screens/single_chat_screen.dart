@@ -112,6 +112,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
   @override
   Widget build(BuildContext context) {
     FeedbackUi feedbackUi = FeedbackUi(context);
+    final theme = Theme.of(context);
     return BlocConsumer<SingleChatCubit, SingleChatState>(
       listener: (context, state) {
         if (state is SingleChatSendError) {
@@ -285,9 +286,9 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                                                               color:
                                                                   Colors.white),
                                                     )
-                                                  : const Icon(
+                                                  :  Icon(
                                                       Icons.arrow_upward,
-                                                      color: Colors.white,
+                                                      color: theme.colorScheme.onPrimary,
                                                     ),
                                             ),
                                           ],
