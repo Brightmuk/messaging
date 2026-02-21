@@ -277,8 +277,11 @@ class SmsService {
 
   Future<List<AppChat>> getAllChats() => _dbHelper.getAllChats();
 
-  Future<List<AppSmsMessage>> getMessagesForThread(String threadId) =>
-      _dbHelper.getMessagesForThread(threadId);
+Future<List<AppSmsMessage>> getMessagesForThread(
+  String threadId, {
+  int limit = 20, 
+  int offset = 0,
+}) => _dbHelper.getMessagesForThread(threadId, limit: limit, offset: offset);
 
   Future<void> markThreadAsRead(String threadId) async {
     await _dbHelper.markThreadAsRead(threadId);
@@ -290,10 +293,31 @@ class SmsService {
     _messageUpdateController.add(SmsEvent(type: SmsEventType.threadUpdated));
   }
 
-  Future<void> deleteMessage(int messageId) async {
-    await _dbHelper.deleteMessage(messageId);
-    _messageUpdateController.add(SmsEvent(type: SmsEventType.messageDeleted));
+  Future<void> deleteMessage(AppSmsMessage message) async {
+    if(message.id == null) return;
+    await _dbHelper.deleteMessage(message.id!);
+    AppSmsMessage? previousMessage = await _dbHelper.getMessagesForThread(message.threadId).then((value) => value.firstOrNull);
+    if(previousMessage != null){
+      await _updateChat(previousMessage.threadId, previousMessage.address, previousMessage.body, previousMessage.date);
+    }else{
+      await deleteThread(message.threadId);
+    }
+    
+    _messageUpdateController.add(SmsEvent(type: SmsEventType.messageDeleted, message: message));
   }
+  Future<void>  deleteMessages(List<AppSmsMessage> messages) async {
+    List<int> ids = messages.map((m) => m.id!).toList();
+    await _dbHelper.deleteMessages(ids);
+    AppSmsMessage? previousMessage = await _dbHelper.getMessagesForThread(messages.first.threadId).then((value) => value.firstOrNull);
+    if(previousMessage != null){
+      await _updateChat(previousMessage.threadId, previousMessage.address, previousMessage.body, previousMessage.date);
+    }else{
+      await deleteThread(messages.first.threadId);
+    }
+    
+    _messageUpdateController.add(SmsEvent(type: SmsEventType.messagesDeletedAll, messages: messages));
+  }
+
 
   Future<String> getContactName(String phoneNumber) async =>
       ContactService().getName(phoneNumber);
@@ -306,6 +330,7 @@ enum SmsEventType {
   messageDelivered,
   messageReceived,
   messageDeleted,
+  messagesDeletedAll,
   threadUpdated,
   syncCompleted
 }
@@ -313,5 +338,7 @@ enum SmsEventType {
 class SmsEvent {
   final AppSmsMessage? message;
   final SmsEventType type;
-  SmsEvent({this.message, required this.type});
+  final List<AppSmsMessage> messages;
+
+  SmsEvent({this.message, required this.type,  this.messages = const []});
 }

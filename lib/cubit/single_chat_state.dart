@@ -14,9 +14,10 @@ final class SingleChatSendError extends SingleChatState {
 final class SingleChatLoading extends SingleChatState {}
 final class SingleChatLoaded extends SingleChatState {
   final List<AppSmsMessage> messages;
-  final bool isUpdate;
+  final bool hasReachedMax;
   final bool hideStatus;
 
-  SingleChatLoaded({required this.messages, this.isUpdate = false, this.hideStatus = false});
+  SingleChatLoaded({required this.messages, this.hideStatus = false, this.hasReachedMax = false});
 }
 final class SingleChatError extends SingleChatState {}
+final class SingleChatDeleted extends SingleChatState {}

@@ -138,16 +138,22 @@ class DatabaseHelper {
     }
   }
 
-  Future<List<AppSmsMessage>> getMessagesForThread(String threadId) async {
-    final db = await database;
-    final result = await db.query(
-      'messages',
-      where: 'threadId = ?',
-      whereArgs: [threadId],
-      orderBy: 'date DESC',
-    );
-    return result.map((json) => AppSmsMessage.fromMap(json)).toList();
-  }
+Future<List<AppSmsMessage>> getMessagesForThread(
+  String threadId, {
+  int limit = 20, 
+  int offset = 0,
+}) async {
+  final db = await database;
+  final result = await db.query(
+    'messages',
+    where: 'threadId = ?',
+    whereArgs: [threadId],
+    orderBy: 'date DESC',
+    limit: limit,
+    offset: offset,
+  );
+  return result.map((json) => AppSmsMessage.fromMap(json)).toList();
+}
   Future<AppChat?> getChatByNormalizedAddress(String normalizedAddress) async {
     final db = await database;
     final result = await db.query(
@@ -213,6 +219,18 @@ class DatabaseHelper {
   Future<void> deleteMessage(int id) async {
     final db = await database;
     await db.delete('messages', where: 'id = ?', whereArgs: [id]);
+  }
+  Future<void> deleteMessages(List<int> ids) async {
+    if (ids.isEmpty) return;
+
+    final db = await database;
+    final placeholders = List.filled(ids.length, '?').join(', ');
+
+    await db.delete(
+      'messages',
+      where: 'id IN ($placeholders)',
+      whereArgs: ids,
+    );
   }
 
   Future<void> close() async {

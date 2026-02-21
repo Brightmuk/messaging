@@ -34,6 +34,27 @@ class AppSmsMessage {
     required this.status,
     this.read = false,
   });
+  AppSmsMessage copyWith({
+    int? id,
+    String? address,
+    int? type,
+    String? body,
+    int? date,
+    String? threadId,
+    MessageStatus? status,
+    bool? read,
+  }) {
+    return AppSmsMessage(
+      id: id ?? this.id,
+      address: address ?? this.address,
+      type: type ?? this.type,
+      body: body ?? this.body,
+      date: date ?? this.date,
+      threadId: threadId ?? this.threadId,
+      status: status ?? this.status,
+      read: read ?? this.read,
+    );
+  }
 
   Map<String, dynamic> toMap() {
     return {

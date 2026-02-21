@@ -66,7 +66,6 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
   final Set<AppSmsMessage> _selectedMessages = {};
   bool get _isSelectionMode => _selectedMessages.isNotEmpty;
 
-// Search State
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
@@ -84,12 +83,19 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     context.read<SingleChatCubit>().markThreadAsRead();
     if (widget.initialMessage != null) {
       _messageController.text = widget.initialMessage!;
     }
     _clearNotifications();
   }
+  void _onScroll() {
+  // If we are 200 pixels from the top, load more
+  if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+    context.read<SingleChatCubit>().getMessages(isInitialLoad: false);
+  }
+}
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -118,8 +124,11 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
         if (state is SingleChatSendError) {
           feedbackUi.showError(state.error);
         }
-        if (state is SingleChatLoaded && state.isUpdate) {
+        if (state is SingleChatLoaded) {
           context.read<SingleChatCubit>().markThreadAsRead();
+        }
+        if(state is SingleChatDeleted){
+          Navigator.pop(context);
         }
       },
       builder: (context, state) {
@@ -135,7 +144,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
           );
         }
         final allMessages = context.read<SingleChatCubit>().messages;
-
+        final hasReachedMax = context.read<SingleChatCubit>().hasReachedMax;
         // Filter messages based on search
         final messages = allMessages.where((m) {
           return m.body.toLowerCase().contains(_searchQuery);
@@ -172,7 +181,9 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                               _selectedMessages.contains(message);
                           final showDateSeparator =
                               _shouldShowDateSeparator(index, messages);
-
+                          // if (index >= messages.length) {
+                          //     return const Center(child: CircularProgressIndicator());
+                          //   }
                           return GestureDetector(
                             onLongPress: () => _toggleSelection(message),
                             onTap: () {
