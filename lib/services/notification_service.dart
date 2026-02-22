@@ -15,7 +15,7 @@ class NotificationService {
 
   Future<void> initialize() async {
     const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_notification');
+        AndroidInitializationSettings('ic_notification');
 
     const InitializationSettings initializationSettings =
         InitializationSettings(
