@@ -146,6 +146,7 @@ class SmsService {
       type: 2, // Sent
       threadId: threadId,
       read: true,
+      simId: defaultSim,
     );
     int messageId = await _dbHelper.insertMessage(smsMessage);
     await _updateChat(threadId, address, message, date);
@@ -270,6 +271,7 @@ class SmsService {
       type: 1, // Received
       threadId: threadId,
       read: false,
+      simId: msg.subscriptionId ?? -1,
     );
 
     await _dbHelper.insertMessage(appMsg);

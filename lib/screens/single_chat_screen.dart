@@ -83,6 +83,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _scrollController.addListener(_onScroll);
     context.read<SingleChatCubit>().markThreadAsRead();
     if (widget.initialMessage != null) {
@@ -340,7 +341,9 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
         Align(
           alignment: isOutgoing ? Alignment.centerRight : Alignment.centerLeft,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+            crossAxisAlignment: isOutgoing
+                ? CrossAxisAlignment.end
+                : CrossAxisAlignment.start,
             children: [
               AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
@@ -405,17 +408,29 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                   ],
                 ),
               ),
-              if (isOutgoing) ...[
-                const SizedBox(width: 2),
-                Padding(
-                  padding: const EdgeInsets.only(right: 10),
-                  child: GestureDetector(
+              Padding(
+               padding: EdgeInsets.only(right: isOutgoing ? 12 : 0, left: isOutgoing ? 0 : 12),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment:isOutgoing
+                      ? MainAxisAlignment.end
+                      : MainAxisAlignment.start,
+                 
+                 
+                  children: [
+                  if (isOutgoing) ...[
+                  const SizedBox(width: 2),
+                  GestureDetector(
                       onTap: message.status == MessageStatus.failed
                           ? () => _handleRetry(message)
                           : null,
                       child: _buildStatusIcon(message.status)),
+                ],
+                
+                  ],
                 ),
-              ],
+              )
+              
             ],
           ),
         ),

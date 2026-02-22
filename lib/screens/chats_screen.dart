@@ -28,30 +28,37 @@ class ChatsScreen extends StatelessWidget {
   }
 }
 
-class ChatsView extends StatefulWidget with WidgetsBindingObserver {
+class ChatsView extends StatefulWidget {
   const ChatsView({super.key});
 
   @override
   State<ChatsView> createState() => _ChatsViewState();
 }
 
-@override
-void didChangeAppLifecycleState(AppLifecycleState state) {
-  if (state == AppLifecycleState.resumed) {
-    _clearNotifications();
-  }
-}
-
-void _clearNotifications() {
-  NotificationService().removeNotifications();
-}
-
-class _ChatsViewState extends State<ChatsView> {
+class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
   NativeAd? _myLoadedNativeAd;
   bool _isAdLoaded = false;
   bool _isAdLoading = false;
   Set<String> _selectedThreadIds = {}; // Stores IDs of selected chats
   bool get _isSelectionMode => _selectedThreadIds.isNotEmpty;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _clearNotifications();
+      context.read<ChatsCubit>().loadChats(showLoading: false);
+    }
+  }
+
+  void _clearNotifications() {
+    NotificationService().removeNotifications();
+  }
 
   void _toggleSelection(String threadId) {
     HapticFeedback.mediumImpact();
@@ -69,16 +76,16 @@ class _ChatsViewState extends State<ChatsView> {
       _selectedThreadIds.clear();
     });
   }
-  void _selectAll(List<dynamic> chats) {
-  setState(() {
-    _selectedThreadIds = chats.map((chat) => chat.threadId as String).toSet();
-  });
-}
 
-// Check if everything is already selected to toggle the icon
-bool _isAllSelected(List<dynamic> chats) {
-  return _selectedThreadIds.length == chats.length && chats.isNotEmpty;
-}
+  void _selectAll(List<dynamic> chats) {
+    setState(() {
+      _selectedThreadIds = chats.map((chat) => chat.threadId as String).toSet();
+    });
+  }
+
+  bool _isAllSelected(List<dynamic> chats) {
+    return _selectedThreadIds.length == chats.length && chats.isNotEmpty;
+  }
 
   @override
   void didChangeDependencies() {
@@ -113,10 +120,11 @@ bool _isAllSelected(List<dynamic> chats) {
     _myLoadedNativeAd?.dispose();
     super.dispose();
   }
-  bool areAllSelectedPinned(List<AppChat> chats) {
-    final selectedChats = chats.where((chat) => _selectedThreadIds.contains(chat.threadId));
-    return selectedChats.every((chat) => chat.isPinned);
 
+  bool areAllSelectedPinned(List<AppChat> chats) {
+    final selectedChats =
+        chats.where((chat) => _selectedThreadIds.contains(chat.threadId));
+    return selectedChats.every((chat) => chat.isPinned);
   }
 
   @override
@@ -133,62 +141,75 @@ bool _isAllSelected(List<dynamic> chats) {
                 if (state is ChatsLoading || state is ChatsError)
                   const SliverAppBar.medium()
                 else if (state is ChatsLoaded)
-                SliverAppBar.medium(
-                  title: Text(_isSelectionMode
-                      ? '${_selectedThreadIds.length} selected'
-                      : 'Messages'),
-                  leading: _isSelectionMode
-                      ? IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: _clearSelection,
-                        )
-                      : null,
-                  actions: _isSelectionMode
-                      ? [
-                          IconButton(
-                            icon:  Icon(areAllSelectedPinned(state.chats) ? Icons.push_pin : Icons.push_pin_outlined),
-                            onPressed: () async {
-                              final count = _selectedThreadIds.length;
-                              if(areAllSelectedPinned(state.chats)) {
-                                await context.read<ChatsCubit>().unpinChats(_selectedThreadIds);
+                  SliverAppBar.medium(
+                    title: Text(_isSelectionMode
+                        ? '${_selectedThreadIds.length} selected'
+                        : 'Messages'),
+                    leading: _isSelectionMode
+                        ? IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: _clearSelection,
+                          )
+                        : null,
+                    actions: _isSelectionMode
+                        ? [
+                            IconButton(
+                              icon: Icon(areAllSelectedPinned(state.chats)
+                                  ? Icons.push_pin
+                                  : Icons.push_pin_outlined),
+                              onPressed: () async {
+                                final count = _selectedThreadIds.length;
+                                if (areAllSelectedPinned(state.chats)) {
+                                  await context
+                                      .read<ChatsCubit>()
+                                      .unpinChats(_selectedThreadIds);
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                          content:
+                                              Text('$count chat(s) unpinned')),
+                                    );
+                                  }
+                                } else {
+                                  await context
+                                      .read<ChatsCubit>()
+                                      .pinChats(_selectedThreadIds);
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                          content:
+                                              Text('$count chat(s) pinned')),
+                                    );
+                                  }
+                                }
+                                _clearSelection();
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.archive_outlined),
+                              onPressed: () async {
+                                final count = _selectedThreadIds.length;
+                                await context
+                                    .read<ChatsCubit>()
+                                    .archiveChats(_selectedThreadIds);
+                                _clearSelection();
                                 if (mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('$count chat(s) unpinned')),
+                                    SnackBar(
+                                        content: Text('$count chats archived')),
                                   );
-                                }}else{
-                                   await context.read<ChatsCubit>().pinChats(_selectedThreadIds);
-                                   if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('$count chat(s) pinned')),
-                                );
-                              }
-                              }
-                              _clearSelection();
-                             
-                            },
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.archive_outlined),
-                            onPressed: () async {
-                              final count = _selectedThreadIds.length;
-                              await context.read<ChatsCubit>().archiveChats(_selectedThreadIds);
-                              _clearSelection();
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('$count chats archived')),
-                                );
-                              }
-                            },
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline),
-                            onPressed: () =>
-                                _deleteSelectedChats(), // Updated bulk delete
-                          ),
-                         
-                         
-                          IconButton(
-                              icon: Icon(_isAllSelected(state.chats) ? Icons.playlist_remove_outlined : Icons.playlist_add_check_outlined),
+                                }
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline),
+                              onPressed: () =>
+                                  _deleteSelectedChats(), // Updated bulk delete
+                            ),
+                            IconButton(
+                              icon: Icon(_isAllSelected(state.chats)
+                                  ? Icons.playlist_remove_outlined
+                                  : Icons.playlist_add_check_outlined),
                               onPressed: () {
                                 if (_isAllSelected(state.chats)) {
                                   _clearSelection();
@@ -201,19 +222,19 @@ bool _isAllSelected(List<dynamic> chats) {
                               icon: const Icon(Icons.delete_outline),
                               onPressed: () => _deleteSelectedChats(),
                             ),
-                        ]
-                      : [
-                          IconButton(
-                            icon: const Icon(Icons.settings_outlined),
-                            onPressed: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => const SettingsScreen()),
+                          ]
+                        : [
+                            IconButton(
+                              icon: const Icon(Icons.settings_outlined),
+                              onPressed: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) =>
+                                        const SettingsScreen()),
+                              ),
                             ),
-                          ),
-                        ],
-                ),
-
+                          ],
+                  ),
                 if (state is ChatsLoading)
                   const SliverFillRemaining(child: ChatsLoadingWidget())
                 else if (state is ChatsLoaded)
@@ -244,14 +265,19 @@ bool _isAllSelected(List<dynamic> chats) {
                           ),
                         )
                 else
-                   SliverFillRemaining(
-                      child: Center(child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.error_outline, size: 30,color: theme.colorScheme.tertiaryContainer,),
-                          Text('Something went wrong'),
-                        ],
-                      ))),
+                  SliverFillRemaining(
+                      child: Center(
+                          child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 30,
+                        color: theme.colorScheme.tertiaryContainer,
+                      ),
+                      Text('Something went wrong'),
+                    ],
+                  ))),
               ],
             ),
           );
@@ -316,12 +342,18 @@ bool _isAllSelected(List<dynamic> chats) {
                 children: [
                   CircleAvatar(
                     radius: 28,
-                    backgroundColor: isSelected 
-                        ? theme.colorScheme.primary 
-                        : (hasUnread ? theme.colorScheme.primary : theme.colorScheme.surfaceContainerHighest),
-                    child: isSelected 
+                    backgroundColor: isSelected
+                        ? theme.colorScheme.primary
+                        : (hasUnread
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.surfaceContainerHighest),
+                    child: isSelected
                         ? Icon(Icons.check, color: theme.colorScheme.onPrimary)
-                        : prefix(chat.address, hasUnread ? theme.colorScheme.onPrimary : theme.colorScheme.onSurfaceVariant),
+                        : prefix(
+                            chat.address,
+                            hasUnread
+                                ? theme.colorScheme.onPrimary
+                                : theme.colorScheme.onSurfaceVariant),
                   ),
                   // Show a small pin badge if the chat is pinned
                   if (chat.isPinned && !isSelected)
@@ -333,7 +365,9 @@ bool _isAllSelected(List<dynamic> chats) {
                         decoration: BoxDecoration(
                           color: theme.colorScheme.surface,
                           shape: BoxShape.circle,
-                          border: Border.all(color: theme.colorScheme.outlineVariant, width: 1),
+                          border: Border.all(
+                              color: theme.colorScheme.outlineVariant,
+                              width: 1),
                         ),
                         child: Icon(
                           Icons.push_pin,
@@ -422,7 +456,11 @@ bool _isAllSelected(List<dynamic> chats) {
   }
 
   Widget prefix(String address, Color color) {
-    if (AppChat.isBusiness(address)) return Icon(Icons.business_outlined, color: color,);
+    if (AppChat.isBusiness(address))
+      return Icon(
+        Icons.business_outlined,
+        color: color,
+      );
     if (address.startsWith(RegExp(r'[a-zA-Z]')) && address.isNotEmpty) {
       return Text(address[0].toUpperCase(),
           style: TextStyle(color: color, fontWeight: FontWeight.bold));
@@ -430,28 +468,31 @@ bool _isAllSelected(List<dynamic> chats) {
     return Icon(Icons.person_outline, color: color);
   }
 
-Future<void> _deleteSelectedChats() async {
-  final count = _selectedThreadIds.length;
-  final confirm = await showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      icon: const Icon(Icons.delete_outline),
-      title: Text('Delete $count ${count == 1 ? 'chat' : 'chats'}?'),
-      content: const Text('This will remove these conversations from your device.'),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-        FilledButton.tonal(
-          onPressed: () => Navigator.pop(context, true), 
-          child: const Text('Delete'),
-        ),
-      ],
-    ),
-  );
+  Future<void> _deleteSelectedChats() async {
+    final count = _selectedThreadIds.length;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: const Icon(Icons.delete_outline),
+        title: Text('Delete $count ${count == 1 ? 'chat' : 'chats'}?'),
+        content: const Text(
+            'This will remove these conversations from your device.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
+          FilledButton.tonal(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
 
-  if (confirm == true && mounted) {
-    // Call the Cubit bulk delete instead of a local loop
-    await context.read<ChatsCubit>().deleteMultipleChats(_selectedThreadIds);
-    _clearSelection();
+    if (confirm == true && mounted) {
+      // Call the Cubit bulk delete instead of a local loop
+      await context.read<ChatsCubit>().deleteMultipleChats(_selectedThreadIds);
+      _clearSelection();
+    }
   }
-}
 }

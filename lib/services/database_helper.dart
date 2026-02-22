@@ -42,6 +42,7 @@ class DatabaseHelper {
         threadId TEXT,
         status INTEGER DEFAULT 0,
         read INTEGER NOT NULL DEFAULT 0,
+        simId INTEGER NOT NULL,
         UNIQUE(address, body, date) ON CONFLICT IGNORE
       )
     ''');
@@ -85,6 +86,7 @@ class DatabaseHelper {
           'type': 1,
           'read': msg.read != null && msg.read! ? 1 : 0,
           'threadId': threadId,
+          'simId': msg.subscriptionId ?? -1,
           'status': msg.status == tel.SmsStatus.STATUS_COMPLETE ? MessageStatus.sent.value : MessageStatus.unknown.value,
         }, conflictAlgorithm: ConflictAlgorithm.ignore);
 

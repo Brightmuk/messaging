@@ -23,6 +23,8 @@ class AppSmsMessage {
   final String threadId;
   final MessageStatus status;
   final bool read;
+  final int simId;
+
 
   AppSmsMessage({
     this.id,
@@ -33,6 +35,7 @@ class AppSmsMessage {
     required this.threadId,
     required this.status,
     this.read = false,
+    required this.simId,
   });
   AppSmsMessage copyWith({
     int? id,
@@ -43,6 +46,7 @@ class AppSmsMessage {
     String? threadId,
     MessageStatus? status,
     bool? read,
+    int? simId,
   }) {
     return AppSmsMessage(
       id: id ?? this.id,
@@ -53,6 +57,7 @@ class AppSmsMessage {
       threadId: threadId ?? this.threadId,
       status: status ?? this.status,
       read: read ?? this.read,
+      simId: simId ?? this.simId,
     );
   }
 
@@ -66,6 +71,7 @@ class AppSmsMessage {
       'threadId': threadId,
       'status': status.value,
       'read': read ? 1 : 0,
+      'simId': simId,
     };
   }
 
@@ -79,6 +85,7 @@ class AppSmsMessage {
       threadId: map['threadId'],
       status: MessageStatus.fromInt(map['status']),
       read: map['read'] == 1,
+      simId: map['simId'],
     );
   }
 
