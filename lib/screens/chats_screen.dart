@@ -4,10 +4,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/cubit/chats_cubit.dart';
+import 'package:messaging/cubit/payment_cubit.dart';
 import 'package:messaging/models/app_chat.dart';
 import 'package:messaging/screens/settings_screen.dart';
 import 'package:messaging/screens/single_chat_screen.dart';
 import 'package:messaging/core/utils/date_formatter.dart';
+import 'package:messaging/screens/widgets/ad_free_tile.dart';
 import 'package:messaging/screens/widgets/chats_loading_widget.dart';
 import 'package:messaging/screens/widgets/contact_name_text.dart';
 import 'package:messaging/services/ads/native_ads_service.dart';
@@ -17,6 +19,7 @@ import 'package:messaging/services/redact_service.dart';
 import 'select_contact_screen.dart';
 
 class ChatsScreen extends StatelessWidget {
+  
   const ChatsScreen({super.key});
 
   @override
@@ -91,8 +94,8 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_isAdLoaded && !_isAdLoading) {
-      //Disabled temporarily
-      // _loadNativeAd();
+     
+      _loadNativeAd();
     }
   }
 
@@ -130,7 +133,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
+    bool isNoAds = context.read<PaymentCubit>().isNoAds;
     return Scaffold(
       body: BlocBuilder<ChatsCubit, ChatsState>(
         builder: (context, state) {
@@ -242,28 +245,44 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                       ? const SliverFillRemaining(
                           child: ChatsLoadingWidget(isEmptyState: true))
                       : SliverList(
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) {
-                              // 1. Show the ad at the specific position
-                              if (index == 6) {
-                                return _buildNativeAdTile();
-                              }
+                            delegate: SliverChildBuilderDelegate(
+                              (context, index) {
+                                
+                                if(isNoAds){
+                                  return _buildChatTile(state.chats[index], theme);
+                                }
+                                // 1. Position for Native Banner Ad (Index 6)
+                                if (index == 6) {
+                                  return _buildNativeAdTile();
+                                }
 
-                              // 2. Calculate the chat index
-                              // If we are past the ad, subtract 1 to "stay on track" with the list
-                              final int chatIndex =
-                                  index > 6 ? index - 1 : index;
+                                // 2. Position for "Go Ad-Free" Internal Ad (Index 15)
+                                // We check state.chats.length to ensure we don't show an ad 
+                                // if the list is too short.
+                                if (index == 8 && state.chats.length >= 8) {
+                                  return const Padding(
+                                    padding:  EdgeInsets.all(10.0),
+                                    child:  AdFreeTile(),
+                                  );
+                                }
 
-                              // 3. Safety check for list bounds
-                              if (chatIndex >= state.chats.length) return null;
+                                // 3. Calculate the actual data index
+                                int chatIndex = index;
+                                if (index > 8) {
+                                  chatIndex = index - 2; // Two ads are "pushing" the list down
+                                } else if (index > 6) {
+                                  chatIndex = index - 1; // Only the first ad is pushing it
+                                }
 
-                              return _buildChatTile(
-                                  state.chats[chatIndex], theme);
-                            },
-                            // 4. Important: itemCount is chats + 1 (for the single ad)
-                            childCount: state.chats.length + 1,
-                          ),
-                        )
+                                // 4. Safety check
+                                if (chatIndex >= state.chats.length || chatIndex < 0) return null;
+
+                                return _buildChatTile(state.chats[chatIndex], theme);
+                              },
+                              // 5. Total count is chats + 2 (one for each ad)
+                              childCount: state.chats.length + (state.chats.length >= 15 ? 2 : 1),
+                            ),
+                          )
                 else
                   SliverFillRemaining(
                       child: Center(

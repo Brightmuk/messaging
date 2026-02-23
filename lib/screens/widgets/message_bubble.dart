@@ -39,6 +39,8 @@ class _MessageBubbleState extends State<MessageBubble> {
 
   @override
   Widget build(BuildContext context) {
+    String redactedMessage = RedactService.redactAfterBalance(
+                              widget.message.body, widget.message.address);
      return Column(
       children: [
         if (widget.showDateSeparator) _buildDateSeparator(widget.message.date),
@@ -93,9 +95,9 @@ class _MessageBubbleState extends State<MessageBubble> {
                             : Theme.of(context).colorScheme.onSurface,
                       ),
                       children: [
-                        TextSpan(text: _showMore? widget.message.body: RedactService.redactAfterBalance(
-                              widget.message.body, widget.message.address)),
-                        !widget.hide || !RedactService.isMonitored(widget.message.address)? const TextSpan(): TextSpan(
+                        TextSpan(text: _showMore? widget.message.body: redactedMessage),
+
+                        !isRedactedMessage(redactedMessage) || !widget.hide || !RedactService.isMonitored(widget.message.address)? const TextSpan(): TextSpan(
                           text:  _showMore? " hide": " see more",
                           style: const TextStyle(
                             color: Colors.blue, 
@@ -156,6 +158,9 @@ class _MessageBubbleState extends State<MessageBubble> {
         ),
       ],
     );
+  }
+  bool isRedactedMessage(String redactedMessage){
+    return widget.message.body != redactedMessage;
   }
     void _handleRetry(AppSmsMessage message) async {
        final confirm = await showDialog<bool>(

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/models/sim_card_state.dart';
+import 'package:messaging/screens/widgets/ad_free_tile.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/sms_service.dart';
@@ -149,11 +150,13 @@ class _SettingsScreenState extends State<SettingsScreen>
                             }
                             );
                         }
-                      )
-                      
+                      ),
+                     
                     ],
                   ),
                 ),
+                 const SizedBox(height: 15),
+                const AdFreeTile(),
 
                 const SizedBox(height: 24), // Space between cards
 
@@ -178,7 +181,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                       _buildLinkTile(
                         Icons.info_outline,
                         "About the App",
-                        () => _launchUrl('https://brimukon.com/apps/messaging'),
+                        () => _launchUrl('https://brimukon.com/m-ficha'),
                       ),
                       const Divider(height: 1, indent: 16, endIndent: 16),
                       _buildLinkTile(

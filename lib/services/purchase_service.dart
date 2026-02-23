@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
-import 'package:messaging/core/user_defaults.dart';
+import 'package:messaging/core/events.dart';
+import 'package:messaging/cubit/payment_cubit.dart';
 
 class PurchaseService {
   final InAppPurchase _iap = InAppPurchase.instance;
@@ -18,20 +19,42 @@ class PurchaseService {
     });
   }
 
-  void _handlePurchaseUpdates(List<PurchaseDetails> purchaseDetailsList) {
-    for (var purchase in purchaseDetailsList) {
-      if (purchase.status == PurchaseStatus.purchased ||
-          purchase.status == PurchaseStatus.restored) {
-        if (purchase.productID == 'm_ficha_lifetime_no_ads') {
-          UserDefaults.setAdsRemoved();
-        }
-
-        // Crucial: Tell Google you received the "product" so they don't refund it
-        if (purchase.pendingCompletePurchase) {
-          _iap.completePurchase(purchase);
-        }
+void _handlePurchaseUpdates(List<PurchaseDetails> purchases) async {
+  for (var purchase in purchases) {
+    if (purchase.status == PurchaseStatus.purchased) {
+      eventBus.fire(PurchaseEvent(success: true));
+      // 4. Complete the purchase with Google
+      if (purchase.pendingCompletePurchase) {
+        await _iap.completePurchase(purchase);
       }
+      
+      debugPrint("M-Ficha: Ad-Free Purchase Confirmed!");
+    } else if (purchase.status == PurchaseStatus.error) {
+      eventBus.fire(PurchaseEvent(success: false));
+      debugPrint("Purchase Error: ${purchase.error}");
     }
+  }
+}
+  Future<void> buyAdFree() async {
+    // 1. Check if store is available
+    final bool available = await _iap.isAvailable();
+    if (!available) return;
+
+    // 2. Query your specific product ID
+    const Set<String> _kIds = {'m_ficha_lifetime_no_ads'};
+    final ProductDetailsResponse response = await _iap.queryProductDetails(_kIds);
+
+    if (response.notFoundIDs.isNotEmpty) {
+      // Product not found in Play Console
+      return;
+    }
+
+    // 3. Launch the Google Pay / Play Store overlay
+    final PurchaseParam purchaseParam = PurchaseParam(
+      productDetails: response.productDetails.first
+    );
+    
+    _iap.buyNonConsumable(purchaseParam: purchaseParam);
   }
 
   Future<void> restorePurchases() async {

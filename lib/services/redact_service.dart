@@ -21,6 +21,7 @@ class RedactService {
 
     return message;
   }
+
 static bool isMonitored(String address) {
   return monitoredConversations.any((keyword) => address.toLowerCase().contains(keyword));
   }

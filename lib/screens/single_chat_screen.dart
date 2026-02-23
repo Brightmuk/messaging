@@ -181,9 +181,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                               _selectedMessages.contains(message);
                           final showDateSeparator =
                               _shouldShowDateSeparator(index, messages);
-                          // if (index >= messages.length) {
-                          //     return const Center(child: CircularProgressIndicator());
-                          //   }
+                          
                           return GestureDetector(
                             onLongPress: () => _toggleSelection(message),
                             onTap: () {
@@ -244,7 +242,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                                     controller: _messageController,
                                     maxLines: 5,
                                     minLines: 1,
-                                    // Disable input if loading or if no SIM cards are available
+                                    
                                     enabled: !isLoading && hasData,
                                     onChanged: (value) => setState(() {}),
                                     textCapitalization:
