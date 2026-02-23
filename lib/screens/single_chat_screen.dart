@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:messaging/core/feedback_ui.dart';
-import 'package:messaging/core/utils/date_formatter.dart';
 import 'package:messaging/cubit/sim_card_cubit.dart';
 import 'package:messaging/cubit/single_chat_cubit.dart';
 import 'package:messaging/models/app_chat.dart';
 import 'package:messaging/models/sim_card_state.dart';
 import 'package:messaging/screens/select_contact_screen.dart';
+import 'package:messaging/screens/widgets/message_bubble.dart';
 import 'package:messaging/services/contact_service.dart';
 import 'package:messaging/services/notification_service.dart';
 import 'package:messaging/services/redact_service.dart';
@@ -191,12 +191,8 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                                 _toggleSelection(message);
                               }
                             },
-                            child: _buildMessageBubble(
-                                message: message,
-                                isOutgoing: isOutgoing,
-                                showDateSeparator: showDateSeparator,
-                                hide: hide,
-                                selected: isSelected),
+                            child: MessageBubble(hide: hide, isOutgoing: isOutgoing, message: message, selected: isSelected, showDateSeparator: showDateSeparator)
+                            
                           );
                         },
                       ),
@@ -327,159 +323,6 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
     );
   }
 
-  Widget _buildMessageBubble({
-    required AppSmsMessage message,
-    required bool isOutgoing,
-    required bool showDateSeparator,
-    required bool hide,
-    required bool selected,
-  }) {
-
-    return Column(
-      children: [
-        if (showDateSeparator) _buildDateSeparator(message.date),
-        Align(
-          alignment: isOutgoing ? Alignment.centerRight : Alignment.centerLeft,
-          child: Column(
-            crossAxisAlignment: isOutgoing
-                ? CrossAxisAlignment.end
-                : CrossAxisAlignment.start,
-            children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                margin: EdgeInsets.only(
-                  bottom: 4,
-                  left: isOutgoing ? 50 : 12, // More space on the opposite side
-                  right: isOutgoing ? 12 : 50,
-                ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                constraints: BoxConstraints(
-                  maxWidth: MediaQuery.of(context).size.width * 0.8,
-                ),
-                decoration: BoxDecoration(
-                  color: selected
-                      ? Theme.of(context).colorScheme.primaryContainer
-                      : isOutgoing
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest,
-                  borderRadius: BorderRadius.only(
-                    topLeft: const Radius.circular(20),
-                    topRight: const Radius.circular(20),
-                    bottomLeft: Radius.circular(isOutgoing ? 20 : 4),
-                    bottomRight: Radius.circular(isOutgoing ? 4 : 20),
-                  ),
-                  boxShadow: selected
-                      ? [BoxShadow(color: Colors.black12, blurRadius: 4)]
-                      : null,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // 1. Message Text
-                    Text(
-                      hide
-                          ? RedactService.redactBalances(
-                              message.body, message.address)
-                          : message.body,
-                      style: TextStyle(
-                        color: isOutgoing && !selected
-                            ? Theme.of(context).colorScheme.onPrimary
-                            : Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    // 2. Metadata Row (Time + Ticks)
-                    Text(
-                      formatMessageTime(message.date),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            fontSize: 11,
-                            color: isOutgoing && !selected
-                                ? Theme.of(context)
-                                    .colorScheme
-                                    .onPrimary
-                                    .withOpacity(0.8)
-                                : Theme.of(context).colorScheme.outline,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-               padding: EdgeInsets.only(right: isOutgoing ? 12 : 0, left: isOutgoing ? 0 : 12),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment:isOutgoing
-                      ? MainAxisAlignment.end
-                      : MainAxisAlignment.start,
-                 
-                 
-                  children: [
-                  if (isOutgoing) ...[
-                  const SizedBox(width: 2),
-                  GestureDetector(
-                      onTap: message.status == MessageStatus.failed
-                          ? () => _handleRetry(message)
-                          : null,
-                      child: _buildStatusIcon(message.status)),
-                ],
-                
-                  ],
-                ),
-              )
-              
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _handleRetry(AppSmsMessage message) async {
-       final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Message not sent'),
-        content: const Text('Retry sending this message?'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel')),
-          TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Retry')),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      context.read<SingleChatCubit>().sendMessage(widget.address, message.body);
-    }
-    
-  }
-
-// Helper to show the correct status icon
-  Widget _buildStatusIcon(MessageStatus status) {
-    final theme = Theme.of(context);
-    switch (status) {
-      case MessageStatus.unknown:
-        return const SizedBox();
-      case MessageStatus.delivered:
-        return Icon(Icons.done_all, size: 15, color: theme.primaryColor);
-      case MessageStatus.sent:
-        return Icon(Icons.done,
-            size: 15, color: theme.colorScheme.onSurfaceVariant);
-      case MessageStatus.failed:
-        return const Icon(Icons.error_outline,
-            size: 18, color: Colors.redAccent);
-      case MessageStatus.pending:
-        return Icon(Icons.access_time,
-            size: 15, color: theme.colorScheme.onSurfaceVariant);
-    }
-  }
 
   AppBar _buildAppBar(List<AppSmsMessage> messages) {
 
@@ -496,7 +339,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
             icon: const Icon(Icons.content_copy_outlined),
             onPressed: () {
               final text = _selectedMessages
-                  .map((m) => RedactService.redactBalances(m.body, m.address))
+                  .map((m) => RedactService.redactAfterBalance(m.body, m.address))
                   .join('\n');
               Clipboard.setData(ClipboardData(text: text));
               setState(() => _selectedMessages.clear());
@@ -515,7 +358,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                     MaterialPageRoute(
                       builder: (context) => SelectContactScreen(
                         isForwarding: true,
-                        forwardMessage: RedactService.redactBalances(
+                        forwardMessage: RedactService.redactAfterBalance(
                             body, _selectedMessages.first.address),
                       ),
                     ));
@@ -684,26 +527,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
     // await context.read<SingleChatCubit>().markThreadAsRead();
   }
 
-  Widget _buildDateSeparator(int timestamp) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Row(
-        children: [
-          const Expanded(child: Divider()),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              formatMessageDate(timestamp),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.outline,
-                  ),
-            ),
-          ),
-          const Expanded(child: Divider()),
-        ],
-      ),
-    );
-  }
+
 
 bool _shouldShowDateSeparator(int index, List<AppSmsMessage> messages) {
   if (index == messages.length - 1) return true;

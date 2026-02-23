@@ -1,28 +1,26 @@
 class RedactService {
   static List<String> monitoredConversations = ['mpesa', 'airtelmoney','zidii','mshwari','tkash'];
-  static String redactBalances(String message, String address) {
-    if(!monitoredConversations.any((keyword) => address.toLowerCase().contains(keyword))) {
+  static String redactAfterBalance(String message, String address) {
+    // 1. Check if the address is monitored (M-Pesa, etc.)
+    if (!monitoredConversations.any((keyword) => address.toLowerCase().contains(keyword))) {
       return message;
     }
-    
 
-  final RegExp balancePattern = RegExp(
-    r'(?:balance|bal|amt)(?:\s+is)?(?:\s*[:\-])?\s*(?:Ksh|KSH)[.\s]*([\d,]+\.?\d*)',
-    caseSensitive: false,
-  );
+    final RegExp balancePattern = RegExp(
+      r'(balance|bal|amt)(?:\s+is)?(?:\s*[:\-])?\s*(?:Ksh|KSH)',
+      caseSensitive: false,
+    );
 
-  // We use splitMapJoin to find the amount and replace ONLY the number part
-  return message.splitMapJoin(
-    balancePattern,
-    onMatch: (Match match) {
-      String fullMatch = match.group(0)!;
-      String amount = match.group(1)!;
-      // Replace the specific amount with [HIDDEN]
-      return fullMatch.replaceFirst(amount, "[HIDDEN]");
-    },
-    onNonMatch: (String text) => text,
-  );
-}
+    final match = balancePattern.firstMatch(message);
+
+    if (match != null) {
+      // Cut the message right after the word 'Balance' or 'Ksh'
+      // match.end gives us the position after "Ksh"
+      return "${message.substring(0, match.end)}...";
+    }
+
+    return message;
+  }
 static bool isMonitored(String address) {
   return monitoredConversations.any((keyword) => address.toLowerCase().contains(keyword));
   }

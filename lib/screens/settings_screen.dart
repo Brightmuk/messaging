@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/models/sim_card_state.dart';
-import 'package:messaging/services/notification_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/sms_service.dart';
@@ -158,7 +157,7 @@ class _SettingsScreenState extends State<SettingsScreen>
 
                 const SizedBox(height: 24), // Space between cards
 
-                _buildSectionHeader("Support & Legal"),
+                _buildSectionHeader("Other"),
                 Card(
                   elevation: 0,
                   shape: RoundedRectangleBorder(

@@ -389,7 +389,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                         contactStream: ContactService().contactStream),
                     const SizedBox(height: 4),
                     Text(
-                      RedactService.redactBalances(
+                      RedactService.redactAfterBalance(
                           chat.lastMessage ?? '', chat.address),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
