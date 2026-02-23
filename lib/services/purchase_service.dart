@@ -22,7 +22,7 @@ class PurchaseService {
 void _handlePurchaseUpdates(List<PurchaseDetails> purchases) async {
   for (var purchase in purchases) {
     if (purchase.status == PurchaseStatus.purchased) {
-      eventBus.fire(PurchaseEvent(success: true));
+      eventBus.fire(PurchaseEvent.success);
       // 4. Complete the purchase with Google
       if (purchase.pendingCompletePurchase) {
         await _iap.completePurchase(purchase);
@@ -30,9 +30,12 @@ void _handlePurchaseUpdates(List<PurchaseDetails> purchases) async {
       
       debugPrint("M-Ficha: Ad-Free Purchase Confirmed!");
     } else if (purchase.status == PurchaseStatus.error) {
-      eventBus.fire(PurchaseEvent(success: false));
+      eventBus.fire(PurchaseEvent.failure);
       debugPrint("Purchase Error: ${purchase.error}");
+    }else{
+       eventBus.fire(PurchaseEvent.pending);
     }
+    
   }
 }
   Future<void> buyAdFree() async {

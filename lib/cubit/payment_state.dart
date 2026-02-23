@@ -10,4 +10,5 @@ sealed class PaymentState extends Equatable {
 final class PaymentInitial extends PaymentState {}
 final class PaymentNotPaid extends PaymentState {}
 final class PaymentSuccess extends PaymentState {}
+final class PaymentProcessing extends PaymentState {}
 final class PaymentFailed extends PaymentState {}

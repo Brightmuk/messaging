@@ -8,13 +8,12 @@ class AdFreeTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    bool isNoAds = context.read<PaymentCubit>().isNoAds;
+    if (isNoAds) {
+      return const SizedBox.shrink();
+    }
     return BlocBuilder<PaymentCubit, PaymentState>(
-      
       builder: (context, state) {
-        bool isNoAds = context.read<PaymentCubit>().isNoAds;
-        if(isNoAds || state is PaymentInitial){
-          return const SizedBox.shrink();
-        }
         return Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -103,10 +102,9 @@ class AdFreeTile extends StatelessWidget {
                         elevation: 5,
                       ),
                       onPressed: () async {
-                        final service = PurchaseService();
-                        await service.buyAdFree();
+                       context.read<PaymentCubit>().startPurchase();
                       },
-                      child: const Text("GET"),
+                      child:  (state is PaymentProcessing)? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator())): const Text( "GET"),
                     ),
                   ],
                 ),

@@ -4,6 +4,7 @@ import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:messaging/core/events.dart';
 import 'package:messaging/core/user_defaults.dart';
+import 'package:messaging/services/purchase_service.dart';
 
 part 'payment_state.dart';
 
@@ -16,7 +17,7 @@ class PaymentCubit extends Cubit<PaymentState> {
   void init() async {
     isNoAds = await UserDefaults.getAdsRemoved();
     _paymetConfirmedSub = eventBus.on<PurchaseEvent>().listen((event) {
-      refreshPayment(event.success);
+      processPayment(event);
     });
     if (isNoAds) {
       emit(PaymentSuccess());
@@ -25,14 +26,25 @@ class PaymentCubit extends Cubit<PaymentState> {
     }
   }
 
-  void refreshPayment(bool success) async {
-    if (success) {
+  void processPayment(PurchaseEvent event) async {
+    switch(event){
+      case PurchaseEvent.failure:
+       emit(PaymentFailed());
+      break;
+      case PurchaseEvent.success:
       await UserDefaults.setAdsRemoved();
       isNoAds = true;
-      emit(PaymentSuccess());
-    } else {
-      emit(PaymentFailed());
+       emit(PaymentSuccess());
+      break;
+      case PurchaseEvent.pending:
+      emit(PaymentProcessing());
+      break;
     }
+  }
+  void startPurchase()async{
+    emit(PaymentProcessing());
+     final service = PurchaseService();
+    await service.buyAdFree();
   }
 
   @override
@@ -41,8 +53,5 @@ class PaymentCubit extends Cubit<PaymentState> {
     return super.close();
   }
 }
+enum PurchaseEvent{ pending, success, failure}
 
-class PurchaseEvent {
-  final bool success;
-  PurchaseEvent({required this.success});
-}
