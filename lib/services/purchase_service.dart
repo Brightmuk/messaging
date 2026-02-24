@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:messaging/core/events.dart';
-import 'package:messaging/cubit/payment_cubit.dart';
+import 'package:messaging/core/user_defaults.dart';
 
 class PurchaseService {
   final InAppPurchase _iap = InAppPurchase.instance;
@@ -21,15 +21,17 @@ class PurchaseService {
 
   void _handlePurchaseUpdates(List<PurchaseDetails> purchases) async {
     for (var purchase in purchases) {
-      // if (purchase.status == PurchaseStatus.purchased) {
-      //   eventBus.fire(purchase.status);
-      //   if (purchase.pendingCompletePurchase) {
-      //     await _iap.completePurchase(purchase);
-      //   }
-      // } else {
-      //   eventBus.fire(purchase.status);
-      // }
-      eventBus.fire(PurchaseStatus.restored);
+        
+      if (purchase.status == PurchaseStatus.purchased || purchase.status == PurchaseStatus.restored) {
+        //Do early enough
+        await UserDefaults.setAdsRemoved();
+        eventBus.fire(purchase.status);
+        if (purchase.pendingCompletePurchase) {
+          await _iap.completePurchase(purchase);
+        }
+      } else {
+        eventBus.fire(purchase.status);
+      }
     }
   }
 

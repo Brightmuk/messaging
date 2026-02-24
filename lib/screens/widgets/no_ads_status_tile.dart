@@ -15,52 +15,73 @@ class NoAdsStatusTile extends StatelessWidget {
         }
 
         // 2. Return the "Premium Member" status card
-        return GestureDetector(
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.amber.shade50.withOpacity(0.5),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.amber.shade200, width: 1),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.amber.shade100,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.verified, color: Colors.amber.shade800),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Premium Member",
-                        style: TextStyle(
-                          color: Colors.amber.shade900,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      Text(
-                        "Ad-free experience active",
-                        style: TextStyle(
-                          color: Colors.amber.shade800,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Optional: A 'Manage' label or just a checkmark
-                Icon(Icons.check_circle_outline, color: Colors.amber.shade700),
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.purple.withOpacity(0.25),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFF4A148C), // Material Purple 900
+                Color(0xFF7B1FA2), // Material Purple 700
               ],
             ),
+          ),
+          child: Row(
+            children: [
+              // Icon with a soft white-glow background
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        shape: BoxShape.circle,
+                ),
+                child: const Icon(
+        Icons.workspace_premium_rounded, 
+        color: Colors.white, 
+        size: 28
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "M-Ficha Premium",
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 17,
+              letterSpacing: 0.5,
+            ),
+          ),
+          Text(
+            "Lifetime ad-free experience active\n",
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.85),
+              fontSize: 13,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+        ],
+                ),
+              ),
+              const Icon(
+                Icons.check_circle_rounded, 
+                color: Colors.white70, 
+                size: 20
+              ),
+            ],
           ),
         );
       },

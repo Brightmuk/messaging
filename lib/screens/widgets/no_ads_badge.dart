@@ -17,7 +17,8 @@ class NoAdsBadge extends StatelessWidget {
      padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.amber.shade400, Colors.orange.shade700],
+          colors: [Color(0xFF4A148C),
+                Color(0xFF7B1FA2),],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
