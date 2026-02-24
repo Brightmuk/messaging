@@ -19,25 +19,20 @@ class PurchaseService {
     });
   }
 
-void _handlePurchaseUpdates(List<PurchaseDetails> purchases) async {
-  for (var purchase in purchases) {
-    if (purchase.status == PurchaseStatus.purchased) {
-      eventBus.fire(PurchaseEvent.success);
-      // 4. Complete the purchase with Google
-      if (purchase.pendingCompletePurchase) {
-        await _iap.completePurchase(purchase);
-      }
-      
-      debugPrint("M-Ficha: Ad-Free Purchase Confirmed!");
-    } else if (purchase.status == PurchaseStatus.error) {
-      eventBus.fire(PurchaseEvent.failure);
-      debugPrint("Purchase Error: ${purchase.error}");
-    }else{
-       eventBus.fire(PurchaseEvent.pending);
+  void _handlePurchaseUpdates(List<PurchaseDetails> purchases) async {
+    for (var purchase in purchases) {
+      // if (purchase.status == PurchaseStatus.purchased) {
+      //   eventBus.fire(purchase.status);
+      //   if (purchase.pendingCompletePurchase) {
+      //     await _iap.completePurchase(purchase);
+      //   }
+      // } else {
+      //   eventBus.fire(purchase.status);
+      // }
+      eventBus.fire(PurchaseStatus.restored);
     }
-    
   }
-}
+
   Future<void> buyAdFree() async {
     // 1. Check if store is available
     final bool available = await _iap.isAvailable();
@@ -45,7 +40,8 @@ void _handlePurchaseUpdates(List<PurchaseDetails> purchases) async {
 
     // 2. Query your specific product ID
     const Set<String> _kIds = {'m_ficha_lifetime_no_ads'};
-    final ProductDetailsResponse response = await _iap.queryProductDetails(_kIds);
+    final ProductDetailsResponse response =
+        await _iap.queryProductDetails(_kIds);
 
     if (response.notFoundIDs.isNotEmpty) {
       // Product not found in Play Console
@@ -53,10 +49,9 @@ void _handlePurchaseUpdates(List<PurchaseDetails> purchases) async {
     }
 
     // 3. Launch the Google Pay / Play Store overlay
-    final PurchaseParam purchaseParam = PurchaseParam(
-      productDetails: response.productDetails.first
-    );
-    
+    final PurchaseParam purchaseParam =
+        PurchaseParam(productDetails: response.productDetails.first);
+
     _iap.buyNonConsumable(purchaseParam: purchaseParam);
   }
 

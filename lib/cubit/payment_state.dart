@@ -8,7 +8,16 @@ sealed class PaymentState extends Equatable {
 }
 
 final class PaymentInitial extends PaymentState {}
+final class PaymentPaid extends PaymentState {}
 final class PaymentNotPaid extends PaymentState {}
-final class PaymentSuccess extends PaymentState {}
+final class PaymentSuccess extends PaymentState {
+  final bool isRestored;
+
+  const PaymentSuccess({required this.isRestored});
+}
 final class PaymentProcessing extends PaymentState {}
-final class PaymentFailed extends PaymentState {}
+final class PaymentFailed extends PaymentState {
+  final String message;
+
+  const PaymentFailed({required this.message});
+}

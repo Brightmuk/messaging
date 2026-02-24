@@ -5,6 +5,7 @@ class UserDefaults {
   static String defaultSimString = 'defaultSim';
   static String hideStatusString = 'hideStatus';
   static String hasOnboardedString = 'hasOnboarded';
+  static String adsRemovedString = 'adsRemoved';
 
   static Future<void> setHasOnboarded() async {
     final prefs = await SharedPreferences.getInstance();
@@ -41,11 +42,11 @@ class UserDefaults {
   }
   static Future<void> setAdsRemoved() async {
     final prefs = await SharedPreferences.getInstance();
-    prefs.setBool('adsRemoved', true);
+    prefs.setBool(adsRemovedString, true);
   }
   static Future<bool> getAdsRemoved() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool('adsRemoved') ?? false;
+    return prefs.getBool(adsRemovedString) ?? false;
   }
 
 }

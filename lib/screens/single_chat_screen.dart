@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:messaging/core/feedback_ui.dart';
+import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/cubit/sim_card_cubit.dart';
 import 'package:messaging/cubit/single_chat_cubit.dart';
 import 'package:messaging/models/app_chat.dart';
@@ -336,6 +337,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
           IconButton(
             icon: const Icon(Icons.content_copy_outlined),
             onPressed: () {
+             
               final text = _selectedMessages
                   .map((m) => RedactService.redactAfterBalance(m.body, m.address))
                   .join('\n');

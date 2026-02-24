@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:messaging/core/events.dart';
 import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/services/purchase_service.dart';
@@ -16,28 +17,36 @@ class PaymentCubit extends Cubit<PaymentState> {
   bool isNoAds = false;
   void init() async {
     isNoAds = await UserDefaults.getAdsRemoved();
-    _paymetConfirmedSub = eventBus.on<PurchaseEvent>().listen((event) {
+    _paymetConfirmedSub = eventBus.on<PurchaseStatus>().listen((event) {
       processPayment(event);
     });
     if (isNoAds) {
-      emit(PaymentSuccess());
+      emit(PaymentPaid());
     } else {
       emit(PaymentNotPaid());
     }
   }
 
-  void processPayment(PurchaseEvent event) async {
+  void processPayment(PurchaseStatus event) async {
+    print("New event: $event");
     switch(event){
-      case PurchaseEvent.failure:
-       emit(PaymentFailed());
+      case PurchaseStatus.error:
+       emit(const PaymentFailed(message: "Payment failed, please try again!"));
       break;
-      case PurchaseEvent.success:
+
+      case PurchaseStatus.purchased:
+      case PurchaseStatus.restored:
       await UserDefaults.setAdsRemoved();
       isNoAds = true;
-       emit(PaymentSuccess());
+       emit(PaymentSuccess(isRestored: event == PurchaseStatus.restored));
       break;
-      case PurchaseEvent.pending:
+
+      case PurchaseStatus.pending:
       emit(PaymentProcessing());
+      break;
+
+      case PurchaseStatus.canceled:
+      emit(const PaymentFailed(message: "You canceled the payment!"));
       break;
     }
   }
@@ -53,5 +62,5 @@ class PaymentCubit extends Cubit<PaymentState> {
     return super.close();
   }
 }
-enum PurchaseEvent{ pending, success, failure}
+
 

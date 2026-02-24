@@ -13,10 +13,12 @@ import 'package:messaging/core/utils/date_formatter.dart';
 import 'package:messaging/screens/widgets/ad_free_tile.dart';
 import 'package:messaging/screens/widgets/chats_loading_widget.dart';
 import 'package:messaging/screens/widgets/contact_name_text.dart';
+import 'package:messaging/screens/widgets/no_ads_badge.dart';
 import 'package:messaging/services/ads/native_ads_service.dart';
 import 'package:messaging/services/contact_service.dart';
 import 'package:messaging/services/notification_service.dart';
 import 'package:messaging/services/redact_service.dart';
+import 'package:provider/provider.dart';
 import 'select_contact_screen.dart';
 
 class ChatsScreen extends StatelessWidget {
@@ -33,8 +35,9 @@ class ChatsScreen extends StatelessWidget {
             feedbackui.showSuccess("No Ads forever!");
           }
           if(state is PaymentFailed){
-            feedbackui.showError("Payment failed, please try again!");
+            feedbackui.showError(state.message);
           }
+         
         },
         child: const ChatsView(),
       ),
@@ -143,7 +146,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    bool isNoAds = context.read<PaymentCubit>().isNoAds;
+    bool isNoAds = Provider.of<PaymentCubit>(context).isNoAds;
 
     return Scaffold(
       body: BlocBuilder<ChatsCubit, ChatsState>(
@@ -247,6 +250,8 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                                         const SettingsScreen()),
                               ),
                             ),
+                            const NoAdsBadge()
+                            
                           ],
                   ),
                 if (state is ChatsLoading)
@@ -258,6 +263,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                       : SliverList(
                           delegate: SliverChildBuilderDelegate(
                             (context, index) {
+                              
                               if (isNoAds) {
                                 return _buildChatTile(
                                     state.chats[index], theme);
@@ -270,7 +276,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                               // 2. Position for "Go Ad-Free" Internal Ad (Index 15)
                               // We check state.chats.length to ensure we don't show an ad
                               // if the list is too short.
-                              if (index == 8 && state.chats.length >= 8) {
+                              if (index == 9 && state.chats.length >= 9) {
                                 return const Padding(
                                   padding: EdgeInsets.all(10.0),
                                   child: AdFreeTile(),
@@ -279,7 +285,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
 
                               // 3. Calculate the actual data index
                               int chatIndex = index;
-                              if (index > 8) {
+                              if (index > 9) {
                                 chatIndex = index -
                                     2; // Two ads are "pushing" the list down
                               } else if (index > 6) {
@@ -295,8 +301,8 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                                   state.chats[chatIndex], theme);
                             },
                             // 5. Total count is chats + 2 (one for each ad)
-                            childCount: state.chats.length +
-                                (state.chats.length >= 15 ? 2 : 1),
+                            childCount: isNoAds? state.chats.length: state.chats.length +
+                                (state.chats.length >= 8 ? 2 : 1),
                           ),
                         )
                 else
@@ -477,15 +483,8 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
 
           return Container(
             margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-            height: 80,
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: AdWidget(ad: _myLoadedNativeAd!),
-            ),
+            height: 100,
+            child: AdWidget(ad: _myLoadedNativeAd!),
           );
         });
   }

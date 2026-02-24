@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:messaging/cubit/payment_cubit.dart';
-import 'package:messaging/services/purchase_service.dart';
 
 class AdFreeTile extends StatelessWidget {
   const AdFreeTile({super.key});
 
   @override
   Widget build(BuildContext context) {
-    bool isNoAds = context.read<PaymentCubit>().isNoAds;
-    if (isNoAds) {
-      return const SizedBox.shrink();
-    }
     return BlocBuilder<PaymentCubit, PaymentState>(
       builder: (context, state) {
+        // 1. Check the state to see if the user is already Ad-Free
+        // This ensures the banner disappears immediately after a successful purchase
+        bool isNoAds = context.read<PaymentCubit>().isNoAds;
+        if (isNoAds) {
+          return const SizedBox.shrink();
+        }
+
         return Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -32,12 +34,14 @@ class AdFreeTile extends StatelessWidget {
           ),
           child: Stack(
             children: [
-              // Subtle background decoration
               Positioned(
                 right: -20,
                 top: -20,
-                child: Icon(Icons.star,
-                    size: 100, color: Colors.white.withOpacity(0.1)),
+                child: Icon(
+                  Icons.star,
+                  size: 100, 
+                  color: Colors.white.withOpacity(0.1),
+                ),
               ),
               Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -81,10 +85,8 @@ class AdFreeTile extends StatelessWidget {
                                   text: " Ksh.360",
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: Colors
-                                        .white, // Pure white to make it brighter
-                                    fontSize:
-                                        14, // Slightly larger for emphasis
+                                    color: Colors.white,
+                                    fontSize: 14,
                                   ),
                                 ),
                               ],
@@ -98,13 +100,23 @@ class AdFreeTile extends StatelessWidget {
                         backgroundColor: Colors.orange.shade700,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20)),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
                         elevation: 5,
                       ),
-                      onPressed: () async {
-                       context.read<PaymentCubit>().startPurchase();
-                      },
-                      child:  (state is PaymentProcessing)? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator())): const Text( "GET"),
+                      onPressed: (state is PaymentProcessing) 
+                          ? null // Disable button while processing
+                          : () => context.read<PaymentCubit>().startPurchase(),
+                      child: (state is PaymentProcessing)
+                          ? const SizedBox(
+                              width: 20, 
+                              height: 20, 
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text("GET"),
                     ),
                   ],
                 ),
