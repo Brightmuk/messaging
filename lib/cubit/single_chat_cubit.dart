@@ -101,43 +101,54 @@ class SingleChatCubit extends Cubit<SingleChatState> {
     await SmsService.requestDefaultSmsRole();
   }
 
-  Future<void> getMessages({bool isInitialLoad = true}) async {
-    if (!isInitialLoad) debugPrint("Loading more...");
-    if (_isFetching || (_hasReachedMax && !isInitialLoad)) return;
+Future<void> getMessages({bool isInitialLoad = true}) async {
+  print("Getting messages");
+  if (_isFetching) return;
+  print("Actually getting");
+  if (!isInitialLoad && _hasReachedMax) return;
 
-    _isFetching = true;
+  _isFetching = true;
 
-    if (isInitialLoad) {
-      _currentPage = 0;
-      _hasReachedMax = false;
-      emit(SingleChatLoading());
-    }
+  if (isInitialLoad) {
+    _currentPage = 0;
+    _hasReachedMax = false;
+   
+    if (messages.isEmpty) emit(SingleChatLoading());
+  }
 
+  try {
     final newMessages = await _smsService.getMessagesForThread(
       threadId,
       limit: _pageSize,
       offset: _currentPage * _pageSize,
     );
 
-    if (newMessages.length < _pageSize) {
+    if (newMessages.isEmpty || newMessages.length < _pageSize) {
       _hasReachedMax = true;
     }
 
     if (isInitialLoad) {
       messages = newMessages;
     } else {
-      messages.addAll(newMessages);
+      // Prevent duplicates if the scroll listener fired too fast
+      final existingIds = messages.map((m) => m.id).toSet();
+      final uniqueNewMessages = newMessages.where((m) => !existingIds.contains(m.id));
+      messages.addAll(uniqueNewMessages);
     }
 
     _currentPage++;
-    _isFetching = false;
-
+    
     emit(SingleChatLoaded(
       messages: List.from(messages),
       hideStatus: hideStatus,
       hasReachedMax: _hasReachedMax,
     ));
+  } catch (e) {
+    emit(SingleChatError());
+  } finally {
+    _isFetching = false;
   }
+}
 
   Future<void> sendMessage(String address, String message) async {
     await _smsService.sendSms(address, message, threadId);

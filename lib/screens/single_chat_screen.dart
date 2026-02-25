@@ -98,13 +98,16 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
     _clearNotifications();
   }
 
-  void _onScroll() {
-    // If we are 200 pixels from the top, load more
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
-      context.read<SingleChatCubit>().getMessages(isInitialLoad: false);
+void _onScroll() {
+  final pos = _scrollController.position;
+  if (pos.pixels >= pos.maxScrollExtent - 200) {
+    final cubit = context.read<SingleChatCubit>();
+    
+    if (!cubit.hasReachedMax) {
+      cubit.getMessages(isInitialLoad: false);
     }
   }
+}
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
