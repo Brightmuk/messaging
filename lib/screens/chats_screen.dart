@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:messaging/core/feedback_ui.dart';
-import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/cubit/chats_cubit.dart';
 import 'package:messaging/cubit/payment_cubit.dart';
 import 'package:messaging/models/app_chat.dart';
@@ -12,9 +10,9 @@ import 'package:messaging/screens/single_chat_screen.dart';
 import 'package:messaging/core/utils/date_formatter.dart';
 import 'package:messaging/screens/widgets/ad_free_tile.dart';
 import 'package:messaging/screens/widgets/chats_loading_widget.dart';
+import 'package:messaging/screens/widgets/chats_native_ad.dart';
 import 'package:messaging/screens/widgets/contact_name_text.dart';
 import 'package:messaging/screens/widgets/no_ads_badge.dart';
-import 'package:messaging/services/ads/native_ads_service.dart';
 import 'package:messaging/services/contact_service.dart';
 import 'package:messaging/services/notification_service.dart';
 import 'package:messaging/services/redact_service.dart';
@@ -53,9 +51,6 @@ class ChatsView extends StatefulWidget {
 }
 
 class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
-  NativeAd? _myLoadedNativeAd;
-  bool _isAdLoaded = false;
-  bool _isAdLoading = false;
   Set<String> _selectedThreadIds = {}; // Stores IDs of selected chats
   bool get _isSelectionMode => _selectedThreadIds.isNotEmpty;
 
@@ -104,38 +99,6 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
     return _selectedThreadIds.length == chats.length && chats.isNotEmpty;
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_isAdLoaded && !_isAdLoading) {
-      _loadNativeAd();
-    }
-  }
-
-  void _loadNativeAd() async {
-    _isAdLoading = true;
-
-    await NativeAdService.loadNativeAd(
-      context,
-      onAdLoaded: (loadedAd) {
-        if (!mounted) {
-          loadedAd.dispose();
-          return;
-        }
-        setState(() {
-          _isAdLoaded = true;
-          _isAdLoading = false;
-          _myLoadedNativeAd = loadedAd;
-        });
-      },
-    );
-  }
-
-  @override
-  void dispose() {
-    _myLoadedNativeAd?.dispose();
-    super.dispose();
-  }
 
   bool areAllSelectedPinned(List<AppChat> chats) {
     final selectedChats =
@@ -270,7 +233,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                               }
                               // 1. Position for Native Banner Ad (Index 6)
                               if (index == 6) {
-                                return _buildNativeAdTile();
+                                return const ChatsNativeAd();
                               }
 
                               // 2. Position for "Go Ad-Free" Internal Ad (Index 15)
@@ -295,7 +258,9 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
 
                               // 4. Safety check
                               if (chatIndex >= state.chats.length ||
-                                  chatIndex < 0) return null;
+                                  chatIndex < 0) {
+                                return null;
+                              }
 
                               return _buildChatTile(
                                   state.chats[chatIndex], theme);
@@ -471,30 +436,14 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildNativeAdTile() {
-    return FutureBuilder<bool>(
-        future: UserDefaults.getAdsRemoved(),
-        builder: (context, asyncSnapshot) {
-          if ((asyncSnapshot.hasData && asyncSnapshot.data == true) ||
-              _myLoadedNativeAd == null ||
-              !_isAdLoaded) {
-            return const SizedBox.shrink();
-          }
-
-          return Container(
-            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-            height: 100,
-            child: AdWidget(ad: _myLoadedNativeAd!),
-          );
-        });
-  }
 
   Widget prefix(String address, Color color) {
-    if (AppChat.isBusiness(address))
+    if (AppChat.isBusiness(address)) {
       return Icon(
         Icons.business_outlined,
         color: color,
       );
+    }
     if (address.startsWith(RegExp(r'[a-zA-Z]')) && address.isNotEmpty) {
       return Text(address[0].toUpperCase(),
           style: TextStyle(color: color, fontWeight: FontWeight.bold));
