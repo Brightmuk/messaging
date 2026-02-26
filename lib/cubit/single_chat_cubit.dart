@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:bloc/bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:messaging/core/events.dart';
@@ -13,8 +12,9 @@ part 'single_chat_state.dart';
 class SingleChatCubit extends Cubit<SingleChatState> {
   final String threadId;
   final SmsService _smsService = SmsService();
+  int? targetTimestamp;
   StreamSubscription? _updateSubscription;
-  SingleChatCubit(this.threadId) : super(SingleChatInitial()) {
+  SingleChatCubit(this.threadId, {this.targetTimestamp}) : super(SingleChatInitial()) {
     getHideStatus();
     _updateSubscription = _smsService.onMessageUpdated.listen((event) {
       Future.delayed(const Duration(milliseconds: 300)).then((_) {
@@ -25,6 +25,7 @@ class SingleChatCubit extends Cubit<SingleChatState> {
     });
     getMessages();
   }
+
   List<AppSmsMessage> messages = [];
   int _currentPage = 0;
   final int _pageSize = 20;
@@ -101,43 +102,55 @@ class SingleChatCubit extends Cubit<SingleChatState> {
     await SmsService.requestDefaultSmsRole();
   }
 
-  Future<void> getMessages({bool isInitialLoad = true}) async {
-    if (!isInitialLoad) debugPrint("Loading more...");
-    if (_isFetching || (_hasReachedMax && !isInitialLoad)) return;
 
-    _isFetching = true;
+Future<void> getMessages({bool isInitialLoad = true}) async {
+  if (_isFetching) return;
+  if (!isInitialLoad && _hasReachedMax) return;
 
-    if (isInitialLoad) {
-      _currentPage = 0;
-      _hasReachedMax = false;
-      emit(SingleChatLoading());
-    }
+  _isFetching = true;
 
+  if (isInitialLoad) {
+    _currentPage = 0;
+    _hasReachedMax = false;
+   
+    if (messages.isEmpty) emit(SingleChatLoading());
+  }
+
+  try {
     final newMessages = await _smsService.getMessagesForThread(
       threadId,
       limit: _pageSize,
       offset: _currentPage * _pageSize,
+      targetTimestamp: targetTimestamp
     );
 
-    if (newMessages.length < _pageSize) {
+    if (newMessages.isEmpty || newMessages.length < _pageSize) {
       _hasReachedMax = true;
     }
 
     if (isInitialLoad) {
       messages = newMessages;
     } else {
-      messages.addAll(newMessages);
+      // Prevent duplicates if the scroll listener fired too fast
+      final existingIds = messages.map((m) => m.id).toSet();
+      final uniqueNewMessages = newMessages.where((m) => !existingIds.contains(m.id));
+      messages.addAll(uniqueNewMessages);
     }
 
     _currentPage++;
-    _isFetching = false;
-
+    
     emit(SingleChatLoaded(
       messages: List.from(messages),
       hideStatus: hideStatus,
       hasReachedMax: _hasReachedMax,
     ));
+  } catch (e) {
+    emit(SingleChatError(error: "Failed to get messages"));
+  } finally {
+    _isFetching = false;
   }
+}
+
 
   Future<void> sendMessage(String address, String message) async {
     await _smsService.sendSms(address, message, threadId);

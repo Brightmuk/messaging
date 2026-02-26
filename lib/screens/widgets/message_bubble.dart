@@ -12,7 +12,8 @@ class MessageBubble extends StatefulWidget {
     final bool showDateSeparator;
     final bool hide;
     final bool selected;
-  const MessageBubble({super.key, required this.hide, required this.isOutgoing, required this.message, required this.selected, required this.showDateSeparator});
+    final bool isHighlighted;
+  const MessageBubble({super.key, required this.hide, required this.isOutgoing, required this.message, required this.selected, required this.showDateSeparator, this.isHighlighted = false});
 
   @override
   State<MessageBubble> createState() => _MessageBubbleState();
@@ -20,11 +21,22 @@ class MessageBubble extends StatefulWidget {
 
 class _MessageBubbleState extends State<MessageBubble> {
   bool _showMore = false;
+  bool _shouldHighlight = false;
 
   @override
   void initState(){
     super.initState();
     _showMore = !widget.hide;
+    fadeHighlight();
+  }
+  void fadeHighlight(){
+    _shouldHighlight = widget.isHighlighted;
+    if (widget.isHighlighted) {
+      // Trigger the fade effect shortly after the bubble is rendered
+       Future.delayed(const Duration(seconds: 1), () {
+            if (mounted) setState(() => _shouldHighlight = false);
+          });
+    }
   }
   @override
   void didUpdateWidget(covariant MessageBubble oldWidget) {
@@ -40,7 +52,7 @@ class _MessageBubbleState extends State<MessageBubble> {
   @override
   Widget build(BuildContext context) {
     String redactedMessage = RedactService.redactAfterBalance(
-                              widget.message.body, widget.message.address);
+      widget.message.body, widget.message.address);
      return Column(
       children: [
         if (widget.showDateSeparator) _buildDateSeparator(widget.message.date),
@@ -64,7 +76,9 @@ class _MessageBubbleState extends State<MessageBubble> {
                   maxWidth: MediaQuery.of(context).size.width * 0.8,
                 ),
                 decoration: BoxDecoration(
-                  color: widget.selected
+                  color:  _shouldHighlight 
+            ? Colors.purple.withAlpha(40) :
+                   widget.selected
                       ? Theme.of(context).colorScheme.primaryContainer
                       : widget.isOutgoing
                           ? Theme.of(context).colorScheme.primary

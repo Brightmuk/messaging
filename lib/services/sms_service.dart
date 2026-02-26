@@ -215,6 +215,16 @@ class SmsService {
       debugPrint('Send error: $e');
     }
   }
+  Future<List<AppChat>> getArchivedChats(){
+    return _dbHelper.getArchivedChats();
+  }
+  Future<int> getArchivedCount(){
+    return _dbHelper.getArchivedCount();
+  }
+
+ Future<List<AppSmsMessage>> searchGlobal(String query){
+  return _dbHelper.searchGlobal(query);
+ }
 
 
   Future<void> markMessageAsSent(AppSmsMessage message) async {
@@ -319,13 +329,18 @@ class SmsService {
         incrementUnread: incrementUnread);
   }
 
-  Future<List<AppChat>> getAllChats() => _dbHelper.getAllChats();
+ Future<List<AppChat>> getPaginatedChats({required int limit, required int offset}) {
+  return _dbHelper.getPaginatedChats(limit: limit, offset: offset);
+}
 
 Future<List<AppSmsMessage>> getMessagesForThread(
   String threadId, {
   int limit = 20, 
   int offset = 0,
-}) => _dbHelper.getMessagesForThread(threadId, limit: limit, offset: offset);
+  int? targetTimestamp
+}) => _dbHelper.getMessagesForThread(threadId, limit: limit, offset: offset, targetTimestamp: targetTimestamp);
+
+
 
   Future<void> markThreadAsRead(String threadId) async {
     await _dbHelper.markThreadAsRead(threadId);

@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
+
 class AppChat {
   final String threadId;
   final String address;
@@ -128,35 +130,39 @@ class AppChat {
   }
 
   static String normalizeAddress(String address) {
-    // 1. Remove whitespace and convert to uppercase for consistency (e.g., "m-pesa" vs "MPESA")
     String clean = address.trim().toUpperCase();
 
-    // 2. Identify if it's an Alphanumeric Sender ID (Labels like "MPESA", "ADMTXT")
-    // If it contains any letters, we treat it as a literal label.
     if (RegExp(r'[A-Z]').hasMatch(clean)) {
       return clean;
     }
 
-    // 3. Identify if it's a Shortcode (e.g., "555", "20205")
-    // Shortcodes are digits-only but usually very short (3-6 digits).
-    // We don't want to slice these; we want the exact code.
     String digitsOnly = clean.replaceAll(RegExp(r'\D'), '');
     if (digitsOnly.length <= 6) {
       return digitsOnly;
     }
 
-    // 4. Handle Standard Phone Numbers (e.g., +2547..., 07..., 01...)
-    // We take the last 9 digits to ensure +254722... and 0722... match.
     if (digitsOnly.length >= 9) {
       return digitsOnly.substring(digitsOnly.length - 9);
     }
 
-    // Fallback for anything else
     return digitsOnly.isEmpty ? clean : digitsOnly;
   }
 
   bool isSameThread(String? newThreadId, String newAddress) {
     return normalizeAddress(newAddress) == normalizeAddress(address) ||
         (newThreadId != null && newThreadId == threadId);
+  }
+  Widget prefix(Color color) {
+    if (AppChat.isBusiness(address)) {
+      return Icon(
+        Icons.business_outlined,
+        color: color,
+      );
+    }
+    if (address.startsWith(RegExp(r'[a-zA-Z]')) && address.isNotEmpty) {
+      return Text(address[0].toUpperCase(),
+          style: TextStyle(color: color, fontWeight: FontWeight.bold));
+    }
+    return Icon(Icons.person_outline, color: color);
   }
 }

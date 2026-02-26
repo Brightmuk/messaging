@@ -1,13 +1,17 @@
+import 'dart:async';
+
 import 'package:another_telephony/telephony.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:messaging/core/feedback_ui.dart';
+import 'package:messaging/cubit/payment_cubit.dart';
 import 'package:messaging/cubit/sim_card_cubit.dart';
 import 'package:messaging/cubit/single_chat_cubit.dart';
 import 'package:messaging/models/app_chat.dart';
 import 'package:messaging/models/sim_card_state.dart';
 import 'package:messaging/screens/select_contact_screen.dart';
+import 'package:messaging/screens/widgets/chat_bubble_ad.dart';
 import 'package:messaging/screens/widgets/message_bubble.dart';
 import 'package:messaging/services/contact_service.dart';
 import 'package:messaging/services/notification_service.dart';
@@ -21,10 +25,13 @@ class SingleChatScreen extends StatelessWidget {
   final String threadId;
   final String address;
   final String? initialMessage;
+  final AppSmsMessage? searchedMessage;
+
   const SingleChatScreen(
       {super.key,
       required this.threadId,
       required this.address,
+      this.searchedMessage,
       this.initialMessage});
 
   @override
@@ -32,12 +39,13 @@ class SingleChatScreen extends StatelessWidget {
     return MultiProvider(
         providers: [
           BlocProvider(create: (c) => SimCardCubit()),
-          BlocProvider(create: (c) => SingleChatCubit(threadId)),
+          BlocProvider(create: (c) => SingleChatCubit(threadId, targetTimestamp: searchedMessage?.date)),
         ],
         child: SingleChatScreenView(
           threadId: threadId,
           address: address,
           initialMessage: initialMessage,
+          searchedMessage: searchedMessage,
         ));
   }
 }
@@ -46,12 +54,14 @@ class SingleChatScreenView extends StatefulWidget {
   final String threadId;
   final String address;
   final String? initialMessage;
+  final AppSmsMessage? searchedMessage;
 
   const SingleChatScreenView({
     super.key,
     required this.threadId,
     required this.address,
     this.initialMessage,
+    this.searchedMessage
   });
 
   @override
@@ -66,9 +76,6 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
   final Set<AppSmsMessage> _selectedMessages = {};
   bool get _isSelectionMode => _selectedMessages.isNotEmpty;
 
-  bool _isSearching = false;
-  final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
 
   void _toggleSelection(AppSmsMessage message) {
     setState(() {
@@ -85,18 +92,36 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _scrollController.addListener(_onScroll);
-    context.read<SingleChatCubit>().markThreadAsRead();
+    Future.microtask(() {
+      if (mounted) {
+        context.read<SingleChatCubit>().markThreadAsRead();
+      }
+    });
     if (widget.initialMessage != null) {
       _messageController.text = widget.initialMessage!;
     }
     _clearNotifications();
+    jumpToSearchResult();
   }
+  void jumpToSearchResult(){
+    if(widget.searchedMessage==null) return;
+    Future.delayed((const Duration(milliseconds: 500)), () {
+      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+  });
+  }
+
+
   void _onScroll() {
-  // If we are 200 pixels from the top, load more
-  if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
-    context.read<SingleChatCubit>().getMessages(isInitialLoad: false);
+  
+    final pos = _scrollController.position;
+    if (pos.pixels >= pos.maxScrollExtent - 200) {
+      final cubit = context.read<SingleChatCubit>();
+
+      if (!cubit.hasReachedMax) {
+        cubit.getMessages(isInitialLoad: false);
+      }
+    }
   }
-}
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -113,6 +138,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
+
     super.dispose();
   }
 
@@ -120,6 +146,8 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
   Widget build(BuildContext context) {
     FeedbackUi feedbackUi = FeedbackUi(context);
     final theme = Theme.of(context);
+    bool isNoAds = Provider.of<PaymentCubit>(context).isNoAds;
+
     return BlocConsumer<SingleChatCubit, SingleChatState>(
       listener: (context, state) {
         if (state is SingleChatSendError) {
@@ -128,7 +156,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
         if (state is SingleChatLoaded) {
           context.read<SingleChatCubit>().markThreadAsRead();
         }
-        if(state is SingleChatDeleted){
+        if (state is SingleChatDeleted) {
           Navigator.pop(context);
         }
       },
@@ -144,11 +172,10 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
             body: const Center(child: Text("Error loading messages")),
           );
         }
-        final allMessages = context.read<SingleChatCubit>().messages;
-        // Filter messages based on search
-        final messages = allMessages.where((m) {
-          return m.body.toLowerCase().contains(_searchQuery);
-        }).toList();
+        final messages = (state is SingleChatLoaded && state.isSearching)?
+        state.messages:
+        context.read<SingleChatCubit>().messages;
+        
         bool hide = context.read<SingleChatCubit>().hideStatus;
         return Scaffold(
           appBar: _buildAppBar(messages),
@@ -173,15 +200,35 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                         reverse: true,
                         controller: _scrollController,
                         padding: const EdgeInsets.all(16),
-                        itemCount: messages.length,
+                        itemCount: shouldShowAds(messages.length, isNoAds)
+                            ? messages.length + 1
+                            : messages.length,
                         itemBuilder: (context, index) {
-                          final message = messages[index];
+                          bool adsEnabled =
+                              shouldShowAds(messages.length, isNoAds);
+
+                          if (adsEnabled && index == 3) {
+                            return ChatAdBubble(
+                                address: messages.isNotEmpty
+                                    ? messages[0].address
+                                    : "");
+                          }
+
+                          final int messageIndex =
+                              (adsEnabled && index > 3) ? index - 1 : index;
+
+                          if (messageIndex < 0 ||
+                              messageIndex >= messages.length) {
+                            return const SizedBox.shrink();
+                          }
+
+                          final message = messages[messageIndex];
                           final isOutgoing = message.isOutgoing;
                           final isSelected =
                               _selectedMessages.contains(message);
                           final showDateSeparator =
-                              _shouldShowDateSeparator(index, messages);
-                          
+                              _shouldShowDateSeparator(messageIndex, messages);
+                         
                           return GestureDetector(
                             onLongPress: () => _toggleSelection(message),
                             onTap: () {
@@ -189,8 +236,14 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                                 _toggleSelection(message);
                               }
                             },
-                            child: MessageBubble(hide: hide, isOutgoing: isOutgoing, message: message, selected: isSelected, showDateSeparator: showDateSeparator)
-                            
+                            child: MessageBubble(
+                              hide: hide,
+                              isOutgoing: isOutgoing,
+                              message: message,
+                              selected: isSelected,
+                              showDateSeparator: showDateSeparator,
+                              isHighlighted: widget.searchedMessage?.id == message.id,
+                            ),
                           );
                         },
                       ),
@@ -242,7 +295,6 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                                     controller: _messageController,
                                     maxLines: 5,
                                     minLines: 1,
-                                    
                                     enabled: !isLoading && hasData,
                                     onChanged: (value) => setState(() {}),
                                     textCapitalization:
@@ -280,9 +332,10 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                                                   ? null
                                                   : () => _sendMessage(),
                                               icon: Icon(
-                                                      Icons.arrow_upward,
-                                                      color: theme.colorScheme.onPrimary,
-                                                    ),
+                                                Icons.arrow_upward,
+                                                color:
+                                                    theme.colorScheme.onPrimary,
+                                              ),
                                             ),
                                           ],
                                         ),
@@ -321,9 +374,13 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
     );
   }
 
+  bool shouldShowAds(int messageLength, bool isNoAds) {
+    return RedactService.isMonitored(widget.address) &&
+        messageLength > 5 &&
+        !isNoAds;
+  }
 
   AppBar _buildAppBar(List<AppSmsMessage> messages) {
-
     // 1. SELECTION MODE
     if (_isSelectionMode) {
       return AppBar(
@@ -336,9 +393,9 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
           IconButton(
             icon: const Icon(Icons.content_copy_outlined),
             onPressed: () {
-             
               final text = _selectedMessages
-                  .map((m) => RedactService.redactAfterBalance(m.body, m.address))
+                  .map((m) =>
+                      RedactService.redactAfterBalance(m.body, m.address))
                   .join('\n');
               Clipboard.setData(ClipboardData(text: text));
               setState(() => _selectedMessages.clear());
@@ -346,7 +403,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                   const SnackBar(content: Text('Copied to clipboard')));
             },
           ),
-          if (_selectedMessages.length == 1) // Forward only for single
+          if (_selectedMessages.length == 1)
             IconButton(
               icon: const Icon(Icons.forward_to_inbox_outlined),
               onPressed: () {
@@ -371,46 +428,17 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
       );
     }
 
-    // 2. SEARCH MODE
-    if (_isSearching) {
-      return AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => setState(() {
-            _isSearching = false;
-            _searchQuery = '';
-            _searchController.clear();
-          }),
-        ),
-        title: TextField(
-          controller: _searchController,
-          autofocus: true,
-          decoration:  const InputDecoration(
-            filled: false,
-              hintText: 'Search messages...', border: InputBorder.none),
-          onChanged: (value) =>
-              setState(() => _searchQuery = value.toLowerCase()),
-        ),
-      );
-    }
 
-    // 3. NORMAL MODE
     return AppBar(
-      title: InkWell(
-        // Tap title to search (common UX) or use search icon
-        onTap: () => setState(() => _isSearching = true),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(ContactService().getName(widget.address)),
-            Text('SMS', style: Theme.of(context).textTheme.bodySmall),
-          ],
-        ),
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(ContactService().getName(widget.address)),
+          Text('SMS', style: Theme.of(context).textTheme.bodySmall),
+        ],
       ),
       actions: [
-        IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () => setState(() => _isSearching = true)),
+        
         IconButton(
           icon: const Icon(Icons.call_outlined),
           onPressed: int.tryParse(widget.address) == null
@@ -523,21 +551,20 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
 
     context.read<SingleChatCubit>().sendMessage(widget.address, message);
     _messageController.clear();
-    // await context.read<SingleChatCubit>().markThreadAsRead();
   }
 
+  bool _shouldShowDateSeparator(int index, List<AppSmsMessage> messages) {
+    if (index == messages.length - 1) return true;
 
+    final currentMsgDate =
+        DateTime.fromMillisecondsSinceEpoch(messages[index].date);
+    final olderMsgDate =
+        DateTime.fromMillisecondsSinceEpoch(messages[index + 1].date);
 
-bool _shouldShowDateSeparator(int index, List<AppSmsMessage> messages) {
-  if (index == messages.length - 1) return true;
-
-  final currentMsgDate = DateTime.fromMillisecondsSinceEpoch(messages[index].date);
-  final olderMsgDate = DateTime.fromMillisecondsSinceEpoch(messages[index + 1].date);
-
-  return currentMsgDate.day != olderMsgDate.day ||
-      currentMsgDate.month != olderMsgDate.month ||
-      currentMsgDate.year != olderMsgDate.year;
-}
+    return currentMsgDate.day != olderMsgDate.day ||
+        currentMsgDate.month != olderMsgDate.month ||
+        currentMsgDate.year != olderMsgDate.year;
+  }
 
   Future<void> _makePhoneCall(String phoneNumber) async {
     final Uri launchUri = Uri(
