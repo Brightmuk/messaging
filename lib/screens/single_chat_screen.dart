@@ -25,12 +25,10 @@ class SingleChatScreen extends StatelessWidget {
   final String threadId;
   final String address;
   final String? initialMessage;
-  final String? searchedQuery;
   const SingleChatScreen(
       {super.key,
       required this.threadId,
       required this.address,
-      this.searchedQuery,
       this.initialMessage});
 
   @override
@@ -44,7 +42,6 @@ class SingleChatScreen extends StatelessWidget {
           threadId: threadId,
           address: address,
           initialMessage: initialMessage,
-          searchedQuery: searchedQuery,
 
         ));
   }
@@ -76,10 +73,6 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
   final Set<AppSmsMessage> _selectedMessages = {};
   bool get _isSelectionMode => _selectedMessages.isNotEmpty;
 
-  bool _isSearching = false;
-  final TextEditingController _searchController = TextEditingController();
-  
-  Timer? _debounce;
 
   void _toggleSelection(AppSmsMessage message) {
     setState(() {
@@ -105,23 +98,12 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
       _messageController.text = widget.initialMessage!;
     }
     _clearNotifications();
-    Future.delayed(const Duration(milliseconds: 200),(){
-      initFromSearch();
-    });
     
   }
-  void initFromSearch(){
-    if(widget.searchedQuery != null){
-      setState(() {
-        _isSearching = true;
-        _searchController.text = widget.searchedQuery!;
-      });
-      context.read<SingleChatCubit>().searchMessages(widget.searchedQuery!);
-    }
-  }
+
 
   void _onScroll() {
-    if (_searchController.value.text.isEmpty) return;
+  
     final pos = _scrollController.position;
     if (pos.pixels >= pos.maxScrollExtent - 200) {
       final cubit = context.read<SingleChatCubit>();
@@ -436,49 +418,17 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
       );
     }
 
-    // 2. SEARCH MODE
-    if (_isSearching) {
-      return AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => setState(() {
-            _isSearching = false;
-            
-          }),
-        ),
-        title: TextField(
-          controller: _searchController,
-          autofocus: true,
-          decoration: const InputDecoration(
-              filled: false,
-              hintText: 'Search messages...',
-              border: InputBorder.none),
-          onChanged: (value) {
-            if (_debounce?.isActive ?? false) _debounce!.cancel();
 
-            _debounce = Timer(const Duration(milliseconds: 500), () {
-          
-              context.read<SingleChatCubit>().searchMessages(value);
-            });
-          },
-        ),
-      );
-    }
     return AppBar(
-      title: InkWell(
-        onTap: () => setState(() => _isSearching = true),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(ContactService().getName(widget.address)),
-            Text('SMS', style: Theme.of(context).textTheme.bodySmall),
-          ],
-        ),
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(ContactService().getName(widget.address)),
+          Text('SMS', style: Theme.of(context).textTheme.bodySmall),
+        ],
       ),
       actions: [
-        IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () => setState(() => _isSearching = true)),
+        
         IconButton(
           icon: const Icon(Icons.call_outlined),
           onPressed: int.tryParse(widget.address) == null

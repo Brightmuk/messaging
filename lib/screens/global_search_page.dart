@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:messaging/cubit/global_search_cubit.dart';
-import 'package:messaging/models/global_search_result.dart';
 import 'package:messaging/screens/single_chat_screen.dart';
 import 'package:messaging/screens/widgets/contact_name_text.dart';
 import 'package:messaging/services/contact_service.dart';
@@ -51,16 +50,7 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
                     if(state.results.length<1){
                       return Center(child: Text("Nothing found for \'${state.query}\'"));
                     }
-                      if (result.type == SearchResultType.chat) {
-                        return ListTile(
-                          leading: const CircleAvatar(child: Icon(Icons.person)),
-                          title: SearchHighlightText(
-                              text: result.chat!.address,
-                              query: state.query,
-                              style: const TextStyle(color: Colors.black)),
-                          subtitle: const Text("Conversation match"),
-                        );
-                      } else {
+                     
                         if(result.message == null) return const SizedBox.shrink();
                         return ListTile(
                            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
@@ -79,11 +69,11 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => SingleChatScreen(
-                                        threadId: result.message!.threadId, address: result.message!.address, searchedQuery: state.query,),
+                                        threadId: result.message!.threadId, address: result.message!.address),
                                   ));
                               },
                         );
-                      }
+                      
                     },
                   );
                 }

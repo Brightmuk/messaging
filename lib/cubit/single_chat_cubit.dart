@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:bloc/bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:messaging/core/events.dart';
@@ -147,25 +146,7 @@ Future<void> getMessages({bool isInitialLoad = true}) async {
     _isFetching = false;
   }
 }
-  Future<void> searchMessages(String query) async {
-    if (query.isEmpty) {
-      emit(SingleChatLoaded(messages: List.from(messages)));
-      return;
-    }
 
-    emit(SingleChatLoading());
-   
-    try {
-      final searchResults = await _smsService.searchMessagesInThread(threadId, query);
-      emit(SingleChatLoaded(
-        messages: searchResults,
-        isSearching: true, 
-        hideStatus: hideStatus,
-      ));
-    } catch (e) {
-      emit(SingleChatError(error: "Search failed"));
-    }
-  }
 
   Future<void> sendMessage(String address, String message) async {
     await _smsService.sendSms(address, message, threadId);

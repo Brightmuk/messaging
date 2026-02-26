@@ -236,20 +236,6 @@ Future<List<GlobalSearchResult>> searchGlobal(String query) async {
   final lowercaseQuery = '%${query.toLowerCase()}%';
   List<GlobalSearchResult> results = [];
 
-  // 1. Search Chats (by Name or Address)
-  // final chatResults = await db.rawQuery('''
-  //   SELECT * FROM chats 
-  //   WHERE address LIKE ? 
-  // ''', [lowercaseQuery]);
-  
-  // for (var row in chatResults) {
-  //   results.add(GlobalSearchResult(
-  //     type: SearchResultType.chat, 
-  //     chat: AppChat.fromMap(row)
-  //   ));
-  // }
-
-  // 2. Search Messages (by Body)
   final messageResults = await db.rawQuery('''
     SELECT * FROM messages 
     WHERE body LIKE ? 
@@ -257,7 +243,6 @@ Future<List<GlobalSearchResult>> searchGlobal(String query) async {
   ''', [lowercaseQuery]);
   for (var row in messageResults) {
     results.add(GlobalSearchResult(
-      type: SearchResultType.message, 
       message: AppSmsMessage.fromMap(row)
     ));
   }
