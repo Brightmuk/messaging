@@ -5,6 +5,7 @@ import 'package:messaging/core/feedback_ui.dart';
 import 'package:messaging/cubit/chats_cubit.dart';
 import 'package:messaging/cubit/payment_cubit.dart';
 import 'package:messaging/models/app_chat.dart';
+import 'package:messaging/screens/global_search_page.dart';
 import 'package:messaging/screens/settings_screen.dart';
 import 'package:messaging/screens/single_chat_screen.dart';
 import 'package:messaging/core/utils/date_formatter.dart';
@@ -218,6 +219,13 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                             ),
                           ]
                         : [
+                           IconButton(
+                              icon: const Icon(Icons.search_outlined),
+                              onPressed: () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(builder: (context) => const GlobalSearchPage()),
+                                      )
+                            ),
                             IconButton(
                               icon: const Icon(Icons.settings_outlined),
                               onPressed: () => Navigator.push(
@@ -227,6 +235,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                                         const SettingsScreen()),
                               ),
                             ),
+                            
                             const NoAdsBadge()
                             
                           ],

@@ -13,8 +13,9 @@ class NoAdsBadge extends StatelessWidget {
     if (!isPremium) return const SizedBox.shrink();
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 14, horizontal: 0),
-     padding: const EdgeInsets.all(6),
+      width: 20,
+      margin: const EdgeInsets.symmetric(vertical: 18, horizontal: 0),
+     padding: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [Color(0xFF4A148C),
@@ -31,11 +32,7 @@ class NoAdsBadge extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
-        children: [
-          Icon(Icons.star, size: 14, color: Colors.white),
-        ],
-      ),
+      child: Center(child: Icon(Icons.star, size: 12, color: Colors.white)),
     );
   }
 }

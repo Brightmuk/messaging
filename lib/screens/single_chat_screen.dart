@@ -25,10 +25,12 @@ class SingleChatScreen extends StatelessWidget {
   final String threadId;
   final String address;
   final String? initialMessage;
+  final String? searchedQuery;
   const SingleChatScreen(
       {super.key,
       required this.threadId,
       required this.address,
+      this.searchedQuery,
       this.initialMessage});
 
   @override
@@ -42,6 +44,8 @@ class SingleChatScreen extends StatelessWidget {
           threadId: threadId,
           address: address,
           initialMessage: initialMessage,
+          searchedQuery: searchedQuery,
+
         ));
   }
 }
@@ -50,12 +54,14 @@ class SingleChatScreenView extends StatefulWidget {
   final String threadId;
   final String address;
   final String? initialMessage;
+  final String? searchedQuery;
 
   const SingleChatScreenView({
     super.key,
     required this.threadId,
     required this.address,
     this.initialMessage,
+    this.searchedQuery
   });
 
   @override
@@ -99,6 +105,19 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
       _messageController.text = widget.initialMessage!;
     }
     _clearNotifications();
+    Future.delayed(const Duration(milliseconds: 200),(){
+      initFromSearch();
+    });
+    
+  }
+  void initFromSearch(){
+    if(widget.searchedQuery != null){
+      setState(() {
+        _isSearching = true;
+        _searchController.text = widget.searchedQuery!;
+      });
+      context.read<SingleChatCubit>().searchMessages(widget.searchedQuery!);
+    }
   }
 
   void _onScroll() {

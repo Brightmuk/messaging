@@ -1,4 +1,5 @@
 import 'package:messaging/models/app_chat.dart';
+import 'package:messaging/models/global_search_result.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:another_telephony/telephony.dart' as tel;
@@ -229,6 +230,38 @@ Future<int> getArchivedCount() async {
     'SELECT COUNT(*) FROM chats WHERE isArchived = 1'
   ));
   return count ?? 0;
+}
+Future<List<GlobalSearchResult>> searchGlobal(String query) async {
+  final db = await database;
+  final lowercaseQuery = '%${query.toLowerCase()}%';
+  List<GlobalSearchResult> results = [];
+
+  // 1. Search Chats (by Name or Address)
+  // final chatResults = await db.rawQuery('''
+  //   SELECT * FROM chats 
+  //   WHERE address LIKE ? 
+  // ''', [lowercaseQuery]);
+  
+  // for (var row in chatResults) {
+  //   results.add(GlobalSearchResult(
+  //     type: SearchResultType.chat, 
+  //     chat: AppChat.fromMap(row)
+  //   ));
+  // }
+
+  // 2. Search Messages (by Body)
+  final messageResults = await db.rawQuery('''
+    SELECT * FROM messages 
+    WHERE body LIKE ? 
+    ORDER BY date DESC LIMIT 50
+  ''', [lowercaseQuery]);
+  for (var row in messageResults) {
+    results.add(GlobalSearchResult(
+      type: SearchResultType.message, 
+      message: AppSmsMessage.fromMap(row)
+    ));
+  }
+  return results;
 }
 Future<List<AppSmsMessage>> searchMessagesInThread(String threadId, String query) async {
   final db = await database;
