@@ -230,6 +230,17 @@ Future<int> getArchivedCount() async {
   ));
   return count ?? 0;
 }
+Future<List<AppSmsMessage>> searchMessagesInThread(String threadId, String query) async {
+  final db = await database;
+  final String lowercaseQuery = query.toLowerCase();
+  final result = await db.query(
+    'messages',
+    where: 'threadId = ? AND body LIKE ? COLLATE NOCASE',
+    whereArgs: [threadId, '%$lowercaseQuery%'], 
+    orderBy: 'date DESC',
+  );
+  return result.map((json) => AppSmsMessage.fromMap(json)).toList();
+}
 
   // --- State Modification ---
   Future<void> markMessageAsSent(int messageId) async {

@@ -102,9 +102,7 @@ class SingleChatCubit extends Cubit<SingleChatState> {
   }
 
 Future<void> getMessages({bool isInitialLoad = true}) async {
-  print("Getting messages");
   if (_isFetching) return;
-  print("Actually getting");
   if (!isInitialLoad && _hasReachedMax) return;
 
   _isFetching = true;
@@ -144,11 +142,30 @@ Future<void> getMessages({bool isInitialLoad = true}) async {
       hasReachedMax: _hasReachedMax,
     ));
   } catch (e) {
-    emit(SingleChatError());
+    emit(SingleChatError(error: "Failed to get messages"));
   } finally {
     _isFetching = false;
   }
 }
+  Future<void> searchMessages(String query) async {
+    if (query.isEmpty) {
+      emit(SingleChatLoaded(messages: List.from(messages)));
+      return;
+    }
+
+    emit(SingleChatLoading());
+   
+    try {
+      final searchResults = await _smsService.searchMessagesInThread(threadId, query);
+      emit(SingleChatLoaded(
+        messages: searchResults,
+        isSearching: true, 
+        hideStatus: hideStatus,
+      ));
+    } catch (e) {
+      emit(SingleChatError(error: "Search failed"));
+    }
+  }
 
   Future<void> sendMessage(String address, String message) async {
     await _smsService.sendSms(address, message, threadId);

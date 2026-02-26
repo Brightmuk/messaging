@@ -221,6 +221,9 @@ class SmsService {
   Future<int> getArchivedCount(){
     return _dbHelper.getArchivedCount();
   }
+  Future<List<AppSmsMessage>> searchMessagesInThread(String threadId, String query) async {
+    return _dbHelper.searchMessagesInThread(threadId, query);
+  }
 
 
   Future<void> markMessageAsSent(AppSmsMessage message) async {

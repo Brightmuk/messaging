@@ -16,7 +16,6 @@ import 'package:messaging/screens/widgets/no_ads_badge.dart';
 import 'package:messaging/services/contact_service.dart';
 import 'package:messaging/services/notification_service.dart';
 import 'package:messaging/services/redact_service.dart';
-import 'package:messaging/services/sms_service.dart';
 import 'package:provider/provider.dart';
 import 'select_contact_screen.dart';
 
@@ -350,13 +349,14 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            // If selected, use a strong primary container tint
+            
             color: isSelected
                 ? theme.colorScheme.primaryContainer
                 : (hasUnread
                     ? theme.colorScheme.primaryContainer.withAlpha(100)
                     : Colors.transparent),
             borderRadius: BorderRadius.circular(20),
+            border: Border(bottom: BorderSide(color: theme.colorScheme.surfaceContainer,width: 0.8))
           ),
           child: Row(
             children: [

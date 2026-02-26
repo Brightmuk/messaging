@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:another_telephony/telephony.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -70,7 +72,8 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
 
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
+  
+  Timer? _debounce;
 
   void _toggleSelection(AppSmsMessage message) {
     setState(() {
@@ -88,26 +91,27 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
     WidgetsBinding.instance.addObserver(this);
     _scrollController.addListener(_onScroll);
     Future.microtask(() {
-    if (mounted) {
-      context.read<SingleChatCubit>().markThreadAsRead();
-    }
-  });
+      if (mounted) {
+        context.read<SingleChatCubit>().markThreadAsRead();
+      }
+    });
     if (widget.initialMessage != null) {
       _messageController.text = widget.initialMessage!;
     }
     _clearNotifications();
   }
 
-void _onScroll() {
-  final pos = _scrollController.position;
-  if (pos.pixels >= pos.maxScrollExtent - 200) {
-    final cubit = context.read<SingleChatCubit>();
-    
-    if (!cubit.hasReachedMax) {
-      cubit.getMessages(isInitialLoad: false);
+  void _onScroll() {
+    if (_searchController.value.text.isEmpty) return;
+    final pos = _scrollController.position;
+    if (pos.pixels >= pos.maxScrollExtent - 200) {
+      final cubit = context.read<SingleChatCubit>();
+
+      if (!cubit.hasReachedMax) {
+        cubit.getMessages(isInitialLoad: false);
+      }
     }
   }
-}
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -158,11 +162,10 @@ void _onScroll() {
             body: const Center(child: Text("Error loading messages")),
           );
         }
-        final allMessages = context.read<SingleChatCubit>().messages;
-        // Filter messages based on search
-        final messages = allMessages.where((m) {
-          return m.body.toLowerCase().contains(_searchQuery);
-        }).toList();
+        final messages = (state is SingleChatLoaded && state.isSearching)?
+        state.messages:
+        context.read<SingleChatCubit>().messages;
+        
         bool hide = context.read<SingleChatCubit>().hideStatus;
         return Scaffold(
           appBar: _buildAppBar(messages),
@@ -187,27 +190,34 @@ void _onScroll() {
                         reverse: true,
                         controller: _scrollController,
                         padding: const EdgeInsets.all(16),
-                        itemCount: shouldShowAds(messages.length, isNoAds) 
-                            ? messages.length + 1 
+                        itemCount: shouldShowAds(messages.length, isNoAds)
+                            ? messages.length + 1
                             : messages.length,
                         itemBuilder: (context, index) {
-                          bool adsEnabled = shouldShowAds(messages.length, isNoAds);
+                          bool adsEnabled =
+                              shouldShowAds(messages.length, isNoAds);
 
-                          
                           if (adsEnabled && index == 3) {
-                            return ChatAdBubble(address: messages.isNotEmpty ? messages[0].address : "");
+                            return ChatAdBubble(
+                                address: messages.isNotEmpty
+                                    ? messages[0].address
+                                    : "");
                           }
 
-                          final int messageIndex = (adsEnabled && index > 3) ? index - 1 : index;
+                          final int messageIndex =
+                              (adsEnabled && index > 3) ? index - 1 : index;
 
-                          if (messageIndex < 0 || messageIndex >= messages.length) {
+                          if (messageIndex < 0 ||
+                              messageIndex >= messages.length) {
                             return const SizedBox.shrink();
                           }
 
                           final message = messages[messageIndex];
                           final isOutgoing = message.isOutgoing;
-                          final isSelected = _selectedMessages.contains(message);
-                          final showDateSeparator = _shouldShowDateSeparator(messageIndex, messages);
+                          final isSelected =
+                              _selectedMessages.contains(message);
+                          final showDateSeparator =
+                              _shouldShowDateSeparator(messageIndex, messages);
 
                           return GestureDetector(
                             onLongPress: () => _toggleSelection(message),
@@ -352,8 +362,11 @@ void _onScroll() {
       },
     );
   }
-  bool shouldShowAds(int messageLength, bool isNoAds){
-    return RedactService.isMonitored(widget.address)  && messageLength>5 && !isNoAds;
+
+  bool shouldShowAds(int messageLength, bool isNoAds) {
+    return RedactService.isMonitored(widget.address) &&
+        messageLength > 5 &&
+        !isNoAds;
   }
 
   AppBar _buildAppBar(List<AppSmsMessage> messages) {
@@ -379,7 +392,7 @@ void _onScroll() {
                   const SnackBar(content: Text('Copied to clipboard')));
             },
           ),
-          if (_selectedMessages.length == 1) 
+          if (_selectedMessages.length == 1)
             IconButton(
               icon: const Icon(Icons.forward_to_inbox_outlined),
               onPressed: () {
@@ -411,8 +424,7 @@ void _onScroll() {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => setState(() {
             _isSearching = false;
-            _searchQuery = '';
-            _searchController.clear();
+            
           }),
         ),
         title: TextField(
@@ -422,8 +434,14 @@ void _onScroll() {
               filled: false,
               hintText: 'Search messages...',
               border: InputBorder.none),
-          onChanged: (value) =>
-              setState(() => _searchQuery = value.toLowerCase()),
+          onChanged: (value) {
+            if (_debounce?.isActive ?? false) _debounce!.cancel();
+
+            _debounce = Timer(const Duration(milliseconds: 500), () {
+          
+              context.read<SingleChatCubit>().searchMessages(value);
+            });
+          },
         ),
       );
     }
