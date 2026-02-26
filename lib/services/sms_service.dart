@@ -215,6 +215,12 @@ class SmsService {
       debugPrint('Send error: $e');
     }
   }
+  Future<List<AppChat>> getArchivedChats(){
+    return _dbHelper.getArchivedChats();
+  }
+  Future<int> getArchivedCount(){
+    return _dbHelper.getArchivedCount();
+  }
 
 
   Future<void> markMessageAsSent(AppSmsMessage message) async {
@@ -319,7 +325,9 @@ class SmsService {
         incrementUnread: incrementUnread);
   }
 
-  Future<List<AppChat>> getAllChats() => _dbHelper.getAllChats();
+ Future<List<AppChat>> getPaginatedChats({required int limit, required int offset}) {
+  return _dbHelper.getPaginatedChats(limit: limit, offset: offset);
+}
 
 Future<List<AppSmsMessage>> getMessagesForThread(
   String threadId, {

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/models/sim_card_state.dart';
+import 'package:messaging/screens/archived_chats_screen.dart';
 import 'package:messaging/screens/widgets/ad_free_tile.dart';
 import 'package:messaging/screens/widgets/no_ads_status_tile.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -45,6 +46,7 @@ class _SettingsScreenState extends State<SettingsScreen>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
@@ -57,7 +59,7 @@ class _SettingsScreenState extends State<SettingsScreen>
               padding:
                   const EdgeInsets.all(16.0), // Outer padding for the cards
               children: [
-                _buildSectionHeader("System"),
+                _buildSectionHeader("App"),
                 Card(
                   elevation: 0,
                   shape: RoundedRectangleBorder(
@@ -73,12 +75,13 @@ class _SettingsScreenState extends State<SettingsScreen>
                   child: Column(
                     children: [
                       ListTile(
+                        leading:  Icon(Icons.messenger_outline, color: theme.primaryColor),
                         title: const Text("Default Messaging App"),
                         subtitle: Text(_isDefaultSmsApp
                             ? "This is the default messaging app"
                             : "Tap to set as default"),
                         trailing: _isDefaultSmsApp
-                            ? const Icon(Icons.check, color: Colors.green)
+                            ? const Icon(Icons.check_circle_outline, color: Colors.green)
                             : FilledButton(
                                 onPressed: () async {
                                   await SmsService.requestDefaultSmsRole();
@@ -116,12 +119,47 @@ class _SettingsScreenState extends State<SettingsScreen>
                                 ? "SIM $displaySlot (${currentSim.displayName})" 
                                 : "Select default SIM"
                             ),
-                            leading: const Icon(Icons.sim_card_outlined),
+                            leading:  Icon(Icons.sim_card_outlined, color: theme.primaryColor),
                             trailing: const Icon(Icons.arrow_drop_down),
                             onTap: _showSimPicker,
                           );
                         },
-                      )
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                       ListTile(
+                          leading:  Icon(Icons.archive_outlined, color: theme.primaryColor),
+                          title: const Text("Archived Conversations"),
+                          trailing: FutureBuilder<int>(
+                            future: SmsService().getArchivedCount(),
+                            builder: (context, snapshot) {
+                              final count = snapshot.data ?? 0;
+                              return Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primary,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Text(
+                                  "$count",
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          onTap: () async{
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const ArchivedChatsScreen()),
+                            );
+                            if(result!=null){
+                              setState(() {});
+                            }
+                          },
+                        ),
                     ],
                   ),
                 ),
@@ -143,6 +181,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                         future: UserDefaults.getHideStatus(),
                         builder: (context, asyncSnapshot) {
                           return SwitchListTile(
+                          
                             title: const Text("Always hide balances"),
                             value: asyncSnapshot.data ?? false, 
                             onChanged: (value) async {
@@ -237,8 +276,9 @@ class _SettingsScreenState extends State<SettingsScreen>
   }
 
   Widget _buildLinkTile(IconData icon, String title, VoidCallback onTap) {
+    final theme = Theme.of(context);
     return ListTile(
-      leading: Icon(icon),
+      leading: Icon(icon,  color: theme.primaryColor),
       title: Text(title),
       trailing: const Icon(Icons.chevron_right, size: 20),
       onTap: onTap,

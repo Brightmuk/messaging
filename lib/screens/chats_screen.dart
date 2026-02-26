@@ -16,6 +16,7 @@ import 'package:messaging/screens/widgets/no_ads_badge.dart';
 import 'package:messaging/services/contact_service.dart';
 import 'package:messaging/services/notification_service.dart';
 import 'package:messaging/services/redact_service.dart';
+import 'package:messaging/services/sms_service.dart';
 import 'package:provider/provider.dart';
 import 'select_contact_screen.dart';
 
@@ -26,7 +27,7 @@ class ChatsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final feedbackui = FeedbackUi(context);
     return BlocProvider(
-      create: (context) => ChatsCubit()..loadChats(),
+      create: (context) => ChatsCubit(),
       child: BlocListener<PaymentCubit, PaymentState>(
         listener: (context, state) {
           if(state is PaymentSuccess){
@@ -51,22 +52,29 @@ class ChatsView extends StatefulWidget {
 }
 
 class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
-  Set<String> _selectedThreadIds = {}; // Stores IDs of selected chats
+  Set<String> _selectedThreadIds = {};
   bool get _isSelectionMode => _selectedThreadIds.isNotEmpty;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+     _scrollController.addListener(_onScroll);
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _clearNotifications();
-      context.read<ChatsCubit>().loadChats(showLoading: false);
+      context.read<ChatsCubit>().loadChats(isInitialLoad: false);
     }
   }
+ void _onScroll() {
+  if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 300) {
+    context.read<ChatsCubit>().loadChats(isInitialLoad: false);
+  }
+}
 
   void _clearNotifications() {
     NotificationService().removeNotifications();
@@ -98,6 +106,12 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
   bool _isAllSelected(List<dynamic> chats) {
     return _selectedThreadIds.length == chats.length && chats.isNotEmpty;
   }
+    @override
+  void dispose() {
+    _scrollController.dispose();
+
+    super.dispose();
+  }
 
 
   bool areAllSelectedPinned(List<AppChat> chats) {
@@ -117,6 +131,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
           return RefreshIndicator(
             onRefresh: context.read<ChatsCubit>().loadChats,
             child: CustomScrollView(
+              controller: _scrollController,
               slivers: [
                 if (state is ChatsLoading || state is ChatsError)
                   const SliverAppBar.medium()
@@ -224,12 +239,14 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                       ? const SliverFillRemaining(
                           child: ChatsLoadingWidget(isEmptyState: true))
                       : SliverList(
+                        
                           delegate: SliverChildBuilderDelegate(
+                            
                             (context, index) {
                               
                               if (isNoAds) {
                                 return _buildChatTile(
-                                    state.chats[index], theme);
+                                    state.chats[index]);
                               }
                               // 1. Position for Native Banner Ad (Index 6)
                               if (index == 6) {
@@ -263,7 +280,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                               }
 
                               return _buildChatTile(
-                                  state.chats[chatIndex], theme);
+                                  state.chats[chatIndex]);
                             },
                             // 5. Total count is chats + 2 (one for each ad)
                             childCount: isNoAds? state.chats.length: state.chats.length +
@@ -297,14 +314,14 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
               context,
               MaterialPageRoute(
                   builder: (context) => const SelectContactScreen()));
-          if (mounted) context.read<ChatsCubit>().loadChats();
         },
         icon: const Icon(Icons.edit_outlined),
       ),
     );
   }
 
-  Widget _buildChatTile(dynamic chat, ThemeData theme) {
+  Widget _buildChatTile(AppChat chat) {
+    final theme = Theme.of(context);
     final bool isSelected = _selectedThreadIds.contains(chat.threadId);
     final bool hasUnread = chat.unreadCount > 0;
 
@@ -355,8 +372,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                             : theme.colorScheme.surfaceContainerHighest),
                     child: isSelected
                         ? Icon(Icons.check, color: theme.colorScheme.onPrimary)
-                        : prefix(
-                            chat.address,
+                        : chat.prefix(
                             hasUnread
                                 ? theme.colorScheme.onPrimary
                                 : theme.colorScheme.onSurfaceVariant),
@@ -434,21 +450,6 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
         ),
       ),
     );
-  }
-
-
-  Widget prefix(String address, Color color) {
-    if (AppChat.isBusiness(address)) {
-      return Icon(
-        Icons.business_outlined,
-        color: color,
-      );
-    }
-    if (address.startsWith(RegExp(r'[a-zA-Z]')) && address.isNotEmpty) {
-      return Text(address[0].toUpperCase(),
-          style: TextStyle(color: color, fontWeight: FontWeight.bold));
-    }
-    return Icon(Icons.person_outline, color: color);
   }
 
   Future<void> _deleteSelectedChats() async {

@@ -18,40 +18,74 @@ class ChatsCubit extends Cubit<ChatsState> {
   StreamSubscription? _readSubscription;
   ChatsCubit() : super(ChatsInitial()) {
     _setupListeners();
-    loadChats(showLoading: true);
+    loadChats(isInitialLoad: true);
     ContactService().init();
   }
   void _setupListeners() {
     _smsSubscription = _smsService.onMessageUpdated.listen((event) {
-      loadChats(showLoading: false);
+      loadChats(isInitialLoad: false);
     });
     _readSubscription = eventBus.on<ThreadReadEvent>().listen((event) {
-      loadChats(showLoading: false);
+      loadChats(isInitialLoad: false);
     });
   }
 
   List<AppChat> chats = [];
-  Future<void> loadChats({bool showLoading = true}) async {
-    if (showLoading) emit(ChatsLoading());
+  int _currentPage = 0;
+  final int _pageSize = 20;
+  bool _isFetching = false;
+  bool _hasReachedMax = false;
+  bool get hasReachedMax => _hasReachedMax;
+
+  Future<void> loadChats({bool isInitialLoad = true}) async {
+    if (_isFetching || (!isInitialLoad && _hasReachedMax)) return;
+    _isFetching = true;
+
+    if (isInitialLoad) {
+      _currentPage = 0;
+      _hasReachedMax = false;
+      // Only show full screen loading if we have no data yet
+      if (chats.isEmpty) emit(ChatsLoading());
+    }
 
     try {
       final hasSynced = await UserDefaults.hasSynced();
-
       if (!hasSynced) {
-        _smsService.syncExistingMessages();
+        await _smsService.syncExistingMessages();
       }
 
-      chats = await _smsService.getAllChats();
+      final newChats = await _smsService.getPaginatedChats(
+        limit: _pageSize,
+        offset: _currentPage * _pageSize,
+      );
+
+      if (newChats.length < _pageSize) {
+        _hasReachedMax = true;
+      }
+
+      if (isInitialLoad) {
+        chats = newChats;
+      } else {
+        final existingIds = chats.map((c) => c.threadId).toSet();
+        final uniqueNewChats =
+            newChats.where((c) => !existingIds.contains(c.threadId));
+        chats.addAll(uniqueNewChats);
+      }
+
+      _currentPage++;
+
       emit(ChatsLoaded(List.from(chats)));
     } catch (e) {
       debugPrint("Cubit Error: $e");
-      emit(ChatsError("Unable to retrieve chats. Check permissions."));
+      emit(ChatsError("Unable to retrieve chats."));
+    } finally {
+      _isFetching = false;
     }
   }
 
   Future<void> deleteChat(String threadId) async {
     await _smsService.deleteThread(threadId);
-    loadChats();
+    loadChats(isInitialLoad: true);
   }
 
   Future<void> deleteMultipleChats(Iterable<String> threadIds) async {
@@ -59,35 +93,35 @@ class ChatsCubit extends Cubit<ChatsState> {
     for (var id in threadIds) {
       await _smsService.deleteThread(id);
     }
-    await loadChats(showLoading: false);
+    await loadChats(isInitialLoad: true);
   }
 
   Future<void> archiveChats(Iterable<String> threadIds) async {
     for (var id in threadIds) {
       _smsService.markThreadAsArchived(id, true);
     }
-    await loadChats(showLoading: false);
+    await loadChats(isInitialLoad: true);
   }
 
   Future<void> unArchiveChats(Iterable<String> threadIds) async {
     for (var id in threadIds) {
       await _smsService.markThreadAsArchived(id, false);
     }
-    await loadChats(showLoading: false);
+    await loadChats(isInitialLoad: true);
   }
 
   Future<void> pinChats(Iterable<String> threadIds) async {
     for (var id in threadIds) {
       await _smsService.markThreadAsPinned(id, true);
     }
-    await loadChats(showLoading: false);
+    await loadChats(isInitialLoad: true);
   }
 
   Future<void> unpinChats(Iterable<String> threadIds) async {
     for (var id in threadIds) {
       await _smsService.markThreadAsPinned(id, false);
     }
-    await loadChats(showLoading: false);
+    await loadChats(isInitialLoad: true);
   }
 
   @override
