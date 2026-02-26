@@ -25,10 +25,13 @@ class SingleChatScreen extends StatelessWidget {
   final String threadId;
   final String address;
   final String? initialMessage;
+  final AppSmsMessage? searchedMessage;
+
   const SingleChatScreen(
       {super.key,
       required this.threadId,
       required this.address,
+      this.searchedMessage,
       this.initialMessage});
 
   @override
@@ -36,13 +39,13 @@ class SingleChatScreen extends StatelessWidget {
     return MultiProvider(
         providers: [
           BlocProvider(create: (c) => SimCardCubit()),
-          BlocProvider(create: (c) => SingleChatCubit(threadId)),
+          BlocProvider(create: (c) => SingleChatCubit(threadId, targetTimestamp: searchedMessage?.date)),
         ],
         child: SingleChatScreenView(
           threadId: threadId,
           address: address,
           initialMessage: initialMessage,
-
+          searchedMessage: searchedMessage,
         ));
   }
 }
@@ -51,14 +54,14 @@ class SingleChatScreenView extends StatefulWidget {
   final String threadId;
   final String address;
   final String? initialMessage;
-  final String? searchedQuery;
+  final AppSmsMessage? searchedMessage;
 
   const SingleChatScreenView({
     super.key,
     required this.threadId,
     required this.address,
     this.initialMessage,
-    this.searchedQuery
+    this.searchedMessage
   });
 
   @override
@@ -98,7 +101,13 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
       _messageController.text = widget.initialMessage!;
     }
     _clearNotifications();
-    
+    jumpToSearchResult();
+  }
+  void jumpToSearchResult(){
+    if(widget.searchedMessage==null) return;
+    Future.delayed((const Duration(milliseconds: 500)), () {
+      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+  });
   }
 
 
@@ -219,7 +228,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                               _selectedMessages.contains(message);
                           final showDateSeparator =
                               _shouldShowDateSeparator(messageIndex, messages);
-
+                         
                           return GestureDetector(
                             onLongPress: () => _toggleSelection(message),
                             onTap: () {
@@ -233,6 +242,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                               message: message,
                               selected: isSelected,
                               showDateSeparator: showDateSeparator,
+                              isHighlighted: widget.searchedMessage?.id == message.id,
                             ),
                           );
                         },

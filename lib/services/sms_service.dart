@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:another_telephony/telephony.dart';
 import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/models/app_chat.dart';
-import 'package:messaging/models/global_search_result.dart';
 import 'package:messaging/models/sim_card_state.dart';
 import 'package:messaging/services/contact_db.dart';
 import 'package:messaging/services/contact_service.dart';
@@ -222,10 +221,8 @@ class SmsService {
   Future<int> getArchivedCount(){
     return _dbHelper.getArchivedCount();
   }
-  Future<List<AppSmsMessage>> searchMessagesInThread(String threadId, String query) async {
-    return _dbHelper.searchMessagesInThread(threadId, query);
-  }
- Future<List<GlobalSearchResult>> searchGlobal(String query){
+
+ Future<List<AppSmsMessage>> searchGlobal(String query){
   return _dbHelper.searchGlobal(query);
  }
 
@@ -340,7 +337,10 @@ Future<List<AppSmsMessage>> getMessagesForThread(
   String threadId, {
   int limit = 20, 
   int offset = 0,
-}) => _dbHelper.getMessagesForThread(threadId, limit: limit, offset: offset);
+  int? targetTimestamp
+}) => _dbHelper.getMessagesForThread(threadId, limit: limit, offset: offset, targetTimestamp: targetTimestamp);
+
+
 
   Future<void> markThreadAsRead(String threadId) async {
     await _dbHelper.markThreadAsRead(threadId);

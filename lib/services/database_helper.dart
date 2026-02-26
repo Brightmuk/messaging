@@ -1,5 +1,4 @@
 import 'package:messaging/models/app_chat.dart';
-import 'package:messaging/models/global_search_result.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:another_telephony/telephony.dart' as tel;
@@ -152,22 +151,36 @@ class DatabaseHelper {
     }
   }
 
-  Future<List<AppSmsMessage>> getMessagesForThread(
-    String threadId, {
-    int limit = 20,
-    int offset = 0,
-  }) async {
-    final db = await database;
-    final result = await db.query(
+Future<List<AppSmsMessage>> getMessagesForThread(
+  String threadId, {
+  int limit = 20,
+  int offset = 0,
+  int? targetTimestamp,
+}) async {
+  final db = await database;
+
+  if (targetTimestamp != null) {
+    final List<Map<String, dynamic>> maps = await db.query(
       'messages',
-      where: 'threadId = ?',
-      whereArgs: [threadId],
+      where: 'threadId = ? AND date >= ?',
+      whereArgs: [threadId, targetTimestamp],
       orderBy: 'date DESC',
-      limit: limit,
-      offset: offset,
     );
-    return result.map((json) => AppSmsMessage.fromMap(json)).toList();
+    return maps.map((m) => AppSmsMessage.fromMap(m)).toList();
   }
+
+  // Case 2: Standard Pagination (Normal chat opening)
+  final result = await db.query(
+    'messages',
+    where: 'threadId = ?',
+    whereArgs: [threadId],
+    orderBy: 'date DESC',
+    limit: limit,
+    offset: offset,
+  );
+  
+  return result.map((json) => AppSmsMessage.fromMap(json)).toList();
+}
 
   Future<AppChat?> getChatByNormalizedAddress(String normalizedAddress) async {
     final db = await database;
@@ -231,34 +244,20 @@ Future<int> getArchivedCount() async {
   ));
   return count ?? 0;
 }
-Future<List<GlobalSearchResult>> searchGlobal(String query) async {
+Future<List<AppSmsMessage>> searchGlobal(String query) async {
   final db = await database;
   final lowercaseQuery = '%${query.toLowerCase()}%';
-  List<GlobalSearchResult> results = [];
+
 
   final messageResults = await db.rawQuery('''
     SELECT * FROM messages 
     WHERE body LIKE ? 
     ORDER BY date DESC LIMIT 50
   ''', [lowercaseQuery]);
-  for (var row in messageResults) {
-    results.add(GlobalSearchResult(
-      message: AppSmsMessage.fromMap(row)
-    ));
-  }
-  return results;
+  
+  return messageResults.map((json)=>AppSmsMessage.fromMap(json)).toList();
 }
-Future<List<AppSmsMessage>> searchMessagesInThread(String threadId, String query) async {
-  final db = await database;
-  final String lowercaseQuery = query.toLowerCase();
-  final result = await db.query(
-    'messages',
-    where: 'threadId = ? AND body LIKE ? COLLATE NOCASE',
-    whereArgs: [threadId, '%$lowercaseQuery%'], 
-    orderBy: 'date DESC',
-  );
-  return result.map((json) => AppSmsMessage.fromMap(json)).toList();
-}
+
 
   // --- State Modification ---
   Future<void> markMessageAsSent(int messageId) async {

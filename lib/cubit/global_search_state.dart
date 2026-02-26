@@ -10,7 +10,7 @@ sealed class GlobalSearchState extends Equatable {
 final class GlobalSearchInitial extends GlobalSearchState {}
 final class GlobalSearchLoading extends GlobalSearchState {}
 final class GlobalSearchLoaded extends GlobalSearchState {
-  final List<GlobalSearchResult> results;
+  final List<AppSmsMessage> results;
   final String query;
 
   const GlobalSearchLoaded({required this.results, required this.query});

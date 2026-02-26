@@ -12,8 +12,9 @@ part 'single_chat_state.dart';
 class SingleChatCubit extends Cubit<SingleChatState> {
   final String threadId;
   final SmsService _smsService = SmsService();
+  int? targetTimestamp;
   StreamSubscription? _updateSubscription;
-  SingleChatCubit(this.threadId) : super(SingleChatInitial()) {
+  SingleChatCubit(this.threadId, {this.targetTimestamp}) : super(SingleChatInitial()) {
     getHideStatus();
     _updateSubscription = _smsService.onMessageUpdated.listen((event) {
       Future.delayed(const Duration(milliseconds: 300)).then((_) {
@@ -24,6 +25,7 @@ class SingleChatCubit extends Cubit<SingleChatState> {
     });
     getMessages();
   }
+
   List<AppSmsMessage> messages = [];
   int _currentPage = 0;
   final int _pageSize = 20;
@@ -100,6 +102,7 @@ class SingleChatCubit extends Cubit<SingleChatState> {
     await SmsService.requestDefaultSmsRole();
   }
 
+
 Future<void> getMessages({bool isInitialLoad = true}) async {
   if (_isFetching) return;
   if (!isInitialLoad && _hasReachedMax) return;
@@ -118,6 +121,7 @@ Future<void> getMessages({bool isInitialLoad = true}) async {
       threadId,
       limit: _pageSize,
       offset: _currentPage * _pageSize,
+      targetTimestamp: targetTimestamp
     );
 
     if (newMessages.isEmpty || newMessages.length < _pageSize) {

@@ -1,6 +1,6 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:messaging/models/global_search_result.dart';
+import 'package:messaging/models/app_message.dart';
 import 'package:messaging/services/sms_service.dart';
 
 part 'global_search_state.dart';
