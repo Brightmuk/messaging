@@ -157,7 +157,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                                 if (areAllSelectedPinned(state.chats)) {
                                   await context
                                       .read<ChatsCubit>()
-                                      .unpinChats(_selectedThreadIds);
+                                      .pinChats(_selectedThreadIds, false);
                                   if (mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
@@ -168,7 +168,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                                 } else {
                                   await context
                                       .read<ChatsCubit>()
-                                      .pinChats(_selectedThreadIds);
+                                      .pinChats(_selectedThreadIds, true);
                                   if (mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
@@ -196,11 +196,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                                 }
                               },
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline),
-                              onPressed: () =>
-                                  _deleteSelectedChats(), // Updated bulk delete
-                            ),
+                           
                             IconButton(
                               icon: Icon(_isAllSelected(state.chats)
                                   ? Icons.playlist_remove_outlined
@@ -484,7 +480,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
 
     if (confirm == true && mounted) {
       // Call the Cubit bulk delete instead of a local loop
-      await context.read<ChatsCubit>().deleteMultipleChats(_selectedThreadIds);
+      await context.read<ChatsCubit>().deleteThreads(_selectedThreadIds);
       _clearSelection();
     }
   }

@@ -60,7 +60,7 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
                           horizontal: 20, vertical: 4),
                       leading: Icon(
                         Icons.message_outlined,
-                        color: theme.primaryColor,
+                        color: theme.colorScheme.primary,
                       ),
                       title: ContactNameText(
                           unread: false,
@@ -142,7 +142,7 @@ class SearchHighlightText extends StatelessWidget {
       spans.add(TextSpan(
         text: text.substring(indexOfMatch, indexOfMatch + matches.length),
         style: style.copyWith(
-            color: theme.primaryColor, fontWeight: FontWeight.bold),
+            color: theme.colorScheme.primary, fontWeight: FontWeight.bold),
       ));
       start = indexOfMatch + matches.length;
     }

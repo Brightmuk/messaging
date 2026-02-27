@@ -77,7 +77,7 @@ class FeedbackUi{
     bool isDark = theme.brightness == Brightness.dark;
 
     toastification.show(
-      backgroundColor:  isDark? theme.primaryColor: null,
+      backgroundColor:  isDark? theme.colorScheme.primary: null,
       foregroundColor: theme.textTheme.bodyLarge!.color,
       borderSide: isDark? BorderSide(color: theme.scaffoldBackgroundColor):null,
 	  context: context,

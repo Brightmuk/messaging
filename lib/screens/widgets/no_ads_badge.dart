@@ -26,7 +26,7 @@ class NoAdsBadge extends StatelessWidget {
         borderRadius: BorderRadius.only(topLeft: Radius.circular(20), bottomLeft: Radius.circular(20)),
         boxShadow: [
           BoxShadow(
-            color: Colors.orange.withOpacity(0.3),
+            color: Colors.purple.withAlpha(40),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),

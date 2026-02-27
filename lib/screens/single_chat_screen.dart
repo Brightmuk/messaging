@@ -597,7 +597,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
     );
 
     if (confirm == true) {
-      await context.read<SingleChatCubit>().deleteMessages(_selectedMessages);
+      await context.read<SingleChatCubit>().deleteMessages(_selectedMessages.toList());
     }
     setState(() => _selectedMessages.clear());
   }

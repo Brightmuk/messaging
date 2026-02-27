@@ -190,7 +190,7 @@ class _ArchivedChatsScreenState extends State<ArchivedChatsScreen> {
     );
 
     if (confirm == true) {
-      SmsService().markThreadAsArchived(threadId, false);
+      SmsService().markThreadsAsArchived([threadId], false);
       setState(() {
         changed = true;
       });

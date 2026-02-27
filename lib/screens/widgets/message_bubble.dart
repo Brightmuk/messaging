@@ -225,7 +225,7 @@ class _MessageBubbleState extends State<MessageBubble> {
       case MessageStatus.unknown:
         return const SizedBox();
       case MessageStatus.delivered:
-        return Icon(Icons.done_all, size: 15, color: theme.primaryColor);
+        return Icon(Icons.done_all, size: 15, color: theme.colorScheme.primary);
       case MessageStatus.sent:
         return Icon(Icons.done,
             size: 15, color: theme.colorScheme.onSurfaceVariant);

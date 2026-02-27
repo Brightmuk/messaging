@@ -75,7 +75,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                   child: Column(
                     children: [
                       ListTile(
-                        leading:  Icon(Icons.messenger_outline, color: theme.primaryColor),
+                        leading:  Icon(Icons.messenger_outline, color: theme.colorScheme.primary),
                         title: const Text("Default Messaging App"),
                         subtitle: Text(_isDefaultSmsApp
                             ? "This is the default messaging app"
@@ -119,7 +119,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                                 ? "SIM $displaySlot (${currentSim.displayName})" 
                                 : "Select default SIM"
                             ),
-                            leading:  Icon(Icons.sim_card_outlined, color: theme.primaryColor),
+                            leading:  Icon(Icons.sim_card_outlined, color: theme.colorScheme.primary),
                             trailing: const Icon(Icons.arrow_drop_down),
                             onTap: _showSimPicker,
                           );
@@ -127,7 +127,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                       ),
                       const Divider(height: 1, indent: 16, endIndent: 16),
                        ListTile(
-                          leading:  Icon(Icons.archive_outlined, color: theme.primaryColor),
+                          leading:  Icon(Icons.archive_outlined, color: theme.colorScheme.primary),
                           title: const Text("Archived Conversations"),
                           trailing: FutureBuilder<int>(
                             future: SmsService().getArchivedCount(),
@@ -141,8 +141,8 @@ class _SettingsScreenState extends State<SettingsScreen>
                                 ),
                                 child: Text(
                                   "$count",
-                                  style: const TextStyle(
-                                    color: Colors.white,
+                                  style:  TextStyle(
+                                    color: theme.colorScheme.onPrimary,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 12,
                                   ),
@@ -278,7 +278,7 @@ class _SettingsScreenState extends State<SettingsScreen>
   Widget _buildLinkTile(IconData icon, String title, VoidCallback onTap) {
     final theme = Theme.of(context);
     return ListTile(
-      leading: Icon(icon,  color: theme.primaryColor),
+      leading: Icon(icon,  color: theme.colorScheme.primary),
       title: Text(title),
       trailing: const Icon(Icons.chevron_right, size: 20),
       onTap: onTap,

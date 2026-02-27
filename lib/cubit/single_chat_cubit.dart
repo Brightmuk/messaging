@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:flutter/material.dart';
-import 'package:messaging/core/events.dart';
 import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/models/app_message.dart';
 import 'package:messaging/services/sms_service.dart';
@@ -159,17 +158,12 @@ Future<void> getMessages({bool isInitialLoad = true}) async {
     await _smsService.retrySending(message);
   }
 
-  Future<void> deleteMessages(Iterable<AppSmsMessage> messages) async {
-    for (var message in messages) {
-      if (message.id != null) {
-        await _smsService.deleteMessage(message);
-      }
-    }
+  Future<void> deleteMessages(List<AppSmsMessage> messages) async {
+    await _smsService.deleteMessages(messages);
   }
 
   Future<void> markThreadAsRead() async {
     await _smsService.markThreadAsRead(threadId);
-    eventBus.fire(ThreadReadEvent());
   }
 
   @override
@@ -179,4 +173,4 @@ Future<void> getMessages({bool isInitialLoad = true}) async {
   }
 }
 
-class ThreadReadEvent {}
+// class ThreadReadEvent {}

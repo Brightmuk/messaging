@@ -37,8 +37,8 @@ class MyApp extends StatelessWidget {
       title: 'SMS App',
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme(),
-      darkTheme: AppTheme.darkTheme(),
+      theme: AppTheme.lightTheme(context),
+      darkTheme: AppTheme.darkTheme(context),
       themeMode: ThemeMode.system,
       home: BlocBuilder<AppStartupCubit, AppStartupState>(
         builder: (context, state) {

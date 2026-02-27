@@ -3,9 +3,7 @@ import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:messaging/core/events.dart';
 import 'package:messaging/core/user_defaults.dart';
-import 'package:messaging/cubit/single_chat_cubit.dart';
 import 'package:messaging/models/app_chat.dart';
 import 'package:messaging/services/contact_service.dart';
 import 'package:messaging/services/sms_service.dart';
@@ -22,11 +20,10 @@ class ChatsCubit extends Cubit<ChatsState> {
     ContactService().init();
   }
   void _setupListeners() {
+    
     _smsSubscription = _smsService.onMessageUpdated.listen((event) {
-      loadChats(isInitialLoad: false);
-    });
-    _readSubscription = eventBus.on<ThreadReadEvent>().listen((event) {
-      loadChats(isInitialLoad: false);
+      debugPrint("\nChats Cubit message event: ${event.type}\n");
+      loadChats(isInitialLoad: true);
     });
   }
 
@@ -38,7 +35,9 @@ class ChatsCubit extends Cubit<ChatsState> {
   bool get hasReachedMax => _hasReachedMax;
 
   Future<void> loadChats({bool isInitialLoad = true}) async {
+
     if (_isFetching || (!isInitialLoad && _hasReachedMax)) return;
+    debugPrint("Loading chats...");
     _isFetching = true;
 
     if (isInitialLoad) {
@@ -83,46 +82,19 @@ class ChatsCubit extends Cubit<ChatsState> {
     }
   }
 
-  Future<void> deleteChat(String threadId) async {
-    await _smsService.deleteThread(threadId);
-    loadChats(isInitialLoad: true);
-  }
 
-  Future<void> deleteMultipleChats(Iterable<String> threadIds) async {
-    // Option: emit(ChatsLoading()) if you want a full-screen spinner
-    for (var id in threadIds) {
-      await _smsService.deleteThread(id);
-    }
-    await loadChats(isInitialLoad: true);
+  Future<void> deleteThreads(Iterable<String> threadIds) async {
+      await _smsService.deleteThreads(threadIds);
   }
 
   Future<void> archiveChats(Iterable<String> threadIds) async {
-    for (var id in threadIds) {
-      _smsService.markThreadAsArchived(id, true);
-    }
-    await loadChats(isInitialLoad: true);
+      await _smsService.markThreadsAsArchived(threadIds, true);
   }
 
-  Future<void> unArchiveChats(Iterable<String> threadIds) async {
-    for (var id in threadIds) {
-      await _smsService.markThreadAsArchived(id, false);
-    }
-    await loadChats(isInitialLoad: true);
+  Future<void> pinChats(Iterable<String> threadIds, bool pinned) async {
+    await _smsService.markThreadsAsPinned(threadIds, pinned);
   }
 
-  Future<void> pinChats(Iterable<String> threadIds) async {
-    for (var id in threadIds) {
-      await _smsService.markThreadAsPinned(id, true);
-    }
-    await loadChats(isInitialLoad: true);
-  }
-
-  Future<void> unpinChats(Iterable<String> threadIds) async {
-    for (var id in threadIds) {
-      await _smsService.markThreadAsPinned(id, false);
-    }
-    await loadChats(isInitialLoad: true);
-  }
 
   @override
   Future<void> close() {

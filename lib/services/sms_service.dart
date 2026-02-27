@@ -64,7 +64,6 @@ class SmsService {
     return statuses.values.every((status) => status.isGranted);
   }
 
-
   Future<void> initialize() async {
     await _notificationService.initialize();
     telephony.listenIncomingSms(
@@ -97,7 +96,6 @@ class SmsService {
     return AppSimCardState(
         defaultCard: id == -1 ? null : id, allCards: simcards);
   }
-
 
   Future<void> syncExistingMessages() async {
     debugPrint("Syncing history from system provider...");
@@ -166,14 +164,15 @@ class SmsService {
           // }
 
           if (status == SendStatus.DELIVERED) {
-             await cancelSendTimeout(messageId);
+            await cancelSendTimeout(messageId);
             await markMessageAsDelivered(smsMessage.copyWith(id: messageId));
           }
         },
       );
 
-      _messageUpdateController.add(
-          SmsEvent(type: SmsEventType.messagePending, message: smsMessage.copyWith(id: messageId)));
+      _messageUpdateController.add(SmsEvent(
+          type: SmsEventType.messagePending,
+          message: smsMessage.copyWith(id: messageId)));
       return true;
     } catch (e) {
       await cancelSendTimeout(messageId);
@@ -182,9 +181,10 @@ class SmsService {
       return false;
     }
   }
+
   Future<void> retrySending(AppSmsMessage message) async {
     int? defaultSim = await getDefaultSim();
-    if(message.id == null) return;
+    if (message.id == null) return;
     await startSendTimeout(message);
 
     try {
@@ -206,58 +206,25 @@ class SmsService {
         },
       );
 
-      _messageUpdateController.add(
-          SmsEvent(type: SmsEventType.messagePending, message: message));
-     
+      _messageUpdateController
+          .add(SmsEvent(type: SmsEventType.messagePending, message: message));
     } catch (e) {
       await cancelSendTimeout(message.id!);
       await markMessageAsFailed(message);
       debugPrint('Send error: $e');
     }
   }
-  Future<List<AppChat>> getArchivedChats(){
+
+  Future<List<AppChat>> getArchivedChats() {
     return _dbHelper.getArchivedChats();
   }
-  Future<int> getArchivedCount(){
+
+  Future<int> getArchivedCount() {
     return _dbHelper.getArchivedCount();
   }
 
- Future<List<AppSmsMessage>> searchGlobal(String query){
-  return _dbHelper.searchGlobal(query);
- }
-
-
-  Future<void> markMessageAsSent(AppSmsMessage message) async {
-    if(message.id == null) return;
-    await _dbHelper.markMessageAsSent(message.id!);
-    _messageUpdateController.add(SmsEvent(type: SmsEventType.messageSent, message: message.copyWith(status: MessageStatus.sent)));
-  }
-
-  Future<void> markMessageAsDelivered(AppSmsMessage message) async {
-    if(message.id == null) return;
-    await _dbHelper.markMessageAsDelivered(message.id!);
-    _messageUpdateController.add(SmsEvent(type: SmsEventType.messageDelivered, message: message.copyWith(status: MessageStatus.delivered)));
-  }
-
-  Future<void> markMessageAsFailed(AppSmsMessage message) async {
-    if(message.id == null) return;
-    await _dbHelper.markMessageAsFailed(message.id!);
-    _messageUpdateController
-        .add(SmsEvent(type: SmsEventType.messageSendFailure, message: message.copyWith(status: MessageStatus.failed)));
-  }
-
-  Future<void> markThreadAsPinned(String threadId, bool isPinned) async {
-    await _dbHelper.markThreadAsPinned(threadId, isPinned);
-  }
-
-  Future<void> markThreadAsArchived(String threadId, bool isArchived) async {
-    await _dbHelper.markThreadAsArchived(threadId, isArchived);
-  }
-
-  void _onMessageReceived(SmsMessage message) async {
-    final threadId = await getThreadId(message.address);
-    await _saveIncomingMessage(
-        message, threadId, await getContactName(message.address ?? ''));
+  Future<List<AppSmsMessage>> searchGlobal(String query) {
+    return _dbHelper.searchGlobal(query);
   }
 
   @pragma('vm:entry-point')
@@ -314,7 +281,6 @@ class SmsService {
     return chat?.threadId ?? const Uuid().v4();
   }
 
-
   Future<void> _updateChat(String tId, String addr, String msg, int date,
       {bool incrementUnread = false}) async {
     await _dbHelper.upsertChat(
@@ -323,60 +289,94 @@ class SmsService {
           address: addr,
           lastMessage: msg,
           lastMessageDate: date,
-          unreadCount:
-              0, 
+          unreadCount: 0,
         ),
         incrementUnread: incrementUnread);
   }
 
- Future<List<AppChat>> getPaginatedChats({required int limit, required int offset}) {
-  return _dbHelper.getPaginatedChats(limit: limit, offset: offset);
-}
+  Future<List<AppChat>> getPaginatedChats(
+      {required int limit, required int offset}) {
+    return _dbHelper.getPaginatedChats(limit: limit, offset: offset);
+  }
 
-Future<List<AppSmsMessage>> getMessagesForThread(
-  String threadId, {
-  int limit = 20, 
-  int offset = 0,
-  int? targetTimestamp
-}) => _dbHelper.getMessagesForThread(threadId, limit: limit, offset: offset, targetTimestamp: targetTimestamp);
+  Future<List<AppSmsMessage>> getMessagesForThread(String threadId,
+          {int limit = 20, int offset = 0, int? targetTimestamp}) =>
+      _dbHelper.getMessagesForThread(threadId,
+          limit: limit, offset: offset, targetTimestamp: targetTimestamp);
 
+  Future<void> markMessageAsSent(AppSmsMessage message) async {
+    if (message.id == null) return;
+    await _dbHelper.markMessageAsSent(message.id!);
+    _messageUpdateController.add(SmsEvent(
+        type: SmsEventType.messageSent,
+        message: message.copyWith(status: MessageStatus.sent)));
+  }
 
+  Future<void> markMessageAsDelivered(AppSmsMessage message) async {
+    if (message.id == null) return;
+    await _dbHelper.markMessageAsDelivered(message.id!);
+    _messageUpdateController.add(SmsEvent(
+        type: SmsEventType.messageDelivered,
+        message: message.copyWith(status: MessageStatus.delivered)));
+  }
+
+  Future<void> markMessageAsFailed(AppSmsMessage message) async {
+    if (message.id == null) return;
+    await _dbHelper.markMessageAsFailed(message.id!);
+    _messageUpdateController.add(SmsEvent(
+        type: SmsEventType.messageSendFailure,
+        message: message.copyWith(status: MessageStatus.failed)));
+  }
+
+  Future<void> markThreadsAsPinned(Iterable<String> threadIds, bool isPinned) async {
+    for (var threadId in threadIds){
+      await _dbHelper.markThreadAsPinned(threadId, isPinned);
+    }
+    _messageUpdateController.add(SmsEvent(type: SmsEventType.threadUpdated));
+  }
+
+  Future<void> markThreadsAsArchived(Iterable<String> threadIds, bool isArchived) async {
+    for (var threadId in threadIds){
+      await _dbHelper.markThreadAsArchived(threadId, isArchived);
+    }
+    _messageUpdateController.add(SmsEvent(type: SmsEventType.threadUpdated));
+  }
+
+  void _onMessageReceived(SmsMessage message) async {
+    final threadId = await getThreadId(message.address);
+    await _saveIncomingMessage(
+        message, threadId, await getContactName(message.address ?? ''));
+  }
 
   Future<void> markThreadAsRead(String threadId) async {
     await _dbHelper.markThreadAsRead(threadId);
     _messageUpdateController.add(SmsEvent(type: SmsEventType.threadUpdated));
   }
 
-  Future<void> deleteThread(String threadId) async {
-    await _dbHelper.deleteThread(threadId);
+  Future<void> deleteThreads(Iterable<String> threadIds) async {
+    for (var threadId in threadIds){
+      await _dbHelper.deleteThread(threadId);
+    }
     _messageUpdateController.add(SmsEvent(type: SmsEventType.threadUpdated));
   }
 
-  Future<void> deleteMessage(AppSmsMessage message) async {
-    if(message.id == null) return;
-    await _dbHelper.deleteMessage(message.id!);
-    AppSmsMessage? previousMessage = await _dbHelper.getMessagesForThread(message.threadId).then((value) => value.firstOrNull);
-    if(previousMessage != null){
-      await _updateChat(previousMessage.threadId, previousMessage.address, previousMessage.body, previousMessage.date);
-    }else{
-      await deleteThread(message.threadId);
-    }
-    
-    _messageUpdateController.add(SmsEvent(type: SmsEventType.messageDeleted, message: message));
-  }
-  Future<void>  deleteMessages(List<AppSmsMessage> messages) async {
+
+  Future<void> deleteMessages(List<AppSmsMessage> messages) async {
     List<int> ids = messages.map((m) => m.id!).toList();
     await _dbHelper.deleteMessages(ids);
-    AppSmsMessage? previousMessage = await _dbHelper.getMessagesForThread(messages.first.threadId).then((value) => value.firstOrNull);
-    if(previousMessage != null){
-      await _updateChat(previousMessage.threadId, previousMessage.address, previousMessage.body, previousMessage.date);
-    }else{
-      await deleteThread(messages.first.threadId);
+    AppSmsMessage? previousMessage = await _dbHelper
+        .getMessagesForThread(messages.first.threadId)
+        .then((value) => value.firstOrNull);
+    if (previousMessage != null) {
+      await _updateChat(previousMessage.threadId, previousMessage.address,
+          previousMessage.body, previousMessage.date);
+    } else {
+      await deleteThreads([messages.first.threadId]);
     }
-    
-    _messageUpdateController.add(SmsEvent(type: SmsEventType.messagesDeletedAll, messages: messages));
-  }
 
+    _messageUpdateController.add(
+        SmsEvent(type: SmsEventType.messagesDeletedAll, messages: messages));
+  }
 
   Future<String> getContactName(String phoneNumber) async =>
       ContactService().getName(phoneNumber);
@@ -399,20 +399,14 @@ class SmsEvent {
   final SmsEventType type;
   final List<AppSmsMessage> messages;
 
-  SmsEvent({this.message, required this.type,  this.messages = const []});
+  SmsEvent({this.message, required this.type, this.messages = const []});
 }
 
-enum ChatEventType {
-  newMessage,
-  deletedMessage,
-  deletedChat,
-  threadUpdated
-}
+enum ChatEventType { newMessage, deletedMessage, deletedChat, threadUpdated }
 
 class ChatEvent {
   final AppChat? chat;
   final ChatEventType type;
 
   ChatEvent({this.chat, required this.type});
-
 }
