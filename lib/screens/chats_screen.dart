@@ -13,7 +13,6 @@ import 'package:messaging/screens/widgets/ad_free_tile.dart';
 import 'package:messaging/screens/widgets/chats_loading_widget.dart';
 import 'package:messaging/screens/widgets/chats_native_ad.dart';
 import 'package:messaging/screens/widgets/contact_name_text.dart';
-import 'package:messaging/screens/widgets/no_ads_badge.dart';
 import 'package:messaging/services/contact_service.dart';
 import 'package:messaging/services/notification_service.dart';
 import 'package:messaging/services/redact_service.dart';
@@ -232,7 +231,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                               ),
                             ),
                             
-                            const NoAdsBadge()
+                          
                             
                           ],
                   ),

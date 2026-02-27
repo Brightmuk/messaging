@@ -26,15 +26,25 @@ class NativeAdService {
         mainBackgroundColor: theme.cardColor,
         cornerRadius: 20.0,
         callToActionTextStyle: NativeTemplateTextStyle(
-          textColor: Colors.white,
-          backgroundColor: Colors.blue,
+          textColor: theme.colorScheme.onPrimary,
+          backgroundColor: theme.colorScheme.primary,
           style: NativeTemplateFontStyle.bold,
           size: 16.0,
         ),
         primaryTextStyle: NativeTemplateTextStyle(
-          textColor: Colors.black,
+          textColor: theme.textTheme.bodyMedium!.color,
           style: NativeTemplateFontStyle.normal,
           size: 16.0,
+        ),
+        secondaryTextStyle: NativeTemplateTextStyle(
+          textColor: theme.textTheme.bodySmall!.color,
+          style: NativeTemplateFontStyle.normal,
+          size: 14.0,
+        ),
+        tertiaryTextStyle: NativeTemplateTextStyle(
+          textColor: theme.textTheme.bodySmall!.color,
+          style: NativeTemplateFontStyle.normal,
+          size: 14.0,
         ),
       ),
     )..load();
@@ -60,15 +70,25 @@ class NativeAdService {
         mainBackgroundColor: theme.cardColor,
         cornerRadius: 20.0,
         callToActionTextStyle: NativeTemplateTextStyle(
-          textColor: Colors.white,
-          backgroundColor: Colors.blue,
+          textColor: theme.colorScheme.onPrimary,
+          backgroundColor: theme.colorScheme.primary,
           style: NativeTemplateFontStyle.bold,
           size: 16.0,
         ),
         primaryTextStyle: NativeTemplateTextStyle(
-          textColor: Colors.black,
+          textColor: theme.textTheme.bodyMedium!.color,
           style: NativeTemplateFontStyle.normal,
           size: 16.0,
+        ),
+        secondaryTextStyle: NativeTemplateTextStyle(
+          textColor: theme.textTheme.bodySmall!.color,
+          style: NativeTemplateFontStyle.normal,
+          size: 14.0,
+        ),
+        tertiaryTextStyle: NativeTemplateTextStyle(
+          textColor: theme.textTheme.bodySmall!.color,
+          style: NativeTemplateFontStyle.normal,
+          size: 14.0,
         ),
       ),
     )..load();

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:messaging/cubit/payment_cubit.dart';
+import 'package:messaging/screens/no_ads_purchase_sheet.dart';
 
 class AdFreeTile extends StatelessWidget {
   const AdFreeTile({super.key});
@@ -104,19 +105,13 @@ class AdFreeTile extends StatelessWidget {
                         ),
                         elevation: 5,
                       ),
-                      onPressed: (state is PaymentProcessing) 
-                          ? null // Disable button while processing
-                          : () => context.read<PaymentCubit>().startPurchase(),
-                      child: (state is PaymentProcessing)
-                          ? const SizedBox(
-                              width: 20, 
-                              height: 20, 
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Text("GET"),
+                      onPressed: () {showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true, // Allows it to go full screen
+                          backgroundColor: Colors.transparent, // We use our own decoration
+                          builder: (context) => const NoAdsPurchaseSheet(),
+                        );},
+                      child: const Text("GET"),
                     ),
                   ],
                 ),

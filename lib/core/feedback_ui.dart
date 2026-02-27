@@ -47,19 +47,7 @@ class FeedbackUi{
   void showInfo(String message){
     _showToast(ToastificationType.info, message);
   }
-  void showSnackbar(String message, {bool persistent = false}){
-    final theme = Theme.of(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: theme.colorScheme.surfaceContainer,
-        padding: EdgeInsets.zero,
-        content: SizedBox(
-          height: 20,
-          child: Center(child: Text(message,style: theme.textTheme.bodySmall,)),
-        ))
-    );
 
-  }
   String messageText(ToastificationType type){
     switch(type){
       case ToastificationType.error:
@@ -73,13 +61,7 @@ class FeedbackUi{
     }
   }
   void _showToast(ToastificationType type, String message){
-    final theme = Theme.of(context);
-    bool isDark = theme.brightness == Brightness.dark;
-
     toastification.show(
-      backgroundColor:  isDark? theme.colorScheme.primary: null,
-      foregroundColor: theme.textTheme.bodyLarge!.color,
-      borderSide: isDark? BorderSide(color: theme.scaffoldBackgroundColor):null,
 	  context: context,
 	  type: type,
 	  style: ToastificationStyle.flat,

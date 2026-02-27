@@ -18,7 +18,7 @@ class PaymentCubit extends Cubit<PaymentState> {
   void init() async {
     isNoAds = await UserDefaults.getAdsRemoved();
     _paymetConfirmedSub = eventBus.on<PurchaseStatus>().listen((event) {
-      processPayment(event);
+      _processPayment(event);
     });
     if (isNoAds) {
       emit(PaymentPaid());
@@ -26,8 +26,8 @@ class PaymentCubit extends Cubit<PaymentState> {
       emit(PaymentNotPaid());
     }
   }
-
-  void processPayment(PurchaseStatus event) async {
+  Timer? _pendingTimer;
+  void _processPayment(PurchaseStatus event) async {
     print("New event: $event");
     switch(event){
       case PurchaseStatus.error:
@@ -42,6 +42,13 @@ class PaymentCubit extends Cubit<PaymentState> {
       break;
 
       case PurchaseStatus.pending:
+      _pendingTimer = Timer(const Duration(seconds: 45), () {
+        if (state is PaymentProcessing) {
+          emit(const PaymentFailed(
+            message: "Payment is taking too long. Please check your Play Store account."
+          ));
+        }
+      });
       emit(PaymentProcessing());
       break;
 
@@ -50,7 +57,7 @@ class PaymentCubit extends Cubit<PaymentState> {
       break;
     }
   }
-  void startPurchase()async{
+  void startPurchase() async {
     emit(PaymentProcessing());
      final service = PurchaseService();
     await service.buyAdFree();
@@ -59,6 +66,7 @@ class PaymentCubit extends Cubit<PaymentState> {
   @override
   Future<void> close() {
     _paymetConfirmedSub.cancel();
+    _pendingTimer?.cancel();
     return super.close();
   }
 }
