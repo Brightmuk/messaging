@@ -40,14 +40,15 @@ class NoAdsPurchaseSheet extends StatelessWidget {
                       ),
                       borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                     ),
-                    child: const Column(
+                    child:  const Column(
                       children: [
-                        const Icon(Icons.star, size: 60, color: Colors.orangeAccent),
-                        const SizedBox(height: 12),
-                        const Text(
-                          "M-Ficha Premium",
+                         Icon(Icons.star, size: 60, color: Colors.orangeAccent),
+                         SizedBox(height: 12),
+                         Text(
+                          "Ad-Free Forever",
                           style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
                         ),
+                        Text('One time purchase')
                       ],
                     ),
                   ),

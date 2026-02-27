@@ -12,8 +12,9 @@ class PermissionsScreen extends StatefulWidget {
   State<PermissionsScreen> createState() => _PermissionsScreenState();
 }
 
-class _PermissionsScreenState extends State<PermissionsScreen>  with WidgetsBindingObserver {
-    @override
+class _PermissionsScreenState extends State<PermissionsScreen>
+    with WidgetsBindingObserver {
+  @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
@@ -25,7 +26,8 @@ class _PermissionsScreenState extends State<PermissionsScreen>  with WidgetsBind
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
-    @override
+
+  @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _checkDefaultSmsStatus();
@@ -34,82 +36,149 @@ class _PermissionsScreenState extends State<PermissionsScreen>  with WidgetsBind
 
   Future<void> _checkDefaultSmsStatus() async {
     await SmsService.isDefaultSmsApp();
-    setState((){});
+    setState(() {});
   }
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) => PermissionsCubit()..checkAll(),
-      child: Scaffold(
-        appBar: AppBar(title: const Text('Required Permissions')),
-        body: BlocBuilder<PermissionsCubit, PermissionsState>(
+      child: Builder(builder: (context) {
+        return BlocBuilder<PermissionsCubit, PermissionsState>(
           builder: (context, state) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical:2),
-                  child: Text(
-                    'To get started, please grant the following permissions:',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ),
-                Expanded(
-                  child: ListView(
+            return Scaffold(
+              appBar: AppBar(),
+              body: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _PermissionTile(
-                        title: 'SMS Access',
-                        subtitle: 'Required to show and send messages',
-                        status: state.statuses[Permission.sms],
-                        onTap: () => context.read<PermissionsCubit>().request(Permission.sms),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Visual anchor
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primaryContainer,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                Icons.security_rounded,
+                                color: Theme.of(context).colorScheme.primary,
+                                size: 32,
+                              ),
+                            ),
+                            const SizedBox(height: 18),
+                            Text(
+                              'Setup M-Ficha',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .headlineMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color:
+                                        Theme.of(context).colorScheme.onSurface,
+                                  ),
+                            ),
+                            const SizedBox(height: 8),
+                            RichText(
+                              text: TextSpan(
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyLarge
+                                    ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                    ),
+                                children: const [
+                                  TextSpan(
+                                      text:
+                                          'To protect your privacy and manage messages, we need '),
+                                  TextSpan(
+                                    text: 'essential permissions.',
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      _PermissionTile(
-                        title: 'Contacts',
-                        subtitle: 'To show contact names and numbers',
-                        status: state.statuses[Permission.contacts],
-                        onTap: () => context.read<PermissionsCubit>().request(Permission.contacts),
-                      ),
-                      _PermissionTile(
-                        title: 'Notifications',
-                        subtitle: 'Alerts for new messages',
-                        status: state.statuses[Permission.notification],
-                        onTap: () => context.read<PermissionsCubit>().request(Permission.notification),
-                      ),
-                      _PermissionTile(
-                        title: 'Phone',
-                        subtitle: 'Required for selecting default sim card',
-                        status: state.statuses[Permission.phone],
-                        onTap: () => context.read<PermissionsCubit>().request(Permission.phone),
-                      ),
-                      _PermissionTile(
-                        title: 'Default SMS App',
-                        subtitle: 'Necessary to handle system messaging',
-                        isGrantedOverride: state.isDefaultApp,
-                        onTap: () async{
-                          await context.read<PermissionsCubit>().requestDefaultRole();
-                          
-                        },
+                      Expanded(
+                        child: ListView(
+                          children: [
+                            _PermissionTile(
+                              title: 'SMS Access',
+                              subtitle: 'Required to show and send messages',
+                              status: state.statuses[Permission.sms],
+                              onTap: () => context
+                                  .read<PermissionsCubit>()
+                                  .request(Permission.sms),
+                            ),
+                            _PermissionTile(
+                              title: 'Contacts',
+                              subtitle: 'To show contact names and numbers',
+                              status: state.statuses[Permission.contacts],
+                              onTap: () => context
+                                  .read<PermissionsCubit>()
+                                  .request(Permission.contacts),
+                            ),
+                            _PermissionTile(
+                              title: 'Notifications',
+                              subtitle: 'Alerts for new messages',
+                              status: state.statuses[Permission.notification],
+                              onTap: () => context
+                                  .read<PermissionsCubit>()
+                                  .request(Permission.notification),
+                            ),
+                            _PermissionTile(
+                              title: 'Phone',
+                              subtitle:
+                                  'Required for selecting default sim card',
+                              status: state.statuses[Permission.phone],
+                              onTap: () => context
+                                  .read<PermissionsCubit>()
+                                  .request(Permission.phone),
+                            ),
+                            _PermissionTile(
+                              title: 'Default SMS App',
+                              subtitle: 'Necessary to handle system messaging',
+                              isGrantedOverride: state.isDefaultApp,
+                              onTap: () async {
+                                await context
+                                    .read<PermissionsCubit>()
+                                    .requestDefaultRole();
+                              },
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: state.allGranted 
-                        ? () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ChatsScreen()))
+                  floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+              floatingActionButton: SizedBox(
+                width: double.infinity,
+                height: 45,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: FilledButton(
+                    onPressed: state.allGranted
+                        ? () => Navigator.pushReplacement(context,
+                            MaterialPageRoute(builder: (_) => const ChatsScreen()))
                         : null,
-                      child: const Text('Continue to Messages'),
-                    ),
+                    child: const Text('Continue to Messages'),
                   ),
                 ),
-              ],
+              ),
             );
           },
-        ),
-      ),
+        );
+      }),
     );
   }
 }
@@ -122,6 +191,7 @@ class _PermissionTile extends StatelessWidget {
   final VoidCallback onTap;
 
   const _PermissionTile({
+    super.key,
     required this.title,
     required this.subtitle,
     this.status,
@@ -131,28 +201,100 @@ class _PermissionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final bool isGranted = isGrantedOverride ?? (status?.isGranted ?? false);
     final bool isPermanentlyDenied = status?.isPermanentlyDenied ?? false;
 
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      leading: CircleAvatar(
-        backgroundColor: isGranted 
-            ? Colors.green.withAlpha(25) 
-            : Theme.of(context).colorScheme.surfaceContainerHighest,
-        child: Icon(
-          isGranted ? Icons.check : Icons.lock_open_outlined,
-          color: isGranted ? Colors.green : Theme.of(context).colorScheme.primary,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        decoration: BoxDecoration(
+          // Subtle green glow for granted, or standard surface for pending
+          color: isGranted
+              ? Colors.green.withOpacity(0.08)
+              : theme.colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color:
+                isGranted ? Colors.green.withOpacity(0.5) : Colors.transparent,
+            width: 1.5,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              // 1. Icon Container
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: isGranted
+                      ? Colors.green.withOpacity(0.1)
+                      : theme.colorScheme.primary.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  isGranted
+                      ? Icons.check_circle_rounded
+                      : Icons.shield_outlined,
+                  color: isGranted ? Colors.green : theme.colorScheme.primary,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+
+              // 2. Text Content
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: isGranted ? Colors.green.shade800 : null,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // 3. Action Button
+              if (!isGranted)
+                FilledButton.tonal(
+                  style: FilledButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    backgroundColor: isPermanentlyDenied
+                        ? theme.colorScheme.errorContainer
+                        : null,
+                  ),
+                  onPressed:
+                      isPermanentlyDenied ? () => openAppSettings() : onTap,
+                  child: Text(
+                    isPermanentlyDenied ? 'Settings' : 'Grant',
+                    style: TextStyle(
+                      color:
+                          isPermanentlyDenied ? theme.colorScheme.error : null,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                )
+              else
+                const Icon(Icons.check_circle, color: Colors.green),
+            ],
+          ),
         ),
       ),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-      subtitle: Text(subtitle),
-      trailing: isGranted
-          ? const Icon(Icons.check_circle, color: Colors.green)
-          : FilledButton.tonal(
-              onPressed: isPermanentlyDenied ? () => openAppSettings() : onTap,
-              child: Text(isPermanentlyDenied ? 'Settings' : 'Grant'),
-            ),
     );
   }
 }

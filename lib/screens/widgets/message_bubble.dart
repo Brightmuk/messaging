@@ -76,15 +76,17 @@ class _MessageBubbleState extends State<MessageBubble> {
                   maxWidth: MediaQuery.of(context).size.width * 0.8,
                 ),
                 decoration: BoxDecoration(
-                  color:  _shouldHighlight 
-            ? Colors.purple.withAlpha(40) :
+                  color:  
                    widget.selected
                       ? Theme.of(context).colorScheme.primaryContainer
                       : widget.isOutgoing
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context)
+                          ? (_shouldHighlight 
+            ? const Color.fromARGB(255, 177, 127, 233) :
+                            Theme.of(context).colorScheme.primary)
+                          : (_shouldHighlight 
+            ? Colors.purple : Theme.of(context)
                               .colorScheme
-                              .surfaceContainerHighest,
+                              .surfaceContainerHighest),
                   borderRadius: BorderRadius.only(
                     topLeft: const Radius.circular(20),
                     topRight: const Radius.circular(20),
