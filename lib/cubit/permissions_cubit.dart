@@ -56,6 +56,9 @@ class PermissionsCubit extends Cubit<PermissionsState> {
       }
     });
   }
+  void stopTImer(){
+    _timer?.cancel();
+  }
 
   @override
   Future<void> close() {

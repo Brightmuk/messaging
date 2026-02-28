@@ -13,8 +13,10 @@ import 'package:messaging/screens/widgets/ad_free_tile.dart';
 import 'package:messaging/screens/widgets/chats_loading_widget.dart';
 import 'package:messaging/screens/widgets/chats_native_ad.dart';
 import 'package:messaging/screens/widgets/contact_name_text.dart';
+import 'package:messaging/screens/widgets/default_app_dialog.dart';
 import 'package:messaging/screens/widgets/rating_dialog.dart';
 import 'package:messaging/services/contact_service.dart';
+import 'package:messaging/services/default_app_reminder.dart';
 import 'package:messaging/services/notification_service.dart';
 import 'package:messaging/services/rating_limiter.dart';
 import 'package:messaging/services/redact_service.dart';
@@ -31,13 +33,12 @@ class ChatsScreen extends StatelessWidget {
       create: (context) => ChatsCubit(),
       child: BlocListener<PaymentCubit, PaymentState>(
         listener: (context, state) {
-          if(state is PaymentSuccess){
+          if (state is PaymentSuccess) {
             feedbackui.showSuccess("No Ads forever!");
           }
-          if(state is PaymentFailed){
+          if (state is PaymentFailed) {
             feedbackui.showError(state.message);
           }
-         
         },
         child: const ChatsView(),
       ),
@@ -61,15 +62,26 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-     _scrollController.addListener(_onScroll);
-
+    _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      Future.delayed((const Duration(seconds: 3)), () async {
-        if (await RateLimiter.shouldShowRateDialog()) {
-          if (mounted) showRateUsDialog(context);
-        }
-      });
+      _checkDialogs();
     });
+  }
+
+  Future<void> _checkDialogs() async {
+    await Future.delayed(const Duration(seconds: 3));
+    if (!mounted) return;
+
+    // PRIORITY 1: Rating Dialog
+    if (await RateLimiter.shouldShowRateDialog()) {
+      showRateUsDialog(context);
+      return;
+    }
+
+    // PRIORITY 2: Default App Reminder
+    if (await DefaultAppReminder.shouldShowPrompt()) {
+      showDefaultAppPrompt(context);
+    }
   }
 
   @override
@@ -79,11 +91,13 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
       context.read<ChatsCubit>().loadChats(isInitialLoad: false);
     }
   }
- void _onScroll() {
-  if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 300) {
-    context.read<ChatsCubit>().loadChats(isInitialLoad: false);
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 300) {
+      context.read<ChatsCubit>().loadChats(isInitialLoad: false);
+    }
   }
-}
 
   void _clearNotifications() {
     NotificationService().removeNotifications();
@@ -115,13 +129,13 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
   bool _isAllSelected(List<dynamic> chats) {
     return _selectedThreadIds.length == chats.length && chats.isNotEmpty;
   }
-    @override
+
+  @override
   void dispose() {
     _scrollController.dispose();
 
     super.dispose();
   }
-
 
   bool areAllSelectedPinned(List<AppChat> chats) {
     final selectedChats =
@@ -205,7 +219,6 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                                 }
                               },
                             ),
-                           
                             IconButton(
                               icon: Icon(_isAllSelected(state.chats)
                                   ? Icons.playlist_remove_outlined
@@ -224,13 +237,14 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                             ),
                           ]
                         : [
-                           IconButton(
-                              icon: const Icon(Icons.search_outlined),
-                              onPressed: () => Navigator.push(
-                                        context,
-                                        MaterialPageRoute(builder: (context) => const GlobalSearchPage()),
-                                      )
-                            ),
+                            IconButton(
+                                icon: const Icon(Icons.search_outlined),
+                                onPressed: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) =>
+                                              const GlobalSearchPage()),
+                                    )),
                             IconButton(
                               icon: const Icon(Icons.settings_outlined),
                               onPressed: () => Navigator.push(
@@ -240,9 +254,6 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                                         const SettingsScreen()),
                               ),
                             ),
-                            
-                          
-                            
                           ],
                   ),
                 if (state is ChatsLoading)
@@ -252,14 +263,10 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                       ? const SliverFillRemaining(
                           child: ChatsLoadingWidget(isEmptyState: true))
                       : SliverList(
-                        
                           delegate: SliverChildBuilderDelegate(
-                            
                             (context, index) {
-                              
                               if (isNoAds) {
-                                return _buildChatTile(
-                                    state.chats[index]);
+                                return _buildChatTile(state.chats[index]);
                               }
                               // 1. Position for Native Banner Ad (Index 6)
                               if (index == 6) {
@@ -292,12 +299,13 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                                 return null;
                               }
 
-                              return _buildChatTile(
-                                  state.chats[chatIndex]);
+                              return _buildChatTile(state.chats[chatIndex]);
                             },
                             // 5. Total count is chats + 2 (one for each ad)
-                            childCount: isNoAds? state.chats.length: state.chats.length +
-                                (state.chats.length >= 8 ? 2 : 1),
+                            childCount: isNoAds
+                                ? state.chats.length
+                                : state.chats.length +
+                                    (state.chats.length >= 8 ? 2 : 1),
                           ),
                         )
                 else
@@ -363,15 +371,15 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            
-            color: isSelected
-                ? theme.colorScheme.primaryContainer
-                : (hasUnread
-                    ? theme.colorScheme.primaryContainer.withAlpha(100)
-                    : Colors.transparent),
-            borderRadius: BorderRadius.circular(20),
-            border: Border(bottom: BorderSide(color: theme.colorScheme.surfaceContainer,width: 0.8))
-          ),
+              color: isSelected
+                  ? theme.colorScheme.primaryContainer
+                  : (hasUnread
+                      ? theme.colorScheme.primaryContainer.withAlpha(100)
+                      : Colors.transparent),
+              borderRadius: BorderRadius.circular(20),
+              border: Border(
+                  bottom: BorderSide(
+                      color: theme.colorScheme.surfaceContainer, width: 0.8))),
           child: Row(
             children: [
               // M3 Tonal Avatar
@@ -386,10 +394,9 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                             : theme.colorScheme.surfaceContainerHighest),
                     child: isSelected
                         ? Icon(Icons.check, color: theme.colorScheme.onPrimary)
-                        : chat.prefix(
-                            hasUnread
-                                ? theme.colorScheme.onPrimary
-                                : theme.colorScheme.onSurfaceVariant),
+                        : chat.prefix(hasUnread
+                            ? theme.colorScheme.onPrimary
+                            : theme.colorScheme.onSurfaceVariant),
                   ),
                   // Show a small pin badge if the chat is pinned
                   if (chat.isPinned && !isSelected)

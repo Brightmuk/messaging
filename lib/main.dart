@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:messaging/cubit/app_startup_cubit.dart';
 import 'package:messaging/cubit/payment_cubit.dart';
+import 'package:messaging/cubit/permissions_cubit.dart';
 import 'package:messaging/screens/onboarding.dart';
 import 'package:messaging/screens/permissions_screen.dart';
 import 'package:messaging/screens/widgets/chats_loading_widget.dart';
@@ -22,6 +23,7 @@ void main() async {
       providers: [
         BlocProvider(create: (c) => AppStartupCubit()),
         BlocProvider(create: (c) => PaymentCubit()),
+        BlocProvider(create: (c) => PermissionsCubit()..checkAll(),)
       ],
       child: const MyApp(),
     ),

@@ -41,145 +41,145 @@ class _PermissionsScreenState extends State<PermissionsScreen>
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => PermissionsCubit()..checkAll(),
-      child: Builder(builder: (context) {
-        return BlocBuilder<PermissionsCubit, PermissionsState>(
-          builder: (context, state) {
-            return Scaffold(
-              appBar: AppBar(),
-              body: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Visual anchor
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .primaryContainer,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Icon(
-                                Icons.security_rounded,
-                                color: Theme.of(context).colorScheme.primary,
-                                size: 32,
-                              ),
+    return Builder(builder: (context) {
+      return BlocBuilder<PermissionsCubit, PermissionsState>(
+        builder: (context, state) {
+          return Scaffold(
+            appBar: AppBar(),
+            body: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Visual anchor
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .primaryContainer,
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            const SizedBox(height: 18),
-                            Text(
-                              'Setup M-Ficha',
+                            child: Icon(
+                              Icons.security_rounded,
+                              color: Theme.of(context).colorScheme.primary,
+                              size: 32,
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          Text(
+                            'Setup M-Ficha',
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface,
+                                ),
+                          ),
+                          const SizedBox(height: 8),
+                          RichText(
+                            text: TextSpan(
                               style: Theme.of(context)
                                   .textTheme
-                                  .headlineMedium
+                                  .bodyLarge
                                   ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color:
-                                        Theme.of(context).colorScheme.onSurface,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
                                   ),
+                              children: const [
+                                TextSpan(
+                                    text:
+                                        'To protect your privacy and manage messages, we need '),
+                                TextSpan(
+                                  text: 'essential permissions.',
+                                  style:
+                                      TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 8),
-                            RichText(
-                              text: TextSpan(
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyLarge
-                                    ?.copyWith(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant,
-                                    ),
-                                children: const [
-                                  TextSpan(
-                                      text:
-                                          'To protect your privacy and manage messages, we need '),
-                                  TextSpan(
-                                    text: 'essential permissions.',
-                                    style:
-                                        TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                      Expanded(
-                        child: ListView(
-                          children: [
-                            _PermissionTile(
-                              title: 'SMS Access',
-                              subtitle: 'Required to show and send messages',
-                              status: state.statuses[Permission.sms],
-                              onTap: () => context
+                    ),
+                    Expanded(
+                      child: ListView(
+                        children: [
+                          _PermissionTile(
+                            title: 'SMS Access',
+                            subtitle: 'Required to show and send messages',
+                            status: state.statuses[Permission.sms],
+                            onTap: () => context
+                                .read<PermissionsCubit>()
+                                .request(Permission.sms),
+                          ),
+                          _PermissionTile(
+                            title: 'Contacts',
+                            subtitle: 'To show contact names and numbers',
+                            status: state.statuses[Permission.contacts],
+                            onTap: () => context
+                                .read<PermissionsCubit>()
+                                .request(Permission.contacts),
+                          ),
+                          _PermissionTile(
+                            title: 'Notifications',
+                            subtitle: 'Alerts for new messages',
+                            status: state.statuses[Permission.notification],
+                            onTap: () => context
+                                .read<PermissionsCubit>()
+                                .request(Permission.notification),
+                          ),
+                          _PermissionTile(
+                            title: 'Phone',
+                            subtitle:
+                                'Required for selecting default sim card',
+                            status: state.statuses[Permission.phone],
+                            onTap: () => context
+                                .read<PermissionsCubit>()
+                                .request(Permission.phone),
+                          ),
+                          _PermissionTile(
+                            title: 'Default SMS App',
+                            subtitle: 'Necessary to handle system messaging',
+                            isGrantedOverride: state.isDefaultApp,
+                            onTap: () async {
+                              await context
                                   .read<PermissionsCubit>()
-                                  .request(Permission.sms),
-                            ),
-                            _PermissionTile(
-                              title: 'Contacts',
-                              subtitle: 'To show contact names and numbers',
-                              status: state.statuses[Permission.contacts],
-                              onTap: () => context
-                                  .read<PermissionsCubit>()
-                                  .request(Permission.contacts),
-                            ),
-                            _PermissionTile(
-                              title: 'Notifications',
-                              subtitle: 'Alerts for new messages',
-                              status: state.statuses[Permission.notification],
-                              onTap: () => context
-                                  .read<PermissionsCubit>()
-                                  .request(Permission.notification),
-                            ),
-                            _PermissionTile(
-                              title: 'Phone',
-                              subtitle:
-                                  'Required for selecting default sim card',
-                              status: state.statuses[Permission.phone],
-                              onTap: () => context
-                                  .read<PermissionsCubit>()
-                                  .request(Permission.phone),
-                            ),
-                            _PermissionTile(
-                              title: 'Default SMS App',
-                              subtitle: 'Necessary to handle system messaging',
-                              isGrantedOverride: state.isDefaultApp,
-                              onTap: () async {
-                                await context
-                                    .read<PermissionsCubit>()
-                                    .requestDefaultRole();
-                              },
-                            ),
-                          ],
-                        ),
+                                  .requestDefaultRole();
+                            },
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-              floatingActionButton: SizedBox(
-                width: double.infinity,
-                height: 45,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: FilledButton(
-                    onPressed: state.allGranted
-                        ? () => Navigator.pushReplacement(context,
-                            MaterialPageRoute(builder: (_) => const ChatsScreen()))
-                        : null,
-                    child: const Text('Continue to Messages'),
-                  ),
+                    ),
+                  ],
+                ),
+                floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+            floatingActionButton: SizedBox(
+              width: double.infinity,
+              height: 45,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: FilledButton(
+                  onPressed: state.allGranted
+                      ? () {
+                        context.read<PermissionsCubit>().stopTImer();
+                        Navigator.pushReplacement(context,
+                          MaterialPageRoute(builder: (_) => const ChatsScreen()));
+                      }
+                      : null,
+                  child: const Text('Continue to Messages'),
                 ),
               ),
-            );
-          },
-        );
-      }),
-    );
+            ),
+          );
+        },
+      );
+    });
   }
 }
 
