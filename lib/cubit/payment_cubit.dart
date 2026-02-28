@@ -11,6 +11,7 @@ part 'payment_state.dart';
 
 class PaymentCubit extends Cubit<PaymentState> {
   late StreamSubscription _paymetConfirmedSub;
+  final PurchaseService _service = PurchaseService();
   PaymentCubit() : super(PaymentInitial()) {
     init();
   }
@@ -59,8 +60,12 @@ class PaymentCubit extends Cubit<PaymentState> {
   }
   void startPurchase() async {
     emit(PaymentProcessing());
-     final service = PurchaseService();
-    await service.buyAdFree();
+     
+    await _service.buyAdFree();
+  }
+  void restorePurchase()async{
+    emit(PaymentProcessing());
+    _service.restorePurchases();
   }
 
   @override

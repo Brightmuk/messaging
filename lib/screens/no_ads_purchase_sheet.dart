@@ -151,7 +151,7 @@ class NoAdsPurchaseSheet extends StatelessWidget {
                       // 5. Restore Purchase Link
                       TextButton(
                         onPressed: () =>
-                            context.read<PaymentCubit>().startPurchase(),
+                            context.read<PaymentCubit>().restorePurchase(),
                         child: RichText(
                           text: TextSpan(
                             style: theme.textTheme.bodyMedium,
