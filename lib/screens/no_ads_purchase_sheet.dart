@@ -1,6 +1,8 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:messaging/cubit/payment_cubit.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class NoAdsPurchaseSheet extends StatelessWidget {
   const NoAdsPurchaseSheet({super.key});
@@ -48,7 +50,7 @@ class NoAdsPurchaseSheet extends StatelessWidget {
                           "Ad-Free Forever",
                           style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
                         ),
-                        Text('One time purchase')
+                        Text('One time purchase',style: TextStyle(color: Colors.white),)
                       ],
                     ),
                   ),
@@ -156,10 +158,34 @@ class NoAdsPurchaseSheet extends StatelessWidget {
                             children: [
                               const TextSpan(text: "Already purchased? "),
                               TextSpan(
-                                text: "Restore Purchase",
+                                text: "Restore",
                                 style: TextStyle(
                                     color: Colors.blue.shade700,
                                     fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: RichText(
+                          textAlign: TextAlign.center,
+                          text: TextSpan(
+                            style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey), // Base style
+                            children: [
+                              const TextSpan(text: "By purchasing this item you have read and agree to our\n "),
+                              TextSpan(
+                                text: "Terms & Conditions",
+                                style: TextStyle(
+                                  color: Colors.blue.shade700,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                // THIS MAKES IT CLICKABLE
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = () {
+                                    _launchUrl('https://brimukon.com/terms');
+                                  },
                               ),
                             ],
                           ),
@@ -190,5 +216,17 @@ class NoAdsPurchaseSheet extends StatelessWidget {
         ],
       ),
     );
+  }
+  Future<void> _launchUrl(String urlString) async {
+    final Uri url = Uri.parse(urlString);
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        
+      }
+    } catch (e) {
+      debugPrint("Error launching URL: $e");
+    }
   }
 }
