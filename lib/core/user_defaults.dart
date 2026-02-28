@@ -49,4 +49,5 @@ class UserDefaults {
     return prefs.getBool(adsRemovedString) ?? false;
   }
 
+
 }

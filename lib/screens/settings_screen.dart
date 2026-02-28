@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:messaging/core/user_defaults.dart';
+import 'package:messaging/core/utils/functions.dart';
 import 'package:messaging/models/sim_card_state.dart';
 import 'package:messaging/screens/archived_chats_screen.dart';
 import 'package:messaging/screens/widgets/ad_free_tile.dart';
@@ -215,22 +216,24 @@ class _SettingsScreenState extends State<SettingsScreen>
                   child: Column(
                     children: [
                       _buildLinkTile(
+                        Icons.star_rate,
+                        "Rate App",
+                        () => openPlayStore(),
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      _buildLinkTile(
                         Icons.privacy_tip_outlined,
                         "Privacy Policy",
                         () => _launchUrl('https://brimukon.com/privacy'),
                       ),
-                      const Divider(height: 1, indent: 16, endIndent: 16),
-                      _buildLinkTile(
-                        Icons.info_outline,
-                        "About the App",
-                        () => _launchUrl('https://brimukon.com/m-ficha'),
-                      ),
+                      
                       const Divider(height: 1, indent: 16, endIndent: 16),
                       _buildLinkTile(
                         Icons.help_outline,
                         "Help & Feedback",
                         () => _launchUrl('https://brimukon.com/support'),
                       ),
+                      
                     ],
                   ),
                 ),
@@ -260,6 +263,7 @@ class _SettingsScreenState extends State<SettingsScreen>
       debugPrint("Error launching URL: $e");
     }
   }
+
 
   Widget _buildSectionHeader(String title) {
     return Padding(
@@ -294,7 +298,7 @@ class _SettingsScreenState extends State<SettingsScreen>
 
         final info = snapshot.data!;
         return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 32),
+          padding: const EdgeInsets.symmetric(vertical: 20),
           child: Center(
             child: Column(
               children: [

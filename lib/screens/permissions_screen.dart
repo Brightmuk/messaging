@@ -191,7 +191,6 @@ class _PermissionTile extends StatelessWidget {
   final VoidCallback onTap;
 
   const _PermissionTile({
-    super.key,
     required this.title,
     required this.subtitle,
     this.status,
