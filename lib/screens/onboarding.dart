@@ -1,8 +1,10 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:introduction_screen/introduction_screen.dart';
 import 'package:flutter/services.dart';
 import 'package:messaging/cubit/app_startup_cubit.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MfichaOnboarding extends StatelessWidget {
   const MfichaOnboarding({super.key});
@@ -37,7 +39,7 @@ class MfichaOnboarding extends StatelessWidget {
       showSkipButton: true,
       skip: const Text("Skip"),
       next: const Icon(Icons.arrow_forward),
-      done: const Text("Done", style: TextStyle(fontWeight: FontWeight.w600)),
+      done: const Text("Get started", style: TextStyle(fontWeight: FontWeight.w600)),
       dotsDecorator: DotsDecorator(
         size: const Size.square(10.0),
         activeSize: const Size(20.0, 10.0),
@@ -46,7 +48,45 @@ class MfichaOnboarding extends StatelessWidget {
         spacing: const EdgeInsets.symmetric(horizontal: 3.0),
         activeShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25.0)),
       ),
+      globalFooter: RichText(
+        textAlign: TextAlign.center,
+        text: TextSpan(
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+            height: 1.5,
+          ),
+          children: [
+            const TextSpan(text: 'By tapping Get started you accept our '),
+            TextSpan(
+              text: 'Terms of Service',
+              style: TextStyle(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
+              recognizer: TapGestureRecognizer()
+                ..onTap = () => _launchURL('https://brimukon.com/terms'),
+            ),
+            const TextSpan(text: '\n and '),
+            TextSpan(
+              text: 'Privacy Policy',
+              style: TextStyle(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
+              recognizer: TapGestureRecognizer()
+                ..onTap = () => _launchURL('https://brimukon.com/privacy'),
+            ),
+            const TextSpan(text: '.'),
+          ],
+        ),
+      ),
     );
       
+  }
+  Future<void> _launchURL(String url) async {
+    final Uri uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      throw Exception('Could not launch $url');
+    }
   }
 }

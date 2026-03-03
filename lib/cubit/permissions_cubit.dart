@@ -8,7 +8,7 @@ part 'permissions_state.dart';
 
 class PermissionsCubit extends Cubit<PermissionsState> {
   PermissionsCubit()
-      : super(PermissionsState(statuses: {}, isDefaultApp: false));
+      : super(PermissionsState(statuses: {}, isDefaultApp: false, isDefaultRequested: false));
 
   final List<Permission> requiredPermissions = [
     Permission.sms,
@@ -17,14 +17,22 @@ class PermissionsCubit extends Cubit<PermissionsState> {
     Permission.notification,
   ];
 
+  bool _isDefaultRequested = false;
+
   Future<void> checkAll() async {
-    Map<Permission, PermissionStatus> newStatuses = {};
+  // Check default status first
+  final isDefault = await SmsService.isDefaultSmsApp();
+  
+  Map<Permission, PermissionStatus> newStatuses = {};
+  
+  if (_isDefaultRequested) {
     for (var p in requiredPermissions) {
       newStatuses[p] = await p.status;
     }
-    final isDefault = await SmsService.isDefaultSmsApp();
-    emit(PermissionsState(statuses: newStatuses, isDefaultApp: isDefault));
   }
+  
+  emit(PermissionsState(statuses: newStatuses, isDefaultApp: isDefault, isDefaultRequested: _isDefaultRequested));
+}
 
   Future<void> request(Permission p) async {
     await p.request();
@@ -39,6 +47,7 @@ class PermissionsCubit extends Cubit<PermissionsState> {
   Timer? _timer;
   int _count = 0;
   Future<void> requestDefaultRole() async {
+    _isDefaultRequested = true;
     await SmsService.requestDefaultSmsRole();
     await checkAll();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) async {

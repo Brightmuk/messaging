@@ -110,15 +110,27 @@ class _PermissionsScreenState extends State<PermissionsScreen>
                     Expanded(
                       child: ListView(
                         children: [
-                          _PermissionTile(
-                            title: 'SMS Access',
-                            subtitle: 'Required to show and send messages',
-                            status: state.statuses[Permission.sms],
-                            onTap: () => context
-                                .read<PermissionsCubit>()
-                                .request(Permission.sms),
-                          ),
-                          _PermissionTile(
+                          !state.isDefaultRequested? _PermissionTile(
+                            title: 'Default SMS App',
+                            subtitle: 'Necessary to handle system messaging',
+                            isGrantedOverride: state.isDefaultApp,
+                            onTap: () async {
+                              await context
+                                  .read<PermissionsCubit>()
+                                  .requestDefaultRole();
+                            },
+                          ):
+                          Column(
+                            children: [
+                              _PermissionTile(
+                                title: 'SMS Access',
+                                subtitle: 'Required to show and send messages',
+                                status: state.statuses[Permission.sms],
+                                onTap: () => context
+                                    .read<PermissionsCubit>()
+                                    .request(Permission.sms),
+                              ),
+                               _PermissionTile(
                             title: 'Contacts',
                             subtitle: 'To show contact names and numbers',
                             status: state.statuses[Permission.contacts],
@@ -143,16 +155,10 @@ class _PermissionsScreenState extends State<PermissionsScreen>
                                 .read<PermissionsCubit>()
                                 .request(Permission.phone),
                           ),
-                          _PermissionTile(
-                            title: 'Default SMS App',
-                            subtitle: 'Necessary to handle system messaging',
-                            isGrantedOverride: state.isDefaultApp,
-                            onTap: () async {
-                              await context
-                                  .read<PermissionsCubit>()
-                                  .requestDefaultRole();
-                            },
+                            ],
                           ),
+                         
+                          
                         ],
                       ),
                     ),
