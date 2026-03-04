@@ -11,16 +11,25 @@ import 'package:messaging/services/sms_service.dart';
 part 'chats_state.dart';
 
 class ChatsCubit extends Cubit<ChatsState> {
-  final SmsService _smsService = SmsService();
+  late SmsService _smsService;
   StreamSubscription? _smsSubscription;
   StreamSubscription? _readSubscription;
   ChatsCubit() : super(ChatsInitial()) {
+
+    _init();
+  }
+  void _init() async {
+    final isDefaultApp = await SmsService.isDefaultSmsApp();
+    if(!isDefaultApp){
+      emit(PermissionRevoked());
+      return;
+    }
+   _smsService= SmsService();
     _setupListeners();
     loadChats(isInitialLoad: true);
     ContactService().init();
   }
   void _setupListeners() {
-    
     _smsSubscription = _smsService.onMessageUpdated.listen((event) {
       debugPrint("\nChats Cubit message event: ${event.type}\n");
       loadChats(isInitialLoad: true);
@@ -35,6 +44,11 @@ class ChatsCubit extends Cubit<ChatsState> {
   bool get hasReachedMax => _hasReachedMax;
 
   Future<void> loadChats({bool isInitialLoad = true}) async {
+    final isDefaultApp = await SmsService.isDefaultSmsApp();
+        if(!isDefaultApp){
+          emit(PermissionRevoked());
+          return;
+        }
 
     if (_isFetching || (!isInitialLoad && _hasReachedMax)) return;
     debugPrint("Loading chats...");

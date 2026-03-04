@@ -13,13 +13,12 @@ import 'package:messaging/screens/widgets/ad_free_tile.dart';
 import 'package:messaging/screens/widgets/chats_loading_widget.dart';
 import 'package:messaging/screens/widgets/chats_native_ad.dart';
 import 'package:messaging/screens/widgets/contact_name_text.dart';
-import 'package:messaging/screens/widgets/default_app_dialog.dart';
 import 'package:messaging/screens/widgets/rating_dialog.dart';
 import 'package:messaging/services/contact_service.dart';
-import 'package:messaging/services/default_app_reminder.dart';
 import 'package:messaging/services/notification_service.dart';
 import 'package:messaging/services/rating_limiter.dart';
 import 'package:messaging/services/redact_service.dart';
+import 'package:messaging/services/sms_service.dart';
 import 'package:provider/provider.dart';
 import 'select_contact_screen.dart';
 
@@ -77,11 +76,6 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
       showRateUsDialog(context);
       return;
     }
-
-    // PRIORITY 2: Default App Reminder
-    if (await DefaultAppReminder.shouldShowPrompt()) {
-      showDefaultAppPrompt(context);
-    }
   }
 
   @override
@@ -89,6 +83,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       _clearNotifications();
       context.read<ChatsCubit>().loadChats(isInitialLoad: false);
+
     }
   }
 
@@ -156,8 +151,8 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
             child: CustomScrollView(
               controller: _scrollController,
               slivers: [
-                if (state is ChatsLoading || state is ChatsError)
-                  const SliverAppBar.medium()
+               if (state is ChatsLoading || state is ChatsInitial || state is ChatsError || state is PermissionRevoked)
+                  const SliverAppBar.medium() 
                 else if (state is ChatsLoaded)
                   SliverAppBar.medium(
                     title: Text(_isSelectionMode
@@ -256,7 +251,9 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                             ),
                           ],
                   ),
-                if (state is ChatsLoading)
+                  if( state is PermissionRevoked)
+                    SliverFillRemaining(child: _buildDefaultRolePrompt(context))
+                else if (state is ChatsLoading || state is ChatsInitial)
                   const SliverFillRemaining(child: ChatsLoadingWidget())
                 else if (state is ChatsLoaded)
                   state.chats.isEmpty
@@ -319,7 +316,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                         size: 30,
                         color: theme.colorScheme.tertiaryContainer,
                       ),
-                      Text('Something went wrong'),
+                      const Text('Something went wrong'),
                     ],
                   ))),
               ],
@@ -328,9 +325,11 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
         },
       ),
       // 3. M3 Floating Action Button
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton:  FloatingActionButton.extended(
         label: const Text('New'),
         onPressed: () async {
+         final isdefault = await SmsService.isDefaultSmsApp();
+         if(!isdefault) return;
           await Navigator.push(
               context,
               MaterialPageRoute(
@@ -340,6 +339,33 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
       ),
     );
   }
+    Widget _buildDefaultRolePrompt(BuildContext context) {
+  return Container(
+    padding: const EdgeInsets.all(32),
+    color: Theme.of(context).scaffoldBackgroundColor,
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Icon(Icons.sms_failed_outlined, size: 80),
+        const SizedBox(height: 24),
+        Text("Default App Required", style: Theme.of(context).textTheme.headlineSmall),
+        const SizedBox(height: 16),
+        const Text(
+          "M-Ficha needs to be your default SMS app to display and manage your messages.",
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 100),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            onPressed: () => SmsService.requestDefaultSmsRole(),
+            child: const Text("Set as Default"),
+          ),
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildChatTile(AppChat chat) {
     final theme = Theme.of(context);

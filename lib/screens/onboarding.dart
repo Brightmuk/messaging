@@ -2,7 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:introduction_screen/introduction_screen.dart';
 import 'package:flutter/services.dart';
-import 'package:messaging/cubit/app_startup_cubit.dart';
+import 'package:messaging/cubit/permissions_cubit.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -34,8 +34,8 @@ class MfichaOnboarding extends StatelessWidget {
         ),
 
       ],
-      onDone: () => context.read<AppStartupCubit>().viewOnboarding(),
-      onSkip: () => context.read<AppStartupCubit>().viewOnboarding(),
+      onDone: () => context.read<PermissionsCubit>().completeOnboarding(),
+      onSkip: () => context.read<PermissionsCubit>().completeOnboarding(),
       showSkipButton: true,
       skip: const Text("Skip"),
       next: const Icon(Icons.arrow_forward),
@@ -64,7 +64,7 @@ class MfichaOnboarding extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
               recognizer: TapGestureRecognizer()
-                ..onTap = () => _launchURL('https://brimukon.com/terms'),
+                ..onTap = () => _launchURL('https://brimukon.com/m-ficha/terms'),
             ),
             const TextSpan(text: '\n and '),
             TextSpan(
@@ -74,7 +74,7 @@ class MfichaOnboarding extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
               recognizer: TapGestureRecognizer()
-                ..onTap = () => _launchURL('https://brimukon.com/privacy'),
+                ..onTap = () => _launchURL('https://brimukon.com/m-ficha/privacy'),
             ),
             const TextSpan(text: '.'),
           ],

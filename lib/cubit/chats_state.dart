@@ -9,6 +9,7 @@ sealed class ChatsState extends Equatable {
 }
 
 class ChatsInitial extends ChatsState {}
+class PermissionRevoked extends ChatsState {}
 class ChatsLoading extends ChatsState {}
 class ChatsLoaded extends ChatsState {
   final List<AppChat> chats;

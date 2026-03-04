@@ -1,77 +1,80 @@
 import 'dart:async';
-
 import 'package:bloc/bloc.dart';
+import 'package:flutter/foundation.dart';
+import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/services/sms_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 part 'permissions_state.dart';
 
-class PermissionsCubit extends Cubit<PermissionsState> {
-  PermissionsCubit()
-      : super(PermissionsState(statuses: {}, isDefaultApp: false, isDefaultRequested: false));
+enum AppLifecycleStatus {
+  initial,
+  onboarding,
+  promptPermissions,
+  authenticated
+}
 
+class PermissionsCubit extends Cubit<AppLifecycleStatus> {
+  PermissionsCubit() : super(AppLifecycleStatus.initial) {
+    initialize();
+  }
   final List<Permission> requiredPermissions = [
-    Permission.sms,
-    Permission.phone,
-    Permission.contacts,
     Permission.notification,
   ];
 
-  bool _isDefaultRequested = false;
-
-  Future<void> checkAll() async {
-  // Check default status first
-  final isDefault = await SmsService.isDefaultSmsApp();
-  
-  Map<Permission, PermissionStatus> newStatuses = {};
-  
-  if (_isDefaultRequested) {
-    for (var p in requiredPermissions) {
-      newStatuses[p] = await p.status;
+  Future<void> initialize() async {
+    final onboarded = await UserDefaults.hasOnboarded();
+    if (!onboarded) {
+      emit(AppLifecycleStatus.onboarding);
+    } else {
+      emit(AppLifecycleStatus.authenticated);
     }
   }
-  
-  emit(PermissionsState(statuses: newStatuses, isDefaultApp: isDefault, isDefaultRequested: _isDefaultRequested));
-}
 
-  Future<void> request(Permission p) async {
-    await p.request();
-    await checkAll();
+  Future<void> completeOnboarding() async {
+    await UserDefaults.setHasOnboarded();
+    checkStatus();
   }
 
-  Future<void> openAppSettings() async {
-    await openAppSettings();
-    await checkAll();
-  }
-
-  Timer? _timer;
-  int _count = 0;
-  Future<void> requestDefaultRole() async {
-    _isDefaultRequested = true;
+  Future<void> requestDefaultAndCheck() async {
     await SmsService.requestDefaultSmsRole();
-    await checkAll();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) async {
-      _count++;
-      final isDefault = await SmsService.isDefaultSmsApp();
-      if (isDefault) {
-        print("App is now default SMS app");
-        timer.cancel();
-        await checkAll();
-      }else{
-        print("Still waiting for default role... (${_count}s)");
-      }
-      if (_count >= 10) {
-        timer.cancel();
-      }
-    });
+    await checkStatus();
   }
-  void stopTImer(){
-    _timer?.cancel();
+
+  Timer? _defaultAppTimer;
+  int _count = 0;
+  Future<void> checkStatus() async {
+    final isDefault = await SmsService.isDefaultSmsApp();
+    if (isDefault) {
+      emit(AppLifecycleStatus.authenticated);
+    } else {
+      _defaultAppTimer?.cancel();
+      _defaultAppTimer =
+          Timer.periodic(const Duration(seconds: 1), (timer) async {
+        _count++;
+        final isDefault = await SmsService.isDefaultSmsApp();
+        if (isDefault) {
+          debugPrint("App is now default SMS app");
+          timer.cancel();
+          goToHome();
+        } else {
+          debugPrint("Still waiting for default role... (${_count}s)");
+        }
+        if (_count >= 10) {
+          timer.cancel();
+        }
+      });
+      emit(AppLifecycleStatus.promptPermissions);
+    }
+  }
+
+  void goToHome() {
+    emit(AppLifecycleStatus.authenticated);
   }
 
   @override
   Future<void> close() {
-    _timer?.cancel();
+    _defaultAppTimer?.cancel();
     return super.close();
   }
 }

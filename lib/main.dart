@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:messaging/cubit/app_startup_cubit.dart';
 import 'package:messaging/cubit/payment_cubit.dart';
 import 'package:messaging/cubit/permissions_cubit.dart';
 import 'package:messaging/screens/onboarding.dart';
 import 'package:messaging/screens/permissions_screen.dart';
-import 'package:messaging/screens/widgets/chats_loading_widget.dart';
 import 'package:messaging/services/purchase_service.dart';
 import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
@@ -21,9 +19,8 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        BlocProvider(create: (c) => AppStartupCubit()),
         BlocProvider(create: (c) => PaymentCubit()),
-        BlocProvider(create: (c) => PermissionsCubit()..checkAll(),)
+        BlocProvider(create: (c) => PermissionsCubit())
       ],
       child: const MyApp(),
     ),
@@ -42,22 +39,20 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.lightTheme(context),
       darkTheme: AppTheme.darkTheme(context),
       themeMode: ThemeMode.system,
-      home: BlocBuilder<AppStartupCubit, AppStartupState>(
-        builder: (context, state) {
-          if (state is AppStartupGrantPermissions) {
-            return const PermissionsScreen();
-          } else if (state is AppStartupNotOnboarded) {
-            return const MfichaOnboarding();
-          } else if (state is AppStartupLoaded) {
-            return const ChatsScreen();
-          } else {
-            return Scaffold(
-              appBar: AppBar(),
-              body: const Center(child: ChatsLoadingWidget()),
-            );
-          }
-        },
-      ),
+     home: BlocBuilder<PermissionsCubit, AppLifecycleStatus>(
+  builder: (context, status) {
+    switch (status) {
+      case AppLifecycleStatus.onboarding:
+        return const MfichaOnboarding();
+      case AppLifecycleStatus.promptPermissions:
+        return const PermissionsScreen();
+      case AppLifecycleStatus.authenticated:
+        return const ChatsScreen();
+      case AppLifecycleStatus.initial:
+        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+  },
+),
     );
   }
 }

@@ -224,7 +224,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                       _buildLinkTile(
                         Icons.privacy_tip_outlined,
                         "Privacy Policy",
-                        () => _launchUrl('https://brimukon.com/privacy'),
+                        () => _launchUrl('https://brimukon.com/m-ficha/privacy'),
                       ),
                       
                       const Divider(height: 1, indent: 16, endIndent: 16),
