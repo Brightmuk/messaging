@@ -295,8 +295,8 @@ class SmsService {
   }
 
   Future<List<AppChat>> getPaginatedChats(
-      {required int limit, required int offset}) {
-    return _dbHelper.getPaginatedChats(limit: limit, offset: offset);
+      {required int limit, required int offset, bool isDefaultApp = true}) {
+    return _dbHelper.getPaginatedChats(limit: limit, offset: offset, isDefaultApp: isDefaultApp);
   }
 
   Future<List<AppSmsMessage>> getMessagesForThread(String threadId,

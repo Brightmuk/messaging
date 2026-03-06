@@ -195,24 +195,40 @@ Future<List<AppSmsMessage>> getMessagesForThread(
     return null;
   }
 
-  Future<List<AppChat>> getPaginatedChats({
-    required int limit,
-    required int offset,
-  }) async {
-    final db = await database;
+Future<List<AppChat>> getPaginatedChats({
+  required int limit,
+  required int offset,
+  required bool isDefaultApp,
+}) async {
+  final db = await database;
 
-    final result = await db.query(
-      'chats',
-      where: 'isArchived = ?',
-      whereArgs: [0],
-      // Primary sort: Pinned first. Secondary sort: Newest date first.
-      orderBy: 'isPinned DESC, lastMessageDate DESC',
-      limit: limit,
-      offset: offset,
-    );
+  final List<String> financialSenders = [
+    'MPESA', 
+    'M-PESA', 
+    'AirtelMoney', 
+    'AIRTELMONEY',
+    'Safaricom' // Optional: Safaricom often sends account/data alerts
+  ];
+  String whereClause = 'isArchived = ?';
+  List<Object?> whereArgs = [0];
 
-    return result.map((json) => AppChat.fromMap(json)).toList();
+  if (!isDefaultApp) {
+    final placeholders = List.generate(financialSenders.length, (index) => '?').join(', ');
+    whereClause += ' AND UPPER(address) IN ($placeholders)';
+    whereArgs.addAll(financialSenders);
   }
+
+  final result = await db.query(
+    'chats',
+    where: whereClause,
+    whereArgs: whereArgs,
+    orderBy: 'isPinned DESC, lastMessageDate DESC',
+    limit: limit,
+    offset: offset,
+  );
+
+  return result.map((json) => AppChat.fromMap(json)).toList();
+}
 
   Future<List<AppChat>> getAllChats() async {
     final db = await database;

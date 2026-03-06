@@ -13,12 +13,12 @@ import 'package:messaging/screens/widgets/ad_free_tile.dart';
 import 'package:messaging/screens/widgets/chats_loading_widget.dart';
 import 'package:messaging/screens/widgets/chats_native_ad.dart';
 import 'package:messaging/screens/widgets/contact_name_text.dart';
+import 'package:messaging/screens/widgets/limited_access_tile.dart';
 import 'package:messaging/screens/widgets/rating_dialog.dart';
 import 'package:messaging/services/contact_service.dart';
 import 'package:messaging/services/notification_service.dart';
 import 'package:messaging/services/rating_limiter.dart';
 import 'package:messaging/services/redact_service.dart';
-import 'package:messaging/services/sms_service.dart';
 import 'package:provider/provider.dart';
 import 'select_contact_screen.dart';
 
@@ -82,8 +82,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _clearNotifications();
-      context.read<ChatsCubit>().loadChats(isInitialLoad: false);
-
+      context.read<ChatsCubit>().loadChats(isInitialLoad: true);
     }
   }
 
@@ -151,8 +150,11 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
             child: CustomScrollView(
               controller: _scrollController,
               slivers: [
-               if (state is ChatsLoading || state is ChatsInitial || state is ChatsError || state is PermissionRevoked)
-                  const SliverAppBar.medium() 
+                if (state is ChatsLoading ||
+                    state is ChatsInitial ||
+                    state is ChatsError ||
+                    state is PermissionRevoked)
+                  const SliverAppBar.medium()
                 else if (state is ChatsLoaded)
                   SliverAppBar.medium(
                     title: Text(_isSelectionMode
@@ -251,8 +253,8 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                             ),
                           ],
                   ),
-                  if( state is PermissionRevoked)
-                    SliverFillRemaining(child: _buildDefaultRolePrompt(context))
+                if (state is PermissionRevoked)
+                  SliverFillRemaining(child: _buildPermissionsPrompt(context))
                 else if (state is ChatsLoading || state is ChatsInitial)
                   const SliverFillRemaining(child: ChatsLoadingWidget())
                 else if (state is ChatsLoaded)
@@ -262,35 +264,28 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                       : SliverList(
                           delegate: SliverChildBuilderDelegate(
                             (context, index) {
-                              if (isNoAds) {
-                                return _buildChatTile(state.chats[index]);
+                              final isDefault =
+                                  (state).isDefaultApp;
+                              if (!isDefault && index == 0) {
+                                return LimitedAccessTile(onRequest: () => context.read<ChatsCubit>().requestDefaultRole());
+                                
                               }
-                              // 1. Position for Native Banner Ad (Index 6)
-                              if (index == 6) {
-                                return const ChatsNativeAd();
-                              }
-
-                              // 2. Position for "Go Ad-Free" Internal Ad (Index 15)
-                              // We check state.chats.length to ensure we don't show an ad
-                              // if the list is too short.
-                              if (index == 9 && state.chats.length >= 9) {
-                                return const Padding(
-                                  padding: EdgeInsets.all(10.0),
-                                  child: AdFreeTile(),
-                                );
-                              }
-
-                              // 3. Calculate the actual data index
-                              int chatIndex = index;
-                              if (index > 9) {
-                                chatIndex = index -
-                                    2; // Two ads are "pushing" the list down
-                              } else if (index > 6) {
-                                chatIndex = index -
-                                    1; // Only the first ad is pushing it
+                              int chatIndex = isDefault ? index : index - 1;
+                              if (!isNoAds) {
+                                if (index == (isDefault ? 6 : 7)) {
+                                  return const ChatsNativeAd();
+                                }
+                                if (index == (isDefault ? 9 : 10)) {
+                                  return const AdFreeTile();
+                                }
+                                if (index > (isDefault ? 9 : 10)) {
+                                  chatIndex -= 2;
+                                } else if (index > (isDefault ? 6 : 7)){
+                                   chatIndex -= 1;
+                                }
+                                 
                               }
 
-                              // 4. Safety check
                               if (chatIndex >= state.chats.length ||
                                   chatIndex < 0) {
                                 return null;
@@ -298,11 +293,8 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
 
                               return _buildChatTile(state.chats[chatIndex]);
                             },
-                            // 5. Total count is chats + 2 (one for each ad)
-                            childCount: isNoAds
-                                ? state.chats.length
-                                : state.chats.length +
-                                    (state.chats.length >= 8 ? 2 : 1),
+                            childCount: calculateChildCount(state.chats.length,
+                                (state).isDefaultApp, isNoAds),
                           ),
                         )
                 else
@@ -316,7 +308,6 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                         size: 30,
                         color: theme.colorScheme.tertiaryContainer,
                       ),
-                     
                     ],
                   ))),
               ],
@@ -324,54 +315,82 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
           );
         },
       ),
-      // 3. M3 Floating Action Button
-      floatingActionButton:  FloatingActionButton.extended(
-        label: const Text('New'),
-        onPressed: () async {
-         final isdefault = await SmsService.isDefaultSmsApp();
-         if(!isdefault) return;
-          await Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => const SelectContactScreen()));
+      floatingActionButton: BlocBuilder<ChatsCubit, ChatsState>(
+        builder: (context, state) {
+          bool isDefault = state is ChatsLoaded ? state.isDefaultApp : false;
+          
+          return FloatingActionButton.extended(
+            label: const Text('New'),
+            icon: const Icon(Icons.edit_outlined),
+            onPressed: () async {
+              if (isDefault) {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const SelectContactScreen()));
+              } else {
+                context.read<ChatsCubit>().requestDefaultRole();
+              }
+            },
+          );
         },
-        icon: const Icon(Icons.edit_outlined),
       ),
     );
   }
-    Widget _buildDefaultRolePrompt(BuildContext context) {
-      final theme = Theme.of(context);
-  return Container(
-    padding: const EdgeInsets.all(32),
-    color: Theme.of(context).scaffoldBackgroundColor,
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(
-          Icons.lock_person_outlined, 
-          size: 80, 
-          color: theme.colorScheme.primary.withOpacity(0.8)
-        ),
-        const SizedBox(height: 32),
-        Text("Enable Privacy Features", style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 16),
-        const Text(
-          "To display your messages securely and keep your M-Pesa balances hidden, M-Ficha needs certain permissions ",
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 50),
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton(
-            onPressed: () => context.read<ChatsCubit>().requestDefaultRole(),
-            child: const Text("Grant Permissions"),
+
+  int calculateChildCount(int chatsLength, bool isDefaultApp, bool isNoAds) {
+    if (chatsLength == 0 && isDefaultApp) return 0;
+
+    int totalCount = chatsLength;
+
+    if (!isDefaultApp) {
+      totalCount += 1;
+    }
+    if (!isNoAds) {
+      if (chatsLength >= 6) {
+        totalCount += 1;
+      }
+      if (chatsLength >= 9) {
+        totalCount += 1;
+      }
+    }
+
+    return totalCount;
+  }
+
+
+
+  Widget _buildPermissionsPrompt(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(32),
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.lock_person_outlined,
+              size: 80, color: theme.colorScheme.primary.withOpacity(0.8)),
+          const SizedBox(height: 32),
+          Text("Enable Privacy Features",
+              style: Theme.of(context).textTheme.headlineSmall),
+          const SizedBox(height: 16),
+          const Text(
+            "To display your messages securely and keep your M-Pesa balances hidden, M-Ficha needs phone, sms and contacts permissions ",
+            textAlign: TextAlign.center,
           ),
-        ),
-        const SizedBox(height: 100),
-      ],
-    ),
-  );
-}
+          const SizedBox(height: 50),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: () => context.read<ChatsCubit>().requestDefaultRole(),
+              child: const Text("Grant Permissions"),
+            ),
+          ),
+          const SizedBox(height: 100),
+        ],
+      ),
+    );
+  }
 
   Widget _buildChatTile(AppChat chat) {
     final theme = Theme.of(context);
