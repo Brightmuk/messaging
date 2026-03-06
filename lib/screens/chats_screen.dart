@@ -316,7 +316,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                         size: 30,
                         color: theme.colorScheme.tertiaryContainer,
                       ),
-                      const Text('Something went wrong'),
+                     
                     ],
                   ))),
               ],
@@ -340,28 +340,34 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
     );
   }
     Widget _buildDefaultRolePrompt(BuildContext context) {
+      final theme = Theme.of(context);
   return Container(
     padding: const EdgeInsets.all(32),
     color: Theme.of(context).scaffoldBackgroundColor,
     child: Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Icon(Icons.sms_failed_outlined, size: 80),
-        const SizedBox(height: 24),
-        Text("Default App Required", style: Theme.of(context).textTheme.headlineSmall),
+        Icon(
+          Icons.lock_person_outlined, 
+          size: 80, 
+          color: theme.colorScheme.primary.withOpacity(0.8)
+        ),
+        const SizedBox(height: 32),
+        Text("Enable Privacy Features", style: Theme.of(context).textTheme.headlineSmall),
         const SizedBox(height: 16),
         const Text(
-          "M-Ficha needs to be your default SMS app to display and manage your messages.",
+          "To display your messages securely and keep your M-Pesa balances hidden, M-Ficha needs certain permissions ",
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 100),
+        const SizedBox(height: 50),
         SizedBox(
           width: double.infinity,
           child: FilledButton(
-            onPressed: () => SmsService.requestDefaultSmsRole(),
-            child: const Text("Set as Default"),
+            onPressed: () => context.read<ChatsCubit>().requestDefaultRole(),
+            child: const Text("Grant Permissions"),
           ),
         ),
+        const SizedBox(height: 100),
       ],
     ),
   );

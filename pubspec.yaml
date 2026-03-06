@@ -3,7 +3,7 @@ description: A modern SMS application for Android
 
 publish_to: 'none'
 
-version: 1.1.1+13
+version: 1.1.2+15
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -33,7 +33,6 @@ dependencies:
   in_app_purchase: ^3.2.3
   google_mobile_ads: ^6.0.0
   shimmer: ^3.0.0
-  introduction_screen: ^4.0.0
 
 dev_dependencies:
   flutter_test:

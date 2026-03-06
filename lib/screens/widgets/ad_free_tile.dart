@@ -8,6 +8,7 @@ class AdFreeTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return BlocBuilder<PaymentCubit, PaymentState>(
       builder: (context, state) {
         // 1. Check the state to see if the user is already Ad-Free
@@ -20,18 +21,11 @@ class AdFreeTile extends StatelessWidget {
         return Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Colors.blue.shade700, Colors.blue.shade900],
+              colors: [Colors.blue.shade700.withAlpha(15), Colors.blue.shade900.withAlpha(15)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.blue.withOpacity(0.3),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
           ),
           child: Stack(
             children: [
@@ -41,7 +35,7 @@ class AdFreeTile extends StatelessWidget {
                 child: Icon(
                   Icons.star,
                   size: 100, 
-                  color: Colors.white.withOpacity(0.1),
+                  color: theme.colorScheme.onSurface.withAlpha(10)
                 ),
               ),
               Padding(
@@ -50,7 +44,7 @@ class AdFreeTile extends StatelessWidget {
                   children: [
                     const CircleAvatar(
                       backgroundColor: Colors.white24,
-                      child: Icon(Icons.block, color: Colors.white),
+                      child: Icon(Icons.block),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -60,7 +54,7 @@ class AdFreeTile extends StatelessWidget {
                           const Text(
                             "Go Ad-Free Forever!",
                             style: TextStyle(
-                              color: Colors.white,
+                            
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
                             ),
@@ -69,16 +63,16 @@ class AdFreeTile extends StatelessWidget {
                           RichText(
                             text: TextSpan(
                               style: TextStyle(
-                                color: Colors.white.withOpacity(0.9),
+                                color: theme.colorScheme.onSurface.withAlpha(100),
                                 fontSize: 13,
                               ),
-                              children: const [
-                                TextSpan(text: "One-time payment of only "),
+                              children:  [
+                                const TextSpan(text: "One-time payment of only "),
                                 TextSpan(
                                   text: "Ksh.500 ",
                                   style: TextStyle(
                                     decoration: TextDecoration.lineThrough,
-                                    color: Colors.white60,
+                                    color: theme.colorScheme.onSurface.withAlpha(120),
                                     fontSize: 14,
                                   ),
                                 ),
@@ -86,7 +80,7 @@ class AdFreeTile extends StatelessWidget {
                                   text: " Ksh.360",
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                                    color: theme.colorScheme.onSurface,
                                     fontSize: 14,
                                   ),
                                 ),

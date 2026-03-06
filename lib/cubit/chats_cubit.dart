@@ -7,6 +7,7 @@ import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/models/app_chat.dart';
 import 'package:messaging/services/contact_service.dart';
 import 'package:messaging/services/sms_service.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 part 'chats_state.dart';
 
@@ -15,25 +16,64 @@ class ChatsCubit extends Cubit<ChatsState> {
   StreamSubscription? _smsSubscription;
   StreamSubscription? _readSubscription;
   ChatsCubit() : super(ChatsInitial()) {
-
     _init();
   }
+  Future<bool> areRequiredPermissionsGiven() async {
+    bool allPermissionsGranted = true;
+    for (var p in [
+      Permission.sms,
+      Permission.contacts,
+      Permission.phone,
+    ]) {
+      final status = await p.status;
+      if (!status.isGranted) {
+        allPermissionsGranted = false;
+        break;
+      }
+    }
+    return allPermissionsGranted;
+  }
+
   void _init() async {
-    final isDefaultApp = await SmsService.isDefaultSmsApp();
-    if(!isDefaultApp){
+    final permitted = await areRequiredPermissionsGiven();
+    if (!permitted) {
       emit(PermissionRevoked());
       return;
     }
-   _smsService= SmsService();
+    _smsService = SmsService();
     _setupListeners();
     loadChats(isInitialLoad: true);
     ContactService().init();
   }
+
   void _setupListeners() {
     _smsSubscription = _smsService.onMessageUpdated.listen((event) {
       debugPrint("\nChats Cubit message event: ${event.type}\n");
       loadChats(isInitialLoad: true);
     });
+  }
+
+  Timer? _defaultAppTimer;
+  int _count = 0;
+  Future<void> requestDefaultRole() async {
+    await SmsService.requestDefaultSmsRole();
+    _defaultAppTimer?.cancel();
+    _defaultAppTimer =
+        Timer.periodic(const Duration(seconds: 1), (timer) async {
+      _count++;
+      final isDefault = await SmsService.isDefaultSmsApp();
+      if (isDefault) {
+        debugPrint("App is now default SMS app");
+        timer.cancel();
+        _init();
+      } else {
+        debugPrint("Still waiting for default role... (${_count}s)");
+      }
+      if (_count >= 10) {
+        timer.cancel();
+      }
+    });
+    emit(PermissionRevoked());
   }
 
   List<AppChat> chats = [];
@@ -44,14 +84,13 @@ class ChatsCubit extends Cubit<ChatsState> {
   bool get hasReachedMax => _hasReachedMax;
 
   Future<void> loadChats({bool isInitialLoad = true}) async {
-    final isDefaultApp = await SmsService.isDefaultSmsApp();
-        if(!isDefaultApp){
-          emit(PermissionRevoked());
-          return;
-        }
+    final permitted = await areRequiredPermissionsGiven();
+    if (!permitted) {
+      emit(PermissionRevoked());
+      return;
+    }
 
     if (_isFetching || (!isInitialLoad && _hasReachedMax)) return;
-    debugPrint("Loading chats...");
     _isFetching = true;
 
     if (isInitialLoad) {
@@ -96,24 +135,23 @@ class ChatsCubit extends Cubit<ChatsState> {
     }
   }
 
-
   Future<void> deleteThreads(Iterable<String> threadIds) async {
-      await _smsService.deleteThreads(threadIds);
+    await _smsService.deleteThreads(threadIds);
   }
 
   Future<void> archiveChats(Iterable<String> threadIds) async {
-      await _smsService.markThreadsAsArchived(threadIds, true);
+    await _smsService.markThreadsAsArchived(threadIds, true);
   }
 
   Future<void> pinChats(Iterable<String> threadIds, bool pinned) async {
     await _smsService.markThreadsAsPinned(threadIds, pinned);
   }
 
-
   @override
   Future<void> close() {
     _smsSubscription?.cancel();
     _readSubscription?.cancel();
+    _defaultAppTimer?.cancel();
     return super.close();
   }
 }

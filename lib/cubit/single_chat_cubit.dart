@@ -152,6 +152,11 @@ Future<void> getMessages({bool isInitialLoad = true}) async {
 
 
   Future<void> sendMessage(String address, String message) async {
+    final isDefault = await SmsService.isDefaultSmsApp();
+    if (!isDefault) {
+      SmsService.requestDefaultSmsRole();
+      return;
+    }
     await _smsService.sendSms(address, message, threadId);
   }
   Future<void> retrySend(AppSmsMessage message) async {

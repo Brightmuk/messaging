@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'package:bloc/bloc.dart';
-import 'package:flutter/foundation.dart';
 import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/services/sms_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 part 'permissions_state.dart';
+
 
 enum AppLifecycleStatus {
   initial,
@@ -14,67 +14,81 @@ enum AppLifecycleStatus {
   authenticated
 }
 
-class PermissionsCubit extends Cubit<AppLifecycleStatus> {
-  PermissionsCubit() : super(AppLifecycleStatus.initial) {
+class PermissionsCubit extends Cubit<PermissionsState> {
+  PermissionsCubit() : super(PermissionsState(statuses: {})) {
     initialize();
   }
-  final List<Permission> requiredPermissions = [
+
+  final List<Permission> _requiredPermissions = [
+    Permission.sms,
+    Permission.contacts,
+    Permission.phone,
     Permission.notification,
   ];
 
   Future<void> initialize() async {
     final onboarded = await UserDefaults.hasOnboarded();
     if (!onboarded) {
-      emit(AppLifecycleStatus.onboarding);
+      emit(state.copyWith(status: AppLifecycleStatus.onboarding));
     } else {
-      emit(AppLifecycleStatus.authenticated);
+      await checkStatus();
     }
   }
 
   Future<void> completeOnboarding() async {
     await UserDefaults.setHasOnboarded();
-    checkStatus();
-  }
-
-  Future<void> requestDefaultAndCheck() async {
     await SmsService.requestDefaultSmsRole();
     await checkStatus();
   }
 
-  Timer? _defaultAppTimer;
-  int _count = 0;
   Future<void> checkStatus() async {
-    final isDefault = await SmsService.isDefaultSmsApp();
-    if (isDefault) {
-      emit(AppLifecycleStatus.authenticated);
+    Map<Permission, PermissionStatus> newStatuses = {};
+    for (var p in _requiredPermissions) {
+      newStatuses[p] = await p.status;
+    }
+
+   bool allEssentialGranted = newStatuses.entries
+      .where((e) => e.key != Permission.notification) 
+      .every((e) => e.value.isGranted);
+
+  emit(state.copyWith(
+    statuses: newStatuses,
+    status: allEssentialGranted 
+        ? AppLifecycleStatus.authenticated 
+        : AppLifecycleStatus.promptPermissions,
+  ));
+  }
+
+  Future<void> requestAllRemaining() async {
+
+    // 2. Request each one
+    for (var p in _requiredPermissions) {
+      await p.request();
+    }
+
+    // 3. Check what happened
+    Map<Permission, PermissionStatus> finalStatuses = {};
+    Permission? firstDenied;
+
+    for (var p in _requiredPermissions) {
+      final status = await p.status;
+      finalStatuses[p] = status;
+      if (!status.isGranted && firstDenied == null && p != Permission.notification) {
+        firstDenied = p;
+      }
+    }
+
+    if (firstDenied != null) {
+      emit(state.copyWith(
+        statuses: finalStatuses,
+        lastDeniedPermission: firstDenied,
+      ));
     } else {
-      _defaultAppTimer?.cancel();
-      _defaultAppTimer =
-          Timer.periodic(const Duration(seconds: 1), (timer) async {
-        _count++;
-        final isDefault = await SmsService.isDefaultSmsApp();
-        if (isDefault) {
-          debugPrint("App is now default SMS app");
-          timer.cancel();
-          goToHome();
-        } else {
-          debugPrint("Still waiting for default role... (${_count}s)");
-        }
-        if (_count >= 10) {
-          timer.cancel();
-        }
-      });
-      emit(AppLifecycleStatus.promptPermissions);
+      await checkStatus();
     }
   }
 
-  void goToHome() {
-    emit(AppLifecycleStatus.authenticated);
-  }
-
-  @override
-  Future<void> close() {
-    _defaultAppTimer?.cancel();
-    return super.close();
+  void resetDeniedTrigger() {
+    emit(state.copyWith(clearDenied: true));
   }
 }

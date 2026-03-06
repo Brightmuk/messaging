@@ -3,27 +3,25 @@ part of 'permissions_cubit.dart';
 
 class PermissionsState {
   final Map<Permission, PermissionStatus> statuses;
-  final bool isDefaultApp;
   final AppLifecycleStatus status;
+  final Permission? lastDeniedPermission;
 
   PermissionsState({
-    required this.statuses, 
-    required this.isDefaultApp,
+    required this.statuses,
     this.status = AppLifecycleStatus.initial,
+    this.lastDeniedPermission,
   });
-
-  bool get allGranted => 
-     statuses.isNotEmpty && statuses.values.every((s) => s.isGranted);
 
   PermissionsState copyWith({
     Map<Permission, PermissionStatus>? statuses,
-    bool? isDefaultApp,
     AppLifecycleStatus? status,
+    Permission? lastDeniedPermission,
+    bool clearDenied = false,
   }) {
     return PermissionsState(
       statuses: statuses ?? this.statuses,
-      isDefaultApp: isDefaultApp ?? this.isDefaultApp,
       status: status ?? this.status,
+      lastDeniedPermission: clearDenied ? null : (lastDeniedPermission ?? this.lastDeniedPermission),
     );
   }
 }

@@ -39,20 +39,27 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.lightTheme(context),
       darkTheme: AppTheme.darkTheme(context),
       themeMode: ThemeMode.system,
-     home: BlocBuilder<PermissionsCubit, AppLifecycleStatus>(
-  builder: (context, status) {
-    switch (status) {
-      case AppLifecycleStatus.onboarding:
-        return const MfichaOnboarding();
-      case AppLifecycleStatus.promptPermissions:
-        return const PermissionsScreen();
-      case AppLifecycleStatus.authenticated:
-        return const ChatsScreen();
-      case AppLifecycleStatus.initial:
-        return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-  },
-),
+      home: BlocBuilder<PermissionsCubit, PermissionsState>(
+        builder: (context, state) {
+          switch (state.status) {
+            case AppLifecycleStatus.onboarding:
+              return const MfichaOnboarding();
+
+            case AppLifecycleStatus.promptPermissions:
+              return const PermissionsScreen();
+
+            case AppLifecycleStatus.authenticated:
+              return const ChatsScreen();
+
+            case AppLifecycleStatus.initial:
+              return const Scaffold(
+                body: Center(
+                  child: CircularProgressIndicator(),
+                ),
+              );
+          }
+        },
+      ),
     );
   }
 }
