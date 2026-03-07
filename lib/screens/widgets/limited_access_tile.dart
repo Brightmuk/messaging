@@ -58,7 +58,7 @@ class _LimitedAccessTileState extends State<LimitedAccessTile> {
           ),
           const SizedBox(height: 12),
           Text(
-            "M-Ficha is currently only showing financial messages. Set as default app to manage other messages on your device",
+            "M-Ficha is currently only showing mobile money messages. Set as default app to manage other messages on your device",
             style: theme.textTheme.bodyMedium
                 ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),

@@ -11,6 +11,7 @@ class AppChat {
   final int unreadCount;
   final bool isPinned;
   final bool isArchived;
+  final List<String> recentMessages;
 
   AppChat._internal({
     required this.threadId,
@@ -21,6 +22,7 @@ class AppChat {
     this.unreadCount = 0,
     this.isPinned = false,
     this.isArchived = false,
+    this.recentMessages = const [],
   });
   factory AppChat({
     required String threadId,
@@ -30,6 +32,7 @@ class AppChat {
     int unreadCount = 0,
     bool isPinned = false,
     bool isArchived = false,
+    List<String> recentMessages = const [],
   }) {
     return AppChat._internal(
       threadId: threadId,
@@ -40,6 +43,7 @@ class AppChat {
       unreadCount: unreadCount,
       isPinned: isPinned,
       isArchived: isArchived,
+      recentMessages: recentMessages
     );
   }
 
@@ -56,7 +60,7 @@ class AppChat {
     };
   }
 
-  factory AppChat.fromMap(Map<String, dynamic> map) {
+  factory AppChat.fromMap(Map<String, dynamic> map, {List<String> recent = const []}) {
     return AppChat(
       threadId: map['threadId'] as String,
       address: map['address'] as String,
@@ -67,6 +71,7 @@ class AppChat {
       unreadCount: map['unreadCount'] as int,
       isPinned: (map['isPinned'] as int?) == 1,
       isArchived: (map['isArchived'] as int?) == 1,
+      recentMessages: recent,
     );
   }
 

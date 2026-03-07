@@ -218,7 +218,7 @@ Future<List<AppChat>> getPaginatedChats({
     whereArgs.addAll(financialSenders);
   }
 
-  final result = await db.query(
+  final chatMaps = await db.query(
     'chats',
     where: whereClause,
     whereArgs: whereArgs,
@@ -227,7 +227,27 @@ Future<List<AppChat>> getPaginatedChats({
     offset: offset,
   );
 
-  return result.map((json) => AppChat.fromMap(json)).toList();
+  List<AppChat> chats = [];
+
+  for (var map in chatMaps) {
+    List<String> recentMsgs = [];
+    
+    // 2. Fetch last 5 messages ONLY if not default app (Limited Mode)
+    if (!isDefaultApp) {
+      final msgMaps = await db.query(
+        'messages',
+        where: 'threadId = ?',
+        whereArgs: [map['threadId']],
+        orderBy: 'date DESC',
+        limit: 1,
+      );
+      recentMsgs = msgMaps.map((m) => m['body'] as String).toList();
+    }
+
+    chats.add(AppChat.fromMap(map, recent: recentMsgs));
+  }
+
+  return chats;
 }
 
   Future<List<AppChat>> getAllChats() async {

@@ -1,6 +1,9 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:messaging/core/brand_palette.dart';
 import 'package:messaging/core/feedback_ui.dart';
 import 'package:messaging/cubit/chats_cubit.dart';
 import 'package:messaging/cubit/payment_cubit.dart';
@@ -19,6 +22,7 @@ import 'package:messaging/services/contact_service.dart';
 import 'package:messaging/services/notification_service.dart';
 import 'package:messaging/services/rating_limiter.dart';
 import 'package:messaging/services/redact_service.dart';
+import 'package:messaging/services/transaction_summary_service.dart';
 import 'package:provider/provider.dart';
 import 'select_contact_screen.dart';
 
@@ -291,7 +295,8 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                                 return null;
                               }
 
-                              return _buildChatTile(state.chats[chatIndex]);
+                              return isDefault? _buildChatTile(state.chats[chatIndex]):
+                              _buildPrivacyVaultTile(state.chats[chatIndex], context);
                             },
                             childCount: calculateChildCount(state.chats.length,
                                 (state).isDefaultApp, isNoAds),
@@ -393,10 +398,10 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
   }
 
   Widget _buildChatTile(AppChat chat) {
+
     final theme = Theme.of(context);
     final bool isSelected = _selectedThreadIds.contains(chat.threadId);
     final bool hasUnread = chat.unreadCount > 0;
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: InkWell(
@@ -421,12 +426,14 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.all(12),
+          
           decoration: BoxDecoration(
               color: isSelected
                   ? theme.colorScheme.primaryContainer
                   : (hasUnread
                       ? theme.colorScheme.primaryContainer.withAlpha(100)
-                      : Colors.transparent),
+                      : Colors.transparent
+                      ),
               borderRadius: BorderRadius.circular(20),
               border: Border(
                   bottom: BorderSide(
@@ -523,6 +530,285 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
       ),
     );
   }
+  Widget _buildPrivacyVaultTile(AppChat chat, BuildContext context) {
+  final theme = Theme.of(context);
+  final bool isSelected = _selectedThreadIds.contains(chat.threadId);
+  final palette = getBrandPalette(chat.address, context);
+  final summary = TransactionSummary.parse(chat.recentMessages.first);
+
+  return GestureDetector(
+     onTap: () {
+         if (_isSelectionMode) {
+            _toggleSelection(chat.threadId);
+          } else {
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => SingleChatScreen(
+                      threadId: chat.threadId, address: chat.address),
+                ));
+          }
+      },
+      onLongPress: () {
+          if (!_isSelectionMode) {
+            _toggleSelection(chat.threadId);
+          }
+        },
+    child: AnimatedContainer(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      padding: const EdgeInsets.all(20),
+      duration: const Duration(milliseconds: 200),
+      decoration: BoxDecoration(
+        color:  isSelected
+                  ? theme.colorScheme.primaryContainer : palette.background,
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: palette.accent.withOpacity(0.1), width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. Header: Brand + Privacy Shield
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                   isSelected? 
+                   CircleAvatar(
+                    radius: 14,
+                    backgroundColor: theme.colorScheme.primary,
+                    child:Icon(Icons.check, color: theme.colorScheme.onPrimary)
+                        
+                  ):
+                    Icon(Icons.security, size: 16, color: palette.accent),
+                  const SizedBox(width: 8),
+                  Text(
+                    chat.address,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.2,
+                      color: palette.accent,
+                    ),
+                  ),
+                ],
+              ),
+              _buildPrivacyBadge(palette),
+            ],
+          ),
+          const SizedBox(height: 20),
+      
+          // 2. Sanitized Content
+          Text(
+            summary.action == "Checked balance" 
+                ? "Account balance check performed." 
+                : "${summary.action} ${summary.amount} to ${summary.name}",
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 8),
+      
+          // 3. The "Redacted" Preview & Show Button
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Visual Redaction Bar
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Text("Balance: ", style: theme.textTheme.bodySmall),
+                    Container(
+                      width: 60,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: palette.accent.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // The "Show" Action
+              summary.isBalanceCheck? const SizedBox.shrink(): TextButton.icon(
+                onPressed: () => _showPrivacyDialog(context, chat, palette),
+                style: TextButton.styleFrom(
+                  backgroundColor: palette.accent,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                ),
+                icon: const Icon(Icons.visibility_outlined, size: 16),
+                label: const Text("Receipt", style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
+}
+Widget _buildPrivacyBadge(BrandPalette palette) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    decoration: ShapeDecoration(
+      // Gradient adds that "Premium/Modern" fintech feel
+      gradient: LinearGradient(
+        colors: [
+          palette.accent.withOpacity(0.15),
+          palette.accent.withOpacity(0.05),
+        ],
+      ),
+      shape: StadiumBorder(
+        side: BorderSide(color: palette.accent.withOpacity(0.2), width: 1),
+      ),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Pulsing-style dot to show the "Privacy Shield" is active
+        Container(
+          width: 6,
+          height: 6,
+          decoration: BoxDecoration(
+            color: palette.accent,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: palette.accent.withOpacity(0.4),
+                blurRadius: 4,
+                spreadRadius: 1,
+              )
+            ],
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          "SECURE VIEW",
+          style: TextStyle(
+            fontSize: 9,
+            fontWeight: FontWeight.w900,
+            color: palette.accent,
+            letterSpacing: 0.8,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+void _showPrivacyDialog(BuildContext context, AppChat chat, BrandPalette palette) {
+  final theme = Theme.of(context);
+  final summary = TransactionSummary.parse(chat.lastMessage??'');
+
+  showDialog(
+    context: context,
+    barrierDismissible: true,
+    builder: (context) => BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+      child: AlertDialog(
+        backgroundColor: Colors.transparent, // Transparent to show the bubble
+        contentPadding: EdgeInsets.zero,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 1. The "Vault" Status Indicator above the bubble
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: palette.accent,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.lock_outline, size: 14, color: Colors.white),
+                  const SizedBox(width: 8),
+                  Text(
+                    "SECURE TRANSACTION VIEW",
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // 2. The Chat Bubble
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(30),
+                  bottomRight: Radius.circular(30),
+                  topRight: Radius.circular(30),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Transaction Header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        summary.action.toUpperCase(),
+                        style: TextStyle(
+                          color: palette.accent,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 12,
+                        ),
+                      ),
+                      Text(
+                        "Just Now", // You can pass the actual time here
+                        style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.outline),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // The "Message" Body
+                  Text(
+                    RedactService.redactAfterBalance(chat.lastMessage??'', chat.address),
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      height: 1.5,
+                      letterSpacing: 0.2,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Action Row: Copy Trans ID
+                  // _buildCopyIdButton(rawMessage, palette, theme),
+                ],
+              ),
+            ),
+            
+            const SizedBox(height: 20),
+            
+            // 3. Dismiss Button
+            IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.clear, color: Colors.white, size: 48),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
 
   Future<void> _deleteSelectedChats() async {
     final count = _selectedThreadIds.length;
