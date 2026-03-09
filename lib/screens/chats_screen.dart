@@ -534,9 +534,11 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
   final theme = Theme.of(context);
   final bool isSelected = _selectedThreadIds.contains(chat.threadId);
   final palette = getBrandPalette(chat.address, context);
-  final summary = TransactionSummary.parse(chat.recentMessages.first);
+  final summary = TransactionSummary.parse(chat.lastMessage??'');
+
 
   return GestureDetector(
+    
      onTap: () {
          if (_isSelectionMode) {
             _toggleSelection(chat.threadId);

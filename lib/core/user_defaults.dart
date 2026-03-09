@@ -6,11 +6,13 @@ class UserDefaults {
   static String hideStatusString = 'hideStatus';
   static String hasOnboardedString = 'hasOnboarded';
   static String adsRemovedString = 'adsRemoved';
+  static const String demoModeKey = 'isDemoMode';
 
   static Future<void> setHasOnboarded() async {
     final prefs = await SharedPreferences.getInstance();
     prefs.setBool(hasOnboardedString, true);
   }
+
   static Future<bool> hasOnboarded() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(hasOnboardedString) ?? false;
@@ -20,34 +22,49 @@ class UserDefaults {
     final prefs = await SharedPreferences.getInstance();
     prefs.setBool(hasSyncedString, true);
   }
+
   static Future<bool> hasSynced() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(hasSyncedString) ?? false;
   }
+
   static Future<int> getDefaultSim() async {
-     final prefs = await SharedPreferences.getInstance();
+    final prefs = await SharedPreferences.getInstance();
     return prefs.getInt(defaultSimString) ?? -1;
   }
+
   static Future<void> setDefaultSim(int simId) async {
     final prefs = await SharedPreferences.getInstance();
     prefs.setInt(defaultSimString, simId);
   }
+
   static Future<void> setHideStatus(bool hideStatus) async {
     final prefs = await SharedPreferences.getInstance();
     prefs.setBool(hideStatusString, hideStatus);
   }
+
   static Future<bool> getHideStatus() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(hideStatusString) ?? true;
   }
+
   static Future<void> setAdsRemoved() async {
     final prefs = await SharedPreferences.getInstance();
     prefs.setBool(adsRemovedString, true);
   }
+
   static Future<bool> getAdsRemoved() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(adsRemovedString) ?? false;
   }
 
+  static Future<bool> isDemoMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(demoModeKey) ?? false;
+  }
 
+  static Future<void> setDemoMode(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(demoModeKey, value);
+  }
 }

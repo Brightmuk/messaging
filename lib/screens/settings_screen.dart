@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:messaging/core/events.dart';
 import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/core/utils/functions.dart';
 import 'package:messaging/models/sim_card_state.dart';
@@ -288,7 +289,7 @@ class _SettingsScreenState extends State<SettingsScreen>
       onTap: onTap,
     );
   }
-
+  int _tapCount = 0;
   Widget _buildFooter() {
     final theme = Theme.of(context);
     return FutureBuilder<PackageInfo>(
@@ -299,24 +300,41 @@ class _SettingsScreenState extends State<SettingsScreen>
         final info = snapshot.data!;
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 20),
-          child: Center(
-            child: Column(
-              children: [
-                Text(
-                  'App Version ${info.version}',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant.withOpacity(0.6),
-                    letterSpacing: 0.5,
-                  ),
+          child: GestureDetector(
+            onTap: () async {
+            _tapCount++;
+            if (_tapCount >= 7) {
+              _tapCount = 0; 
+              bool currentMode = await UserDefaults.isDemoMode();
+              await UserDefaults.setDemoMode(!currentMode);
+              eventBus.fire(DemoMode(isActive: !currentMode));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(!currentMode ? "Demo Mode Activated" : "Demo Mode Deactivated"),
+                  backgroundColor: theme.colorScheme.primary,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '© ${DateTime.now().year} Proudly Kenyan',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant.withOpacity(0.4),
+              );
+            }
+          },
+            child: Center(
+              child: Column(
+                children: [
+                  Text(
+                    'App Version ${info.version}',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant.withOpacity(0.6),
+                      letterSpacing: 0.5,
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  Text(
+                    '© ${DateTime.now().year} Proudly Kenyan',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant.withOpacity(0.4),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         );

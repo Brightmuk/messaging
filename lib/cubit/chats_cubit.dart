@@ -3,7 +3,9 @@ import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:messaging/core/events.dart';
 import 'package:messaging/core/user_defaults.dart';
+import 'package:messaging/cubit/single_chat_cubit.dart';
 import 'package:messaging/models/app_chat.dart';
 import 'package:messaging/services/contact_service.dart';
 import 'package:messaging/services/sms_service.dart';
@@ -15,6 +17,7 @@ class ChatsCubit extends Cubit<ChatsState> {
   late SmsService _smsService;
   StreamSubscription? _smsSubscription;
   StreamSubscription? _readSubscription;
+  StreamSubscription? _demoModeSubscription;
   ChatsCubit() : super(ChatsInitial()) {
     _init();
   }
@@ -45,12 +48,17 @@ class ChatsCubit extends Cubit<ChatsState> {
     loadChats(isInitialLoad: true);
     ContactService().init();
   }
-
-  void _setupListeners() {
+  bool _isDemoMode = false;
+  void _setupListeners() async {
     _smsSubscription = _smsService.onMessageUpdated.listen((event) {
       debugPrint("\nChats Cubit message event: ${event.type}\n");
       loadChats(isInitialLoad: true);
     });
+    _isDemoMode = await UserDefaults.isDemoMode();
+    _demoModeSubscription = eventBus.on<DemoMode>().listen((event) {
+        _isDemoMode = event.isActive;
+        loadChats(isInitialLoad: true);
+      });
   }
 
   Timer? _defaultAppTimer;
@@ -84,6 +92,7 @@ class ChatsCubit extends Cubit<ChatsState> {
   bool get hasReachedMax => _hasReachedMax;
 
 Future<void> loadChats({bool isInitialLoad = true}) async {
+
   // 1. Guard against concurrent fetches
   if (_isFetching) return;
   
@@ -96,6 +105,10 @@ Future<void> loadChats({bool isInitialLoad = true}) async {
 
   // 3. Status check for mode switching (Limited vs Full)
   final isDefault = await SmsService.isDefaultSmsApp();
+
+  if(_isDemoMode){
+    return  emit(ChatsLoaded(getDemoChats(),isDefaultApp: isDefault));
+  }
   
   // Determine if we need to reset the list (e.g., mode changed or initial load)
   final bool shouldReset = isInitialLoad || (state is ChatsLoaded && (state as ChatsLoaded).isDefaultApp != isDefault);
@@ -155,12 +168,31 @@ Future<void> loadChats({bool isInitialLoad = true}) async {
   Future<void> pinChats(Iterable<String> threadIds, bool pinned) async {
     await _smsService.markThreadsAsPinned(threadIds, pinned);
   }
+  List<AppChat> getDemoChats() {
+  return [
+    AppChat(
+      address: "MPESA",
+      unreadCount: 2,
+      threadId: 'mpesa_demo_id',
+      lastMessageDate: DateTime.now().millisecondsSinceEpoch,
+      lastMessage:  DemoMessages.messages[0].body,
+    ),
+    AppChat(
+      address: "AirtelMoney",
+      unreadCount: 0,
+      threadId: 'airtel_demo_id',
+      lastMessageDate: DateTime.now().millisecondsSinceEpoch,
+      lastMessage: DemoMessages.messages[1].body,
+    ),
+  ];
+}
 
   @override
   Future<void> close() {
     _smsSubscription?.cancel();
     _readSubscription?.cancel();
     _defaultAppTimer?.cancel();
+    _demoModeSubscription?.cancel();
     return super.close();
   }
 }

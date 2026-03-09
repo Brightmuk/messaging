@@ -15,14 +15,18 @@ class SingleChatCubit extends Cubit<SingleChatState> {
   StreamSubscription? _updateSubscription;
   SingleChatCubit(this.threadId, {this.targetTimestamp}) : super(SingleChatInitial()) {
     getHideStatus();
-    _updateSubscription = _smsService.onMessageUpdated.listen((event) {
+    _setupListeners();
+    getMessages();
+  }
+  void _setupListeners() async {
+        _updateSubscription = _smsService.onMessageUpdated.listen((event) {
       Future.delayed(const Duration(milliseconds: 300)).then((_) {
         if (!isClosed) {
           handleSmsUpdates(event);
         }
       });
     });
-    getMessages();
+        
   }
 
   List<AppSmsMessage> messages = [];
@@ -103,6 +107,17 @@ class SingleChatCubit extends Cubit<SingleChatState> {
 
 
 Future<void> getMessages({bool isInitialLoad = true}) async {
+  bool isDemoMode = await UserDefaults.isDemoMode();
+  if(isDemoMode){
+    messages = DemoMessages.messages.where((msg)=>msg.threadId == threadId).toList();
+    
+    emit(SingleChatLoaded(
+      messages: messages,
+      hideStatus: hideStatus,
+      hasReachedMax: true,
+    ));
+    return;
+  }
   if (_isFetching) return;
   if (!isInitialLoad && _hasReachedMax) return;
 
@@ -171,6 +186,9 @@ Future<void> getMessages({bool isInitialLoad = true}) async {
     await _smsService.markThreadAsRead(threadId);
   }
 
+
+
+
   @override
   Future<void> close() {
     _updateSubscription?.cancel();
@@ -178,4 +196,77 @@ Future<void> getMessages({bool isInitialLoad = true}) async {
   }
 }
 
-// class ThreadReadEvent {}
+class DemoMessages {
+  // Use getters to ensure 'now' is fresh whenever the list is accessed
+  static int get _now => DateTime.now().millisecondsSinceEpoch;
+  static int get _oneHourAgo => _now - (3600 * 1000);
+  static int get _oneDayAgo => _now - (86400 * 1000);
+
+  static List<AppSmsMessage> get messages => [
+        // 1. M-PESA: Recent Received (Triggers the Vault Tile)
+        AppSmsMessage(
+          id: 101,
+          address: "MPESA",
+          body: "UBM487RO6P Confirmed. You have received Ksh1,500.00 from BRIGHT MUKONESI 0791670106 on 9/3/26 at 9:15 AM. New M-PESA balance is Ksh5,420.00.",
+          date: _now,
+          type: 1,
+          threadId: "mpesa_demo_id",
+          status: MessageStatus.delivered,
+          read: false,
+          simId: 1,
+        ),
+
+        // 2. Airtel Money: Bundle Purchase (Triggers Red Palette)
+        AppSmsMessage(
+          id: 201,
+          address: "AirtelMoney",
+          body: "41594319234 Confirmed. You have successfully purchased a bundle of Ksh 500 via Airtel Networks Kenya Ltd on 09/03/26 at 08:03 AM. Fee: Ksh 0. Bal: Ksh 1,200.00",
+          date: _oneHourAgo,
+          type: 1,
+          threadId: "airtel_demo_id",
+          status: MessageStatus.delivered,
+          read: false,
+          simId: 2,
+        ),
+
+        // 3. M-PESA: Reversal
+        AppSmsMessage(
+          id: 102,
+          address: "MPESA",
+          body: "TKFL9EXWCM confirmed. Reversal of transaction TKFL9ADWCV has been successfully reversed on 8/3/26 at 10:48 PM and Ksh50.00 is debited from your M-PESA account. New M-PESA account balance is Ksh3,920.00.",
+          date: _oneDayAgo,
+          type: 1,
+          threadId: "mpesa_demo_id",
+          status: MessageStatus.delivered,
+          read: true,
+          simId: 1,
+        ),
+
+        // 4. M-PESA: Balance Check (Triggers "Checked balance" Privacy Rule)
+        AppSmsMessage(
+          id: 103,
+          address: "MPESA",
+          body: "TK1888V9B3 Confirmed. Your account balance was: M-PESA Account : Ksh3,870.00 on 7/3/26 at 11:41 AM. Transaction cost, Ksh0.00.",
+          date: _oneDayAgo - 1000,
+          type: 1,
+          threadId: "mpesa_demo_id",
+          status: MessageStatus.delivered,
+          read: true,
+          simId: 1,
+        ),
+
+        // 5. M-PESA: Failed Transaction (Triggers Tonal Error Style)
+        AppSmsMessage(
+          id: 104,
+          address: "MPESA",
+          body: "Failed. Insufficient funds in your M-PESA account to send Ksh10,000.00. Your M-PESA balance is Ksh3,870.00.",
+          date: _oneDayAgo - 5000,
+          type: 1,
+          threadId: "mpesa_demo_id",
+          status: MessageStatus.delivered,
+          read: true,
+          simId: 1,
+        ),
+      ];
+
+}

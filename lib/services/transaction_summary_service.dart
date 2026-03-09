@@ -55,13 +55,15 @@ class TransactionSummary {
 
     if (msg.contains("PAID TO")) {
       name = _extractBetween(message, "paid to ", ". on");
-    } else if (msg.contains("PURCHASED")) {
-      name = _extractBetween(message, "of ", " via");
+     } else if (msg.contains("PURCHASED")) {
+      name = _extractBetween(message, "via ", " on"); 
+      if (name == "General") name = "Bundle Purchase"; 
     } else if (received) {
       name = _extractBetween(message, "from ", " on ");
     } else if (msg.contains("SENT TO")) {
       name = _extractBetween(message, "sent to ", " on ");
     }
+    
 
     return TransactionSummary(
       action: received ? "Received" : "Spent",
