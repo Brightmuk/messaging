@@ -315,6 +315,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                 ),
               );
             }
+           
           },
             child: Center(
               child: Column(

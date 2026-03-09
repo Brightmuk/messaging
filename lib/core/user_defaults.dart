@@ -55,6 +55,7 @@ class UserDefaults {
 
   static Future<bool> getAdsRemoved() async {
     final prefs = await SharedPreferences.getInstance();
+    if(await isDemoMode()) return true;
     return prefs.getBool(adsRemovedString) ?? false;
   }
 

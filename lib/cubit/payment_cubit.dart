@@ -12,6 +12,7 @@ part 'payment_state.dart';
 class PaymentCubit extends Cubit<PaymentState> {
   late StreamSubscription _paymetConfirmedSub;
   final PurchaseService _service = PurchaseService();
+  StreamSubscription? _demoModeSubscription;
   PaymentCubit() : super(PaymentInitial()) {
     init();
   }
@@ -21,49 +22,60 @@ class PaymentCubit extends Cubit<PaymentState> {
     _paymetConfirmedSub = eventBus.on<PurchaseStatus>().listen((event) {
       _processPayment(event);
     });
+
+    _demoModeSubscription = eventBus.on<DemoMode>().listen((event) {
+      isNoAds = event.isActive;
+      if (isNoAds) {
+        emit(PaymentPaid());
+      } else {
+        emit(PaymentNotPaid());
+      }
+    });
     if (isNoAds) {
       emit(PaymentPaid());
     } else {
       emit(PaymentNotPaid());
     }
   }
+
   Timer? _pendingTimer;
   void _processPayment(PurchaseStatus event) async {
-    print("New event: $event");
-    switch(event){
+    switch (event) {
       case PurchaseStatus.error:
-       emit(const PaymentFailed(message: "Payment failed, please try again!"));
-      break;
+        emit(const PaymentFailed(message: "Payment failed, please try again!"));
+        break;
 
       case PurchaseStatus.purchased:
       case PurchaseStatus.restored:
-      await UserDefaults.setAdsRemoved();
-      isNoAds = true;
-       emit(PaymentSuccess(isRestored: event == PurchaseStatus.restored));
-      break;
+        await UserDefaults.setAdsRemoved();
+        isNoAds = true;
+        emit(PaymentSuccess(isRestored: event == PurchaseStatus.restored));
+        break;
 
       case PurchaseStatus.pending:
-      _pendingTimer = Timer(const Duration(seconds: 45), () {
-        if (state is PaymentProcessing) {
-          emit(const PaymentFailed(
-            message: "Payment is taking too long. Please check your Play Store account."
-          ));
-        }
-      });
-      emit(PaymentProcessing());
-      break;
+        _pendingTimer = Timer(const Duration(seconds: 45), () {
+          if (state is PaymentProcessing) {
+            emit(const PaymentFailed(
+                message:
+                    "Payment is taking too long. Please check your Play Store account."));
+          }
+        });
+        emit(PaymentProcessing());
+        break;
 
       case PurchaseStatus.canceled:
-      emit(const PaymentFailed(message: "You canceled the payment!"));
-      break;
+        emit(const PaymentFailed(message: "You canceled the payment!"));
+        break;
     }
   }
+
   void startPurchase() async {
     emit(PaymentProcessing());
-     
+
     await _service.buyAdFree();
   }
-  void restorePurchase()async{
+
+  void restorePurchase() async {
     emit(PaymentProcessing());
     _service.restorePurchases();
   }
@@ -72,8 +84,7 @@ class PaymentCubit extends Cubit<PaymentState> {
   Future<void> close() {
     _paymetConfirmedSub.cancel();
     _pendingTimer?.cancel();
+    _demoModeSubscription?.cancel();
     return super.close();
   }
 }
-
-
