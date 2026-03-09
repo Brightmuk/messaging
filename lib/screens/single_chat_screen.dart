@@ -16,6 +16,7 @@ import 'package:messaging/screens/widgets/message_bubble.dart';
 import 'package:messaging/services/contact_service.dart';
 import 'package:messaging/services/notification_service.dart';
 import 'package:messaging/services/redact_service.dart';
+import 'package:messaging/services/sms_service.dart' show SmsService;
 import 'package:provider/provider.dart';
 import 'package:sim_card_info/sim_info.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -567,6 +568,11 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
   }
 
   Future<void> _makePhoneCall(String phoneNumber) async {
+    final isDefault = await SmsService.isDefaultSmsApp();
+    if (!isDefault) {
+      SmsService.requestDefaultSmsRole();
+      return;
+    }
     final Uri launchUri = Uri(
       scheme: 'tel',
       path: phoneNumber,

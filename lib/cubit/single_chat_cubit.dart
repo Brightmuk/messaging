@@ -207,7 +207,7 @@ class DemoMessages {
         AppSmsMessage(
           id: 101,
           address: "MPESA",
-          body: "UBM487RO6P Confirmed. You have received Ksh1,500.00 from BRIGHT MUKONESI 0791670106 on 9/3/26 at 9:15 AM. New M-PESA balance is Ksh5,420.00.",
+          body: "UBM487RO6P Confirmed. You have received Ksh1,500.00 from Kasongo Yeye 0700000000 on 9/3/26 at 9:15 AM. New M-PESA balance is Ksh5,420.00.",
           date: _now,
           type: 1,
           threadId: "mpesa_demo_id",

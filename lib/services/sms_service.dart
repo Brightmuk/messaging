@@ -8,6 +8,7 @@ import 'package:messaging/models/app_chat.dart';
 import 'package:messaging/models/sim_card_state.dart';
 import 'package:messaging/services/contact_db.dart';
 import 'package:messaging/services/contact_service.dart';
+import 'package:messaging/services/redact_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:sim_card_info/sim_card_info.dart';
 import 'package:sim_card_info/sim_info.dart';
@@ -256,7 +257,10 @@ class SmsService {
         incrementUnread: true);
     _messageUpdateController
         .add(SmsEvent(type: SmsEventType.messageReceived, message: appMsg));
-
+    final bool isDefault = await SmsService.isDefaultSmsApp();
+    if(!isDefault && !RedactService.isMonitored(appMsg.address)){
+      return;
+    }
     await _notificationService.showNotification(
       title: name,
       body: appMsg.body,
