@@ -224,8 +224,9 @@ class SmsService {
     return _dbHelper.getArchivedCount();
   }
 
-  Future<List<AppSmsMessage>> searchGlobal(String query) {
-    return _dbHelper.searchGlobal(query);
+  Future<List<AppSmsMessage>> searchGlobal(String query)async {
+    bool isDefault = await SmsService.isDefaultSmsApp();
+    return _dbHelper.searchGlobal(query, isDefault);
   }
 
   @pragma('vm:entry-point')

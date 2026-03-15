@@ -44,7 +44,7 @@ class _LimitedAccessTileState extends State<LimitedAccessTile> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  "Limited Privacy Mode",
+                  "Transactions only Mode",
                   style: theme.textTheme.titleMedium
                       ?.copyWith(fontWeight: FontWeight.bold),
                 ),

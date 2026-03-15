@@ -6,7 +6,6 @@ import 'package:permission_handler/permission_handler.dart';
 
 part 'permissions_state.dart';
 
-
 enum AppLifecycleStatus {
   initial,
   onboarding,
@@ -15,7 +14,8 @@ enum AppLifecycleStatus {
 }
 
 class PermissionsCubit extends Cubit<PermissionsState> {
-  PermissionsCubit() : super(PermissionsState(statuses: {})) {
+  PermissionsCubit()
+      : super(PermissionsState(statuses: {}, isDefaultApp: false)) {
     initialize();
   }
 
@@ -28,52 +28,97 @@ class PermissionsCubit extends Cubit<PermissionsState> {
 
   Future<void> initialize() async {
     final onboarded = await UserDefaults.hasOnboarded();
+    final bool isDefault = await SmsService.isDefaultSmsApp();
     if (!onboarded) {
-      emit(state.copyWith(status: AppLifecycleStatus.onboarding));
+      emit(state.copyWith(
+          status: AppLifecycleStatus.onboarding, isDefaultApp: isDefault));
     } else {
       await checkStatus();
     }
   }
 
+  Timer? _authTimer;
+
   Future<void> completeOnboarding() async {
     await UserDefaults.setHasOnboarded();
+
     await SmsService.requestDefaultSmsRole();
-    await checkStatus();
+
+    int secondsPassed = 0;
+    _authTimer?.cancel();
+
+    _authTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
+      secondsPassed++;
+
+      await checkStatus();
+
+      if (state.isDefaultApp || secondsPassed >= 15) {
+        timer.cancel();
+      }
+    });
   }
 
   Future<void> checkStatus() async {
+    final bool isDefault = await SmsService.isDefaultSmsApp();
+    final bool hasViewedPermissions = await UserDefaults.hasViewedPermissions();
+    if (isDefault && hasViewedPermissions) {
+      emit(state.copyWith(
+        isDefaultApp: isDefault,
+        statuses: {},
+        status: AppLifecycleStatus.authenticated,
+      ));
+    }
+
+    final activePermissions = isDefault
+        ? _requiredPermissions // [SMS, Contacts, Phone, Notifications]
+        : _requiredPermissions
+            .where((p) => p == Permission.sms || p == Permission.notification)
+            .toList();
+
     Map<Permission, PermissionStatus> newStatuses = {};
-    for (var p in _requiredPermissions) {
+    for (var p in activePermissions) {
       newStatuses[p] = await p.status;
     }
 
-   bool allEssentialGranted = newStatuses.entries
-      .where((e) => e.key != Permission.notification) 
-      .every((e) => e.value.isGranted);
+    bool allEssentialGranted = newStatuses.entries
+        .where((e) => e.key != Permission.notification)
+        .every((e) => e.value.isGranted);
 
-  emit(state.copyWith(
-    statuses: newStatuses,
-    status: allEssentialGranted 
-        ? AppLifecycleStatus.authenticated 
-        : AppLifecycleStatus.promptPermissions,
-  ));
+    emit(state.copyWith(
+      isDefaultApp: isDefault,
+      statuses: newStatuses,
+      status: allEssentialGranted
+          ? AppLifecycleStatus.authenticated
+          : AppLifecycleStatus.promptPermissions,
+    ));
   }
 
   Future<void> requestAllRemaining() async {
+    UserDefaults.setHasViewedPermissions();
+    final bool isDefault = state.isDefaultApp;
 
-    // 2. Request each one
-    for (var p in _requiredPermissions) {
+    final permissionsToRequest = isDefault
+        ? _requiredPermissions
+        : _requiredPermissions
+            .where((p) => p == Permission.sms || p == Permission.notification)
+            .toList();
+
+    for (var p in permissionsToRequest) {
       await p.request();
+      await Future.delayed(const Duration(milliseconds: 100));
     }
 
-    // 3. Check what happened
     Map<Permission, PermissionStatus> finalStatuses = {};
     Permission? firstDenied;
 
-    for (var p in _requiredPermissions) {
+    for (var p in permissionsToRequest) {
       final status = await p.status;
+      if (status.isGranted) continue;
       finalStatuses[p] = status;
-      if (!status.isGranted && firstDenied == null && p != Permission.notification) {
+
+      if (!status.isGranted &&
+          firstDenied == null &&
+          p != Permission.notification) {
         firstDenied = p;
       }
     }
@@ -81,6 +126,7 @@ class PermissionsCubit extends Cubit<PermissionsState> {
     if (firstDenied != null) {
       emit(state.copyWith(
         statuses: finalStatuses,
+        isDefaultApp: isDefault,
         lastDeniedPermission: firstDenied,
       ));
     } else {
@@ -90,5 +136,11 @@ class PermissionsCubit extends Cubit<PermissionsState> {
 
   void resetDeniedTrigger() {
     emit(state.copyWith(clearDenied: true));
+  }
+
+  @override
+  Future<void> close() {
+    _authTimer?.cancel();
+    return super.close();
   }
 }

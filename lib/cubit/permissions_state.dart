@@ -5,11 +5,13 @@ class PermissionsState {
   final Map<Permission, PermissionStatus> statuses;
   final AppLifecycleStatus status;
   final Permission? lastDeniedPermission;
+  final bool isDefaultApp;
 
   PermissionsState({
     required this.statuses,
     this.status = AppLifecycleStatus.initial,
     this.lastDeniedPermission,
+    required this.isDefaultApp
   });
 
   PermissionsState copyWith({
@@ -17,11 +19,13 @@ class PermissionsState {
     AppLifecycleStatus? status,
     Permission? lastDeniedPermission,
     bool clearDenied = false,
+    bool? isDefaultApp
   }) {
     return PermissionsState(
       statuses: statuses ?? this.statuses,
       status: status ?? this.status,
       lastDeniedPermission: clearDenied ? null : (lastDeniedPermission ?? this.lastDeniedPermission),
+      isDefaultApp:isDefaultApp ?? this.isDefaultApp
     );
   }
 }

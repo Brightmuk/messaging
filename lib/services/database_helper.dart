@@ -280,18 +280,22 @@ Future<int> getArchivedCount() async {
   ));
   return count ?? 0;
 }
-Future<List<AppSmsMessage>> searchGlobal(String query) async {
+Future<List<AppSmsMessage>> searchGlobal(String query, bool isDefault) async {
   final db = await database;
   final lowercaseQuery = '%${query.toLowerCase()}%';
 
+  final String addressFilter = isDefault 
+      ? "" // No filter for default app
+      : "AND (address NOT GLOB '*[0-9]*')"; 
 
   final messageResults = await db.rawQuery('''
     SELECT * FROM messages 
     WHERE body LIKE ? 
+    $addressFilter
     ORDER BY date DESC LIMIT 50
   ''', [lowercaseQuery]);
   
-  return messageResults.map((json)=>AppSmsMessage.fromMap(json)).toList();
+  return messageResults.map((json) => AppSmsMessage.fromMap(json)).toList();
 }
 
 

@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:isolate';
 import 'dart:ui';
+import 'package:permission_handler/permission_handler.dart';
+
 import 'contact_db.dart'; // Import your DB class
 
 class ContactService {
@@ -17,6 +19,7 @@ class ContactService {
 
   /// Call this on App Launch (e.g., in your Cubit or Main)
   Future<void> init() async {
+    if (!await Permission.contacts.isGranted) return;
     // 1. Load what we already have in DB into memory immediately (Fast)
     await _loadFromDb();
     

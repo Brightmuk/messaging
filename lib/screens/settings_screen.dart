@@ -344,10 +344,11 @@ class _SettingsScreenState extends State<SettingsScreen>
   }
 
   void _showSimPicker() async{
-    // NotificationService().showNotification(
-    //   title: "SIM Selection",
-    //   body: "Please select your default SIM card",
-    //    payload: '{"action":"open_sim_picker"}');
+  final isDefault = await SmsService.isDefaultSmsApp();
+    if (!isDefault) {
+      SmsService.requestDefaultSmsRole();
+      return;
+    }
     await showModalBottomSheet(
       context: context,
       showDragHandle: true,

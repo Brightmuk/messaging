@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:another_telephony/telephony.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -16,7 +17,7 @@ import 'package:messaging/screens/widgets/message_bubble.dart';
 import 'package:messaging/services/contact_service.dart';
 import 'package:messaging/services/notification_service.dart';
 import 'package:messaging/services/redact_service.dart';
-import 'package:messaging/services/sms_service.dart' show SmsService;
+import 'package:messaging/services/sms_service.dart';
 import 'package:provider/provider.dart';
 import 'package:sim_card_info/sim_info.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -273,78 +274,110 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                                 )
                                 .firstOrNull;
 
-                            return Row(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                SizedBox(
-                                  width: 48,
-                                  height: 48,
-                                  child: _buildSimSlot(
-                                    isLoading: isLoading,
-                                    hasData: simCardState != null &&
-                                        simCardState.allCards.isNotEmpty,
-                                    simCardState: simCardState,
-                                    defaultSim: defaultSim,
-                                  ),
-                                ),
-
-                                const SizedBox(width: 8),
-
-                                // --- TEXT FIELD SECTION ---
-                                Expanded(
-                                  child: TextField(
-                                    controller: _messageController,
-                                    maxLines: 5,
-                                    minLines: 1,
-                                    enabled: !isLoading && hasData,
-                                    onChanged: (value) => setState(() {}),
-                                    textCapitalization:
-                                        TextCapitalization.sentences,
-                                    decoration: InputDecoration(
-                                      hintText: isLoading
-                                          ? 'Checking SIMs...'
-                                          : (hasData
-                                              ? 'Message'
-                                              : 'No SIM detected'),
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                              horizontal: 20, vertical: 10),
-                                      filled: true,
-                                      fillColor: Theme.of(context)
-                                          .colorScheme
-                                          .surfaceContainerHighest,
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(28),
-                                        borderSide: BorderSide.none,
-                                      ),
-                                      suffixIcon: Padding(
-                                        padding:
-                                            const EdgeInsets.only(right: 4),
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            IconButton.filled(
-                                              onPressed: (isLoading ||
-                                                      !hasData ||
-                                                      _messageController
-                                                          .text.isEmpty)
-                                                  ? null
-                                                  : () => _sendMessage(),
-                                              icon: Icon(
-                                                Icons.arrow_upward,
-                                                color:
-                                                    theme.colorScheme.onPrimary,
+                            return FutureBuilder<bool>(
+                                      future: SmsService.isDefaultSmsApp(),
+                                      builder: (context, sn) {
+                                        if(sn.hasData && !sn.data!){
+                                          return Padding(
+                                            padding: const EdgeInsets.only(bottom: 10),
+                                            child: RichText(
+                                              textAlign: TextAlign.center,
+                                              text: TextSpan(
+                                                style: theme.textTheme.bodyMedium?.copyWith(
+                                                  color: theme.colorScheme.onSurfaceVariant,
+                                                ),
+                                                children: [
+                                                  TextSpan(
+                                                    text: "Set as default app",
+                                                    style: TextStyle(
+                                                      color: theme.colorScheme.primary,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                    recognizer: TapGestureRecognizer()
+                                                      ..onTap = () {
+                                                        SmsService.requestDefaultSmsRole();
+                                                      },
+                                                  ),
+                                                  const TextSpan(text: " to start sending messages"),
+                                                ],
                                               ),
                                             ),
-                                          ],
-                                        ),
+                                          );
+                                        }
+                                return Row(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    SizedBox(
+                                      width: 48,
+                                      height: 48,
+                                      child: _buildSimSlot(
+                                        isLoading: isLoading,
+                                        hasData: simCardState != null &&
+                                            simCardState.allCards.isNotEmpty,
+                                        simCardState: simCardState,
+                                        defaultSim: defaultSim,
                                       ),
                                     ),
-                                  ),
-                                ),
-                              ],
+                                
+                                    Expanded(
+                                          child: TextField(
+                                            controller: _messageController,
+                                            maxLines: 5,
+                                            minLines: 1,
+                                            enabled: !isLoading && hasData,
+                                            onChanged: (value) => setState(() {}),
+                                            textCapitalization:
+                                                TextCapitalization.sentences,
+                                            decoration: InputDecoration(
+                                              hintText: isLoading
+                                                  ? 'Checking SIMs...'
+                                                  : (hasData
+                                                      ? 'Message'
+                                                      : 'No SIM detected'),
+                                              contentPadding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 20, vertical: 10),
+                                              filled: true,
+                                              fillColor: Theme.of(context)
+                                                  .colorScheme
+                                                  .surfaceContainerHighest,
+                                              border: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(28),
+                                                borderSide: BorderSide.none,
+                                              ),
+                                              suffixIcon: Padding(
+                                                padding:
+                                                    const EdgeInsets.only(right: 4),
+                                                child: Column(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    IconButton.filled(
+                                                      onPressed: (isLoading ||
+                                                              !hasData ||
+                                                              _messageController
+                                                                  .text.isEmpty)
+                                                          ? null
+                                                          : () => _sendMessage(),
+                                                      icon: Icon(
+                                                        Icons.arrow_upward,
+                                                        color:
+                                                            theme.colorScheme.onPrimary,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                
+                                    // --- TEXT FIELD SECTION ---
+                                    const SizedBox(width: 8),
+                                  ],
+                                );
+                              }
                             );
                           },
                         ),

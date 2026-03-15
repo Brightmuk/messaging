@@ -9,8 +9,6 @@ import 'package:messaging/cubit/single_chat_cubit.dart';
 import 'package:messaging/models/app_chat.dart';
 import 'package:messaging/services/contact_service.dart';
 import 'package:messaging/services/sms_service.dart';
-import 'package:permission_handler/permission_handler.dart';
-
 part 'chats_state.dart';
 
 class ChatsCubit extends Cubit<ChatsState> {
@@ -21,21 +19,23 @@ class ChatsCubit extends Cubit<ChatsState> {
   ChatsCubit() : super(ChatsInitial()) {
     _init();
   }
-  Future<bool> areRequiredPermissionsGiven() async {
-    bool allPermissionsGranted = true;
-    for (var p in [
-      Permission.sms,
-      Permission.contacts,
-      Permission.phone,
-    ]) {
-      final status = await p.status;
-      if (!status.isGranted) {
-        allPermissionsGranted = false;
-        break;
-      }
-    }
-    return allPermissionsGranted;
-  }
+ Future<bool> areRequiredPermissionsGiven() async {
+  // final bool isDefault = await SmsService.isDefaultSmsApp();
+
+  // final List<Permission> essentialPermissions = isDefault
+  //     ? [Permission.sms, Permission.contacts, Permission.phone]
+  //     : [Permission.sms];
+
+  // // 3. Verify the relevant set
+  // for (var p in essentialPermissions) {
+  //   final status = await p.status;
+  //   if (!status.isGranted) {
+  //     return false; 
+  //   }
+  // }
+
+  return true; 
+}
 
   void _init() async {
     final permitted = await areRequiredPermissionsGiven();
