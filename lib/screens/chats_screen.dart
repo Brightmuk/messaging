@@ -376,11 +376,11 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
           Icon(Icons.lock_person_outlined,
               size: 80, color: theme.colorScheme.primary.withOpacity(0.8)),
           const SizedBox(height: 32),
-          Text("Enable Privacy Features",
+          Text("Messaging & Privacy features off",
               style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 16),
           const Text(
-            "To display your messages securely and keep your M-Pesa balances hidden, M-Ficha needs phone, sms and contacts permissions ",
+            "To manage your messages and enable real-time balance redaction, M-Ficha needs to be your default messenger",
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 50),
@@ -388,7 +388,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
             width: double.infinity,
             child: FilledButton(
               onPressed: () => context.read<ChatsCubit>().requestDefaultRole(),
-              child: const Text("Grant Permissions"),
+              child: const Text("Set as Default App"),
             ),
           ),
           const SizedBox(height: 100),

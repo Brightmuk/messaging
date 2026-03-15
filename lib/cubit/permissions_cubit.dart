@@ -19,12 +19,12 @@ class PermissionsCubit extends Cubit<PermissionsState> {
     initialize();
   }
 
-  final List<Permission> _requiredPermissions = [
-    Permission.sms,
-    Permission.contacts,
-    Permission.phone,
-    Permission.notification,
-  ];
+  // final List<Permission> _requiredPermissions = [
+  //   Permission.sms,
+  //   Permission.contacts,
+  //   Permission.phone,
+  //   Permission.notification,
+  // ];
 
   Future<void> initialize() async {
     final onboarded = await UserDefaults.hasOnboarded();
@@ -69,14 +69,14 @@ class PermissionsCubit extends Cubit<PermissionsState> {
       ));
     }
 
-    final activePermissions = isDefault
-        ? _requiredPermissions // [SMS, Contacts, Phone, Notifications]
-        : _requiredPermissions
-            .where((p) => p == Permission.sms || p == Permission.notification)
-            .toList();
+    final activePermissions =  // [SMS, Contacts, Phone, Notifications]
+        // : _requiredPermissions
+        //     .where((p) => p == Permission.sms || p == Permission.notification)
+        //     .toList();
+                 [];//TODO: For policy review purpose lets require default 
 
     Map<Permission, PermissionStatus> newStatuses = {};
-    for (var p in activePermissions) {
+    for (Permission p in activePermissions) {
       newStatuses[p] = await p.status;
     }
 
@@ -87,7 +87,7 @@ class PermissionsCubit extends Cubit<PermissionsState> {
     emit(state.copyWith(
       isDefaultApp: isDefault,
       statuses: newStatuses,
-      status: allEssentialGranted
+      status: allEssentialGranted && hasViewedPermissions
           ? AppLifecycleStatus.authenticated
           : AppLifecycleStatus.promptPermissions,
     ));
@@ -97,11 +97,11 @@ class PermissionsCubit extends Cubit<PermissionsState> {
     UserDefaults.setHasViewedPermissions();
     final bool isDefault = state.isDefaultApp;
 
-    final permissionsToRequest = isDefault
-        ? _requiredPermissions
-        : _requiredPermissions
-            .where((p) => p == Permission.sms || p == Permission.notification)
-            .toList();
+    final permissionsToRequest = 
+        // : _requiredPermissions
+        //     .where((p) => p == Permission.sms || p == Permission.notification)
+        //     .toList();
+                [Permission.notification];//TODO: For policy review purpose lets require default 
 
     for (var p in permissionsToRequest) {
       await p.request();

@@ -11,8 +11,8 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity: FlutterActivity() {
     
-    private val CHANNEL = "com.brimukon.messaging.sms_role"
-
+    private val CHANNEL = "com.brimukon.messaging.defaultRole"
+    
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
@@ -22,6 +22,10 @@ class MainActivity: FlutterActivity() {
                 }
                 "requestDefaultSmsRole" -> {
                     requestDefaultSmsRole()
+                    result.success(true)
+                }
+                "requestSmsPermissions" -> {
+                    requestSmsPermissions()
                     result.success(true)
                 }
                 else -> result.notImplemented()
@@ -49,4 +53,15 @@ class MainActivity: FlutterActivity() {
             startActivity(intent)
         }
     }
+    private fun requestSmsPermissions() {
+    val permissions = arrayOf(
+        android.Manifest.permission.READ_SMS,
+        android.Manifest.permission.SEND_SMS,
+        android.Manifest.permission.RECEIVE_SMS,
+        android.Manifest.permission.RECEIVE_MMS
+    )
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        requestPermissions(permissions, 456)
+    }
+}
 }

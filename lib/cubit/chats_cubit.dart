@@ -19,27 +19,11 @@ class ChatsCubit extends Cubit<ChatsState> {
   ChatsCubit() : super(ChatsInitial()) {
     _init();
   }
- Future<bool> areRequiredPermissionsGiven() async {
-  // final bool isDefault = await SmsService.isDefaultSmsApp();
 
-  // final List<Permission> essentialPermissions = isDefault
-  //     ? [Permission.sms, Permission.contacts, Permission.phone]
-  //     : [Permission.sms];
-
-  // // 3. Verify the relevant set
-  // for (var p in essentialPermissions) {
-  //   final status = await p.status;
-  //   if (!status.isGranted) {
-  //     return false; 
-  //   }
-  // }
-
-  return true; 
-}
 
   void _init() async {
-    final permitted = await areRequiredPermissionsGiven();
-    if (!permitted) {
+    final isDefault = await SmsService.isDefaultSmsApp();
+    if(!isDefault){
       emit(PermissionRevoked());
       return;
     }
@@ -73,7 +57,7 @@ class ChatsCubit extends Cubit<ChatsState> {
       if (isDefault) {
         debugPrint("App is now default SMS app");
         timer.cancel();
-        loadChats(isInitialLoad: true);
+        _init();
       } else {
         debugPrint("Still waiting for default role... (${_count}s)");
       }
@@ -96,15 +80,13 @@ Future<void> loadChats({bool isInitialLoad = true}) async {
   // 1. Guard against concurrent fetches
   if (_isFetching) return;
   
-  // 2. Permission Check
-  final permitted = await areRequiredPermissionsGiven();
-  if (!permitted) {
-    emit(PermissionRevoked());
-    return;
-  }
 
   // 3. Status check for mode switching (Limited vs Full)
   final isDefault = await SmsService.isDefaultSmsApp();
+  if(!isDefault){
+    emit(PermissionRevoked());
+    return;
+  }
 
   if(_isDemoMode){
     return  emit(ChatsLoaded(getDemoChats(),isDefaultApp: isDefault));

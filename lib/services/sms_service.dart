@@ -31,7 +31,7 @@ class SmsService {
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
   final NotificationService _notificationService = NotificationService();
 
-  static const _channel = MethodChannel('com.brimukon.messaging.sms_role');
+  static const _channel = MethodChannel('com.brimukon.messaging.defaultRole');
 
   final _messageUpdateController = StreamController<SmsEvent>.broadcast();
   Stream<SmsEvent> get onMessageUpdated => _messageUpdateController.stream;
@@ -53,6 +53,9 @@ class SmsService {
     } on PlatformException catch (e) {
       debugPrint("Failed to request SMS role: ${e.message}");
     }
+  }
+  Future<void> requestSmsRole() async {
+    await _channel.invokeMethod('requestSmsPermissions');
   }
 
   Future<bool> requestPermissions() async {
