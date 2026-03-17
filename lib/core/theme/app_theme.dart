@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  static ThemeData lightTheme(BuildContext context) {
-
-    return ThemeData(
+  static ThemeData lightTheme =  ThemeData(
       useMaterial3: true,
       colorScheme: ColorScheme.fromSeed(
         seedColor: const Color.fromRGBO(0, 100, 148, 1),
@@ -36,10 +34,9 @@ class AppTheme {
         ),
       ),
     );
-  }
+  
 
-  static ThemeData darkTheme(BuildContext context) {
-    return ThemeData(
+  static ThemeData darkTheme = ThemeData(
       useMaterial3: true,
       colorScheme: ColorScheme.fromSeed(
         seedColor: const Color.fromRGBO(0, 100, 148, 1),
@@ -72,5 +69,5 @@ class AppTheme {
         ),
       ),
     );
-  }
+  
 }

@@ -36,8 +36,8 @@ class MyApp extends StatelessWidget {
       title: 'SMS App',
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme(context),
-      darkTheme: AppTheme.darkTheme(context),
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
       home: BlocBuilder<PermissionsCubit, PermissionsState>(
         builder: (context, state) {
@@ -62,4 +62,17 @@ class MyApp extends StatelessWidget {
       ),
     );
   }
+}
+@pragma("vm:entry-point")
+void overlayMain() {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(
+    MaterialApp(
+      debugShowCheckedModeBanner: false,
+       theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.system, 
+      home: const Placeholder(),
+    ),
+  );
 }
