@@ -13,6 +13,7 @@ import 'package:messaging/screens/settings_screen.dart';
 import 'package:messaging/screens/single_chat_screen.dart';
 import 'package:messaging/core/utils/date_formatter.dart';
 import 'package:messaging/screens/widgets/ad_free_tile.dart';
+import 'package:messaging/screens/widgets/banner_ad.dart';
 import 'package:messaging/screens/widgets/chats_loading_widget.dart';
 import 'package:messaging/screens/widgets/chats_native_ad.dart';
 import 'package:messaging/screens/widgets/contact_name_text.dart';
@@ -69,6 +70,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       _checkDialogs();
     });
+
   }
 
   Future<void> _checkDialogs() async {
@@ -313,8 +315,12 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                         size: 30,
                         color: theme.colorScheme.tertiaryContainer,
                       ),
+
                     ],
-                  ))),
+                  )
+                  )
+                  ),
+                  
               ],
             ),
           );
@@ -340,6 +346,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
           );
         },
       ),
+      bottomNavigationBar:  SafeArea(child: MfichaBannerAd()),
     );
   }
 
