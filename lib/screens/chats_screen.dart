@@ -268,41 +268,52 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                       ? const SliverFillRemaining(
                           child: ChatsLoadingWidget(isEmptyState: true))
                       : SliverList(
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) {
-                              final isDefault =
-                                  (state).isDefaultApp;
-                              if (!isDefault && index == 0) {
-                                return LimitedAccessTile(onRequest: () => context.read<ChatsCubit>().requestDefaultRole());
-                                
-                              }
-                              int chatIndex = isDefault ? index : index - 1;
-                              if (!isNoAds) {
-                                if (index == (isDefault ? 6 : 7)) {
-                                  return const ChatsNativeAd();
-                                }
-                                if (index == (isDefault ? 9 : 10)) {
-                                  return const AdFreeTile();
-                                }
-                                if (index > (isDefault ? 9 : 10)) {
-                                  chatIndex -= 2;
-                                } else if (index > (isDefault ? 6 : 7)){
-                                   chatIndex -= 1;
-                                }
-                                 
-                              }
+                          delegate:  SliverChildBuilderDelegate(
+                                (context, index) {
+                                  final isDefault = state.isDefaultApp;
+                                  
+                                  // 1. Handle the Top "Limited Access" tile for non-default users
+                                  if (!isDefault && index == 0) {
+                                    return LimitedAccessTile(
+                                      onRequest: () => context.read<ChatsCubit>().requestDefaultRole(),
+                                    );
+                                  }
 
-                              if (chatIndex >= state.chats.length ||
-                                  chatIndex < 0) {
-                                return null;
-                              }
+                                  // Base chat index adjustment
+                                  int chatIndex = isDefault ? index : index - 1;
 
-                              return isDefault? _buildChatTile(state.chats[chatIndex]):
-                              _buildPrivacyVaultTile(state.chats[chatIndex], context);
-                            },
-                            childCount: calculateChildCount(state.chats.length,
-                                (state).isDefaultApp, isNoAds),
-                          ),
+                                  // 2. Handle the Ad-Free Upsell Tile (Only if ads are enabled)
+                                  if (!isNoAds) {
+                                    // We'll place the AdFreeTile at index 6 (Default) or 7 (Non-Default)
+                                    final adFreeIndex = isDefault ? 6 : 7;
+
+                                    if (index == adFreeIndex) {
+                                      return const AdFreeTile();
+                                    }
+
+                                    // If we are past the AdFreeTile, we subtract 1 from chatIndex 
+                                    // to "skip" that slot and fetch the correct chat from the list.
+                                    if (index > adFreeIndex) {
+                                      chatIndex -= 1;
+                                    }
+                                  }
+
+                                  // 3. Safety Check
+                                  if (chatIndex >= state.chats.length || chatIndex < 0) {
+                                    return null;
+                                  }
+
+                                  // 4. Build the actual chat tile
+                                  return isDefault
+                                      ? _buildChatTile(state.chats[chatIndex])
+                                      : _buildPrivacyVaultTile(state.chats[chatIndex], context);
+                                },
+                                childCount: calculateChildCount(
+                                  state.chats.length,
+                                  state.isDefaultApp,
+                                  isNoAds,
+                                ),
+                              ),
                         )
                 else
                   SliverFillRemaining(
@@ -351,24 +362,23 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
   }
 
   int calculateChildCount(int chatsLength, bool isDefaultApp, bool isNoAds) {
-    if (chatsLength == 0 && isDefaultApp) return 0;
+  // If no chats and it's the default app, show nothing (or an empty state)
+  if (chatsLength == 0 && isDefaultApp) return 0;
 
-    int totalCount = chatsLength;
+  int totalCount = chatsLength;
 
-    if (!isDefaultApp) {
-      totalCount += 1;
-    }
-    if (!isNoAds) {
-      if (chatsLength >= 6) {
-        totalCount += 1;
-      }
-      if (chatsLength >= 9) {
-        totalCount += 1;
-      }
-    }
-
-    return totalCount;
+  // Add 1 for the LimitedAccessTile if not the default app
+  if (!isDefaultApp) {
+    totalCount += 1;
   }
+
+  // Add 1 for the AdFreeTile only if ads are active and the list is long enough
+  if (!isNoAds && chatsLength >= 6) {
+    totalCount += 1;
+  }
+
+  return totalCount;
+}
 
 
 

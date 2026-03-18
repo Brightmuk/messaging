@@ -19,6 +19,7 @@ class AdFreeTile extends StatelessWidget {
         }
 
         return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 10),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [Colors.blue.shade700.withAlpha(15), Colors.blue.shade900.withAlpha(15)],
