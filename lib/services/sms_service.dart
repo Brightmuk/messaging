@@ -101,27 +101,47 @@ class SmsService {
         defaultCard: id == -1 ? null : id, allCards: simcards);
   }
 
-  Future<void> syncExistingMessages() async {
-    debugPrint("Syncing history from system provider...");
+Future<void> syncExistingMessages() async {
+  debugPrint("Syncing history from system provider...");
 
-    // Fetch all inbox messages
-    List<SmsMessage> messages = await telephony.getInboxSms(columns: [
+  // 1. Fetch BOTH inbox and sent messages
+  final List<SmsMessage> inboxMessages = await telephony.getInboxSms(
+    columns: [
       SmsColumn.ADDRESS,
       SmsColumn.BODY,
       SmsColumn.DATE,
       SmsColumn.THREAD_ID,
-      SmsColumn.READ
-    ], sortOrder: [
-      OrderBy(SmsColumn.DATE, sort: Sort.ASC)
-    ]);
+      SmsColumn.READ,
+      SmsColumn.TYPE,
+      SmsColumn.ID,
+    ],
+    sortOrder: [OrderBy(SmsColumn.DATE, sort: Sort.ASC)],
+  );
 
-    if (messages.isEmpty) return;
+  final List<SmsMessage> sentMessages = await telephony.getSentSms(
+    columns: [
+      SmsColumn.ADDRESS,
+      SmsColumn.BODY,
+      SmsColumn.DATE,
+      SmsColumn.THREAD_ID,
+      SmsColumn.READ,
+      SmsColumn.TYPE,
+      SmsColumn.ID,
+    ],
+    sortOrder: [OrderBy(SmsColumn.DATE, sort: Sort.ASC)],
+  );
 
-    await _dbHelper.batchSyncMessages(messages);
+  final allMessages = [...inboxMessages, ...sentMessages];
+  if (allMessages.isEmpty) return;
 
-    UserDefaults.setHasSynced();
-    _messageUpdateController.add(SmsEvent(type: SmsEventType.syncCompleted));
-  }
+  // 2. Sort combined list by date
+  allMessages.sort((a, b) => (a.date ?? 0).compareTo(b.date ?? 0));
+
+  await _dbHelper.batchSyncMessages(allMessages);
+
+  UserDefaults.setHasSynced();
+  _messageUpdateController.add(SmsEvent(type: SmsEventType.syncCompleted));
+}
 
   Future<void> startSendTimeout(AppSmsMessage smsMessage) async {
     if (smsMessage.id == null) return;

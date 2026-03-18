@@ -18,7 +18,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MobileAds.instance.initialize();
   PurchaseService().initializeIAP();
-      SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
   systemNavigationBarColor: Colors.transparent,
   systemNavigationBarDividerColor: Colors.transparent,
   systemNavigationBarContrastEnforced: false,      

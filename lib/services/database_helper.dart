@@ -69,50 +69,83 @@ class DatabaseHelper {
 
   /// Handles bulk insertion of messages using a single transaction.
   /// This is crucial for the initial sync to prevent UI lag.
-  Future<void> batchSyncMessages(List<tel.SmsMessage> messages) async {
-    final db = await database;
-    await db.transaction((txn) async {
-      final Batch batch = txn.batch();
+Future<void> batchSyncMessages(List<tel.SmsMessage> messages) async {
+  final db = await database;
 
-      for (var msg in messages) {
-        final threadId = msg.threadId.toString();
+  // 3. Ensure unique constraint exists on your messages table:
+  // CREATE UNIQUE INDEX IF NOT EXISTS idx_messages_unique
+  // ON messages(address, date, body) — or use `id` from SMS provider if available
+  await db.execute('''
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_messages_unique
+    ON messages(address, date, body)
+  ''');
 
-        // Insert message (Ignore duplicates based on ID or timestamp if you add unique constraints)
-        if (msg.address != null && msg.body != null && msg.date != null) {
-          batch.insert(
-              'messages',
-              {
-                'address': msg.address,
-                'body': msg.body,
-                'date': msg.date,
-                'type': 1,
-                'read': msg.read != null && msg.read! ? 1 : 0,
-                'threadId': threadId,
-                'simId': msg.subscriptionId ?? -1,
-                'status': msg.status == tel.SmsStatus.STATUS_COMPLETE
-                    ? MessageStatus.sent.value
-                    : MessageStatus.unknown.value,
-              },
-              conflictAlgorithm: ConflictAlgorithm.ignore);
+  await db.transaction((txn) async {
+    final Batch batch = txn.batch();
 
-          // Update/Insert chat summary
-          batch.insert(
-              'chats',
-              {
-                'threadId': threadId,
-                'address': msg.address,
-                'normalizedAddress': AppChat.normalizeAddress(msg.address!),
-                'lastMessage': msg.body,
-                'lastMessageDate': msg.date,
-                'unreadCount': 0,
-              },
-              conflictAlgorithm: ConflictAlgorithm.replace);
-        }
+    // Track per-thread unread counts instead of hardcoding 0
+    final Map<String, int> threadUnreadCount = {};
+    final Map<String, Map<String, dynamic>> threadLatest = {};
+
+    for (var msg in messages) {
+      if (msg.address == null || msg.body == null || msg.date == null) continue;
+
+      final threadId = msg.threadId.toString();
+
+      // 4. Derive correct type: sent = 2, inbox = 1
+      final int msgType = (msg.type == tel.SmsType.MESSAGE_TYPE_SENT) ? 2 : 1;
+
+      // 5. Accumulate real unread count
+      if (msgType == 1 && (msg.read == null || !msg.read!)) {
+        threadUnreadCount[threadId] = (threadUnreadCount[threadId] ?? 0) + 1;
       }
 
-      await batch.commit(noResult: true);
-    });
-  }
+      batch.insert(
+        'messages',
+        {
+          'address': msg.address,
+          'body': msg.body,
+          'date': msg.date,
+          'type': msgType, // fixed: not hardcoded
+          'read': (msg.read == true) ? 1 : 0,
+          'threadId': threadId,
+          'simId': msg.subscriptionId ?? -1,
+          'status': msg.status == tel.SmsStatus.STATUS_COMPLETE
+              ? MessageStatus.sent.value
+              : MessageStatus.unknown.value,
+        },
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+
+      // Track latest message per thread for chat summary
+      final existing = threadLatest[threadId];
+      if (existing == null || (msg.date! > existing['lastMessageDate'])) {
+        threadLatest[threadId] = {
+          'threadId': threadId,
+          'address': msg.address,
+          'normalizedAddress': AppChat.normalizeAddress(msg.address!),
+          'lastMessage': msg.body,
+          'lastMessageDate': msg.date,
+        };
+      }
+    }
+
+    // 6. Insert chat summaries once per thread with correct unread count
+    for (final entry in threadLatest.entries) {
+      final threadId = entry.key;
+      batch.insert(
+        'chats',
+        {
+          ...entry.value,
+          'unreadCount': threadUnreadCount[threadId] ?? 0,
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+
+    await batch.commit(noResult: true);
+  });
+}
 
   // --- Standard Operations ---
 

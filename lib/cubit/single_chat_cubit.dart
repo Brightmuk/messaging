@@ -42,25 +42,25 @@ class SingleChatCubit extends Cubit<SingleChatState> {
       case SmsEventType.messageSent:
       case SmsEventType.messageDelivered:
       case SmsEventType.messageSendFailure:
-        final updatedMessage = event.message;
-        if (updatedMessage != null) {
-          debugPrint("To update message: ${updatedMessage.id} body: ${updatedMessage.body}");
-          messages = messages.map((msg) {
-            if (msg.id == updatedMessage.id) {
-              debugPrint("Updating message: ${msg.id}");
-              return msg.copyWith(status: updatedMessage.status);
+         final updatedMessage = event.message;
+          if (updatedMessage != null) {
+            final idx = messages.indexWhere((m) => m.id == updatedMessage.id);
+            if (idx != -1) {
+              messages[idx] = messages[idx].copyWith(status: updatedMessage.status);
+              emit(SingleChatMessageUpdated(
+                messages: messages,
+                hideStatus: hideStatus,
+                updatedMessageId: updatedMessage.id!,
+              ));
             }
-            return msg;
-          }).toList();
-          emit(SingleChatLoaded(messages: messages, hideStatus: hideStatus));
-        }
-        break;
+          }
+          break;
       case SmsEventType.messagePending:
       case SmsEventType.messageReceived:
         final newMessage = event.message;
-        if (newMessage != null && newMessage.threadId == threadId) {
-          messages = [newMessage, ...messages];
-          emit(SingleChatLoaded(messages: messages, hideStatus: hideStatus));
+         if (newMessage != null && newMessage.threadId == threadId) {
+          messages.insert(0, newMessage); // mutate, don't recreate
+          emit(SingleChatLoaded(messages: List.unmodifiable(messages), hideStatus: hideStatus));
         }
         break;
       case SmsEventType.messageDeleted:
@@ -76,15 +76,15 @@ class SingleChatCubit extends Cubit<SingleChatState> {
         break;
       case SmsEventType.messagesDeletedAll:
         if (event.messages.isEmpty) return;
-        messages =
-            messages.where((msg) => !event.messages.contains(msg)).toList();
-        emit(SingleChatLoaded(messages: messages, hideStatus: hideStatus));
+        final deleteSet = event.messages.map((m) => m.id).toSet(); // use id not object equality
+        messages = messages.where((msg) => !deleteSet.contains(msg.id)).toList();
         if (messages.isEmpty) {
           emit(SingleChatDeleted());
         } else {
           emit(SingleChatLoaded(messages: messages, hideStatus: hideStatus));
         }
         break;
+
 
       default:
         debugPrint("Fallen through: ${event.type}");

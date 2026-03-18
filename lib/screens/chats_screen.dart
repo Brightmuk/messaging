@@ -15,7 +15,6 @@ import 'package:messaging/core/utils/date_formatter.dart';
 import 'package:messaging/screens/widgets/ad_free_tile.dart';
 import 'package:messaging/screens/widgets/banner_ad.dart';
 import 'package:messaging/screens/widgets/chats_loading_widget.dart';
-import 'package:messaging/screens/widgets/chats_native_ad.dart';
 import 'package:messaging/screens/widgets/contact_name_text.dart';
 import 'package:messaging/screens/widgets/limited_access_tile.dart';
 import 'package:messaging/screens/widgets/rating_dialog.dart';

@@ -239,6 +239,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                               }
                             },
                             child: MessageBubble(
+                              key: ValueKey('${message.id}_${message.status}'),
                               hide: hide,
                               isOutgoing: isOutgoing,
                               message: message,

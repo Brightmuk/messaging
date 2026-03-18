@@ -19,6 +19,14 @@ final class SingleChatLoaded extends SingleChatState {
 
   SingleChatLoaded({required this.messages, this.hideStatus = false, this.hasReachedMax = false, this.isSearching = false});
 }
+final class SingleChatMessageUpdated extends SingleChatLoaded {
+  final int updatedMessageId;
+   SingleChatMessageUpdated({
+    required super.messages,
+    required super.hideStatus,
+    required this.updatedMessageId,
+  });
+}
 final class SingleChatError extends SingleChatState {
   final String error;
 
