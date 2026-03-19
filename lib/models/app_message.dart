@@ -102,9 +102,7 @@ class AppSmsMessage {
         other.body == body &&
         other.date == date &&
         other.type == type &&
-        other.threadId == threadId &&
-        other.status == status &&
-        other.read == read;
+        other.threadId == threadId;
   }
 
   @override
@@ -114,8 +112,6 @@ class AppSmsMessage {
         body.hashCode ^
         date.hashCode ^
         type.hashCode ^
-        threadId.hashCode ^
-        status.hashCode ^
-        read.hashCode;
+        threadId.hashCode;
   }
 }

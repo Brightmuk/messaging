@@ -196,7 +196,7 @@ class _MessageBubbleState extends State<MessageBubble> {
     );
 
     if (confirm == true) {
-      context.read<SingleChatCubit>().sendMessage(widget.message.address, message.body);
+      context.read<SingleChatCubit>().retrySend(widget.message);
     }
     
   }

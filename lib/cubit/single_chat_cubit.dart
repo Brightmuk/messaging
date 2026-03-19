@@ -59,7 +59,14 @@ class SingleChatCubit extends Cubit<SingleChatState> {
       case SmsEventType.messageReceived:
         final newMessage = event.message;
          if (newMessage != null && newMessage.threadId == threadId) {
-          messages.insert(0, newMessage); // mutate, don't recreate
+          if(messages.contains(newMessage)){
+            final idx = messages.indexWhere((m) => m.id == newMessage.id);
+            if (idx != -1) {
+              messages[idx] = newMessage;
+            }
+          }else{
+            messages.insert(0, newMessage); 
+          }
           emit(SingleChatLoaded(messages: List.unmodifiable(messages), hideStatus: hideStatus));
         }
         break;
@@ -185,8 +192,6 @@ Future<void> getMessages({bool isInitialLoad = true}) async {
   Future<void> markThreadAsRead() async {
     await _smsService.markThreadAsRead(threadId);
   }
-
-
 
 
   @override

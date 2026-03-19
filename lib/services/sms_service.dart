@@ -209,6 +209,7 @@ Future<void> syncExistingMessages() async {
   Future<void> retrySending(AppSmsMessage message) async {
     int? defaultSim = await getDefaultSim();
     if (message.id == null) return;
+   
     await startSendTimeout(message);
 
     try {
@@ -231,7 +232,7 @@ Future<void> syncExistingMessages() async {
       );
 
       _messageUpdateController
-          .add(SmsEvent(type: SmsEventType.messagePending, message: message));
+          .add(SmsEvent(type: SmsEventType.messagePending, message: message.copyWith(status: MessageStatus.pending)));
     } catch (e) {
       await cancelSendTimeout(message.id!);
       await markMessageAsFailed(message);
