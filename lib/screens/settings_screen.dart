@@ -54,195 +54,197 @@ class _SettingsScreenState extends State<SettingsScreen>
         title: const Text('Settings'),
         centerTitle: false,
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView(
-              padding:
-                  const EdgeInsets.all(16.0), // Outer padding for the cards
-              children: [
-                _buildSectionHeader("App"),
-                Card(
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(
-                        color: Theme.of(context).colorScheme.outlineVariant),
-                  ),
-                  color: Theme.of(context)
-                      .colorScheme
-                      .surfaceContainerLow, // Subtle M3 background
-                  clipBehavior:
-                      Clip.antiAlias, // Ensures ink splashes are rounded
-                  child: Column(
-                    children: [
-                      ListTile(
-                        leading:  Icon(Icons.messenger_outline, color: theme.colorScheme.primary),
-                        title: const Text("Default Messaging App"),
-                        subtitle: Text(_isDefaultSmsApp
-                            ? "This is the default messaging app"
-                            : "Tap to set as default"),
-                        trailing: _isDefaultSmsApp
-                            ? const Icon(Icons.check_circle_outline, color: Colors.green)
-                            : FilledButton(
-                                onPressed: () async {
-                                  await SmsService.requestDefaultSmsRole();
-                                  await Future.delayed(
-                                      const Duration(seconds: 5));
-                                  if (mounted) {
-                                    setState(() {});
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: ListView(
+                padding:
+                    const EdgeInsets.all(16.0), // Outer padding for the cards
+                children: [
+                  _buildSectionHeader("App"),
+                  Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(
+                          color: Theme.of(context).colorScheme.outlineVariant),
+                    ),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerLow, // Subtle M3 background
+                    clipBehavior:
+                        Clip.antiAlias, // Ensures ink splashes are rounded
+                    child: Column(
+                      children: [
+                        ListTile(
+                          leading:  Icon(Icons.messenger_outline, color: theme.colorScheme.primary),
+                          title: const Text("Default Messaging App"),
+                          subtitle: Text(_isDefaultSmsApp
+                              ? "This is the default messaging app"
+                              : "Tap to set as default"),
+                          trailing: _isDefaultSmsApp
+                              ? const Icon(Icons.check_circle_outline, color: Colors.green)
+                              : FilledButton(
+                                  onPressed: () async {
                                     await SmsService.requestDefaultSmsRole();
-                                  }
-                                },
-                                child: const Text('Set as Default')),
-                      ),
-                      const Divider(height: 1, indent: 16, endIndent: 16),
-                      FutureBuilder<AppSimCardState>(
-                        future: SmsService().getSimState(),
-                        builder: (context, sn) {
-                          // 1. Extract data safely. 
-                          // If it's still loading or has an error, simCardState will be null.
-                          final simCardState = sn.data;
-                          
-                          // 2. Perform safe lookup using ?. and firstOrNull
-                          final currentSim = simCardState?.allCards.where((sim) {
-                            final slot = int.tryParse(sim.slotIndex);
-                            return slot != null && slot == simCardState.defaultCard;
-                          }).firstOrNull;
-
-                          // 3. Build UI - No loaders, just logic
-                          final bool hasValidSim = currentSim != null;
-                          final int displaySlot = (int.tryParse(currentSim?.slotIndex ?? "") ?? 0) + 1;
-
-                          return ListTile(
-                            title: const Text("Default SIM Card"),
-                            subtitle: Text(
-                              hasValidSim 
-                                ? "SIM $displaySlot (${currentSim.displayName})" 
-                                : "Select default SIM"
-                            ),
-                            leading:  Icon(Icons.sim_card_outlined, color: theme.colorScheme.primary),
-                            trailing: const Icon(Icons.arrow_drop_down),
-                            onTap: _showSimPicker,
-                          );
-                        },
-                      ),
-                      const Divider(height: 1, indent: 16, endIndent: 16),
-                       ListTile(
-                          leading:  Icon(Icons.archive_outlined, color: theme.colorScheme.primary),
-                          title: const Text("Archived Conversations"),
-                          trailing: FutureBuilder<int>(
-                            future: SmsService().getArchivedCount(),
-                            builder: (context, snapshot) {
-                              final count = snapshot.data ?? 0;
-                              return Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.primary,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Text(
-                                  "$count",
-                                  style:  TextStyle(
-                                    color: theme.colorScheme.onPrimary,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                          onTap: () async{
-                            final result = await Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const ArchivedChatsScreen()),
+                                    await Future.delayed(
+                                        const Duration(seconds: 5));
+                                    if (mounted) {
+                                      setState(() {});
+                                      await SmsService.requestDefaultSmsRole();
+                                    }
+                                  },
+                                  child: const Text('Set as Default')),
+                        ),
+                        const Divider(height: 1, indent: 16, endIndent: 16),
+                        FutureBuilder<AppSimCardState>(
+                          future: SmsService().getSimState(),
+                          builder: (context, sn) {
+                            // 1. Extract data safely. 
+                            // If it's still loading or has an error, simCardState will be null.
+                            final simCardState = sn.data;
+                            
+                            // 2. Perform safe lookup using ?. and firstOrNull
+                            final currentSim = simCardState?.allCards.where((sim) {
+                              final slot = int.tryParse(sim.slotIndex);
+                              return slot != null && slot == simCardState.defaultCard;
+                            }).firstOrNull;
+        
+                            // 3. Build UI - No loaders, just logic
+                            final bool hasValidSim = currentSim != null;
+                            final int displaySlot = (int.tryParse(currentSim?.slotIndex ?? "") ?? 0) + 1;
+        
+                            return ListTile(
+                              title: const Text("Default SIM Card"),
+                              subtitle: Text(
+                                hasValidSim 
+                                  ? "SIM $displaySlot (${currentSim.displayName})" 
+                                  : "Select default SIM"
+                              ),
+                              leading:  Icon(Icons.sim_card_outlined, color: theme.colorScheme.primary),
+                              trailing: const Icon(Icons.arrow_drop_down),
+                              onTap: _showSimPicker,
                             );
-                            if(result!=null){
-                              setState(() {});
-                            }
                           },
                         ),
-                    ],
+                        const Divider(height: 1, indent: 16, endIndent: 16),
+                         ListTile(
+                            leading:  Icon(Icons.archive_outlined, color: theme.colorScheme.primary),
+                            title: const Text("Archived Conversations"),
+                            trailing: FutureBuilder<int>(
+                              future: SmsService().getArchivedCount(),
+                              builder: (context, snapshot) {
+                                final count = snapshot.data ?? 0;
+                                return Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.primary,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Text(
+                                    "$count",
+                                    style:  TextStyle(
+                                      color: theme.colorScheme.onPrimary,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                            onTap: () async{
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const ArchivedChatsScreen()),
+                              );
+                              if(result!=null){
+                                setState(() {});
+                              }
+                            },
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 24), // Space between cards
-
-                _buildSectionHeader("Preferences"),
-                Card(
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(
-                        color: Theme.of(context).colorScheme.outlineVariant),
+                  const SizedBox(height: 24), // Space between cards
+        
+                  _buildSectionHeader("Preferences"),
+                  Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(
+                          color: Theme.of(context).colorScheme.outlineVariant),
+                    ),
+                    color: Theme.of(context).colorScheme.surfaceContainerLow,
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      children: [
+                        FutureBuilder(
+                          future: UserDefaults.getHideStatus(),
+                          builder: (context, asyncSnapshot) {
+                            return SwitchListTile(
+                            
+                              title: const Text("Always hide balances"),
+                              value: asyncSnapshot.data ?? false, 
+                              onChanged: (value) async {
+                                await UserDefaults.setHideStatus(value);
+                                setState(() {});
+                              }
+                              );
+                          }
+                        ),
+                       
+                      ],
+                    ),
                   ),
-                  color: Theme.of(context).colorScheme.surfaceContainerLow,
-                  clipBehavior: Clip.antiAlias,
-                  child: Column(
-                    children: [
-                      FutureBuilder(
-                        future: UserDefaults.getHideStatus(),
-                        builder: (context, asyncSnapshot) {
-                          return SwitchListTile(
-                          
-                            title: const Text("Always hide balances"),
-                            value: asyncSnapshot.data ?? false, 
-                            onChanged: (value) async {
-                              await UserDefaults.setHideStatus(value);
-                              setState(() {});
-                            }
-                            );
-                        }
-                      ),
-                     
-                    ],
+                   const SizedBox(height: 15),
+                  const AdFreeTile(),
+                  const NoAdsStatusTile(),
+        
+        
+                  const SizedBox(height: 24), // Space between cards
+        
+                  _buildSectionHeader("Other"),
+                  Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(
+                          color: Theme.of(context).colorScheme.outlineVariant),
+                    ),
+                    color: Theme.of(context).colorScheme.surfaceContainerLow,
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      children: [
+                        _buildLinkTile(
+                          Icons.star_rate,
+                          "Rate App",
+                          () => openPlayStore(),
+                        ),
+                        const Divider(height: 1, indent: 16, endIndent: 16),
+                        _buildLinkTile(
+                          Icons.privacy_tip_outlined,
+                          "Privacy Policy",
+                          () => _launchUrl('https://brimukon.com/m-ficha/privacy'),
+                        ),
+                        
+                        const Divider(height: 1, indent: 16, endIndent: 16),
+                        _buildLinkTile(
+                          Icons.help_outline,
+                          "Help & Feedback",
+                          () => _launchUrl('https://brimukon.com/support'),
+                        ),
+                        
+                      ],
+                    ),
                   ),
-                ),
-                 const SizedBox(height: 15),
-                const AdFreeTile(),
-                const NoAdsStatusTile(),
-
-
-                const SizedBox(height: 24), // Space between cards
-
-                _buildSectionHeader("Other"),
-                Card(
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(
-                        color: Theme.of(context).colorScheme.outlineVariant),
-                  ),
-                  color: Theme.of(context).colorScheme.surfaceContainerLow,
-                  clipBehavior: Clip.antiAlias,
-                  child: Column(
-                    children: [
-                      _buildLinkTile(
-                        Icons.star_rate,
-                        "Rate App",
-                        () => openPlayStore(),
-                      ),
-                      const Divider(height: 1, indent: 16, endIndent: 16),
-                      _buildLinkTile(
-                        Icons.privacy_tip_outlined,
-                        "Privacy Policy",
-                        () => _launchUrl('https://brimukon.com/m-ficha/privacy'),
-                      ),
-                      
-                      const Divider(height: 1, indent: 16, endIndent: 16),
-                      _buildLinkTile(
-                        Icons.help_outline,
-                        "Help & Feedback",
-                        () => _launchUrl('https://brimukon.com/support'),
-                      ),
-                      
-                    ],
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          _buildFooter(),
-        ],
+            _buildFooter(),
+          ],
+        ),
       ),
     );
   }

@@ -33,6 +33,11 @@ class AppTheme {
           borderRadius: BorderRadius.circular(16),
         ),
       ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+      )
     );
   
 
@@ -68,6 +73,11 @@ class AppTheme {
           borderRadius: BorderRadius.circular(16),
         ),
       ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+      )
     );
   
 }

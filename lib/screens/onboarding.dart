@@ -94,9 +94,7 @@ class _MfichaOnboardingState extends State<MfichaOnboarding> {
                     height: 54,
                     child: FilledButton(
                       onPressed: () => context.read<PermissionsCubit>().completeOnboarding(),
-                      style: FilledButton.styleFrom(
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
+                      
                       child: const Text("Get started", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     ),
                   ),

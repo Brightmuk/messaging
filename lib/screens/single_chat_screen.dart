@@ -228,7 +228,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                             ? messages.length + 1
                             : messages.length,
                         itemBuilder: (context, index) {
-                          print("\nSearched message: ${widget.searchedMessage}\n");
+                          
                           bool adsEnabled =
                               shouldShowAds(messages.length, isNoAds);
 

@@ -96,17 +96,19 @@ class PermissionsScreen extends StatelessWidget {
                 ),
 
                 // Footer with Action
-                Container(
-                  padding: const EdgeInsets.all(24.0),
-                 
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: FilledButton(
-                      onPressed: () => context
-                          .read<PermissionsCubit>()
-                          .requestAllRemaining(),
-                      child: const Text("Continue"),
+                SafeArea(
+                  child: Container(
+                    padding: const EdgeInsets.all(24.0),
+                   
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: FilledButton(
+                        onPressed: () => context
+                            .read<PermissionsCubit>()
+                            .requestAllRemaining(),
+                        child: const Text("Continue"),
+                      ),
                     ),
                   ),
                 ),

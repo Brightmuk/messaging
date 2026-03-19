@@ -24,10 +24,6 @@ class MainActivity: FlutterActivity() {
                     requestDefaultSmsRole()
                     result.success(true)
                 }
-                "requestSmsPermissions" -> {
-                    requestSmsPermissions()
-                    result.success(true)
-                }
                 else -> result.notImplemented()
             }
         }
@@ -53,15 +49,5 @@ class MainActivity: FlutterActivity() {
             startActivity(intent)
         }
     }
-    private fun requestSmsPermissions() {
-    val permissions = arrayOf(
-        android.Manifest.permission.READ_SMS,
-        android.Manifest.permission.SEND_SMS,
-        android.Manifest.permission.RECEIVE_SMS,
-        android.Manifest.permission.RECEIVE_MMS
-    )
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-        requestPermissions(permissions, 456)
-    }
-}
+
 }
