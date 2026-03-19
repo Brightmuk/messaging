@@ -103,27 +103,24 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
       _messageController.text = widget.initialMessage!;
     }
     _clearNotifications();
-    jumpToSearchResult();
   }
-  void jumpToSearchResult(){
-    if(widget.searchedMessage==null) return;
-    Future.delayed((const Duration(milliseconds: 500)), () {
-      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-  });
-  }
-
 
   void _onScroll() {
-  
-    final pos = _scrollController.position;
-    if (pos.pixels >= pos.maxScrollExtent - 200) {
-      final cubit = context.read<SingleChatCubit>();
+  final pos = _scrollController.position;
+  final cubit = context.read<SingleChatCubit>();
 
-      if (!cubit.hasReachedMax) {
-        cubit.getMessages(isInitialLoad: false);
-      }
+  // Scrolling up (towards older messages) — list is reversed so maxScrollExtent = oldest
+  if (pos.pixels >= pos.maxScrollExtent - 200) {
+    if (!cubit.hasReachedMax) {
+      cubit.getMessages(isInitialLoad: false);
     }
   }
+
+  // Scrolling down (towards newer messages) — only needed in anchor mode
+  if (pos.pixels <= 200) {
+    cubit.loadNewerMessages();
+  }
+}
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -143,6 +140,25 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
 
     super.dispose();
   }
+  void _scrollToAnchor(int timestamp, List<AppSmsMessage> messages) {
+  final idx = messages.indexWhere((m) => m.date == timestamp);
+  if (idx == -1) return;
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (!_scrollController.hasClients) return;
+
+    // Estimate position — ListView is reversed so idx 0 is at pixels=0 (bottom)
+    // We need to scroll UP from bottom, so higher idx = higher pixels value
+    final estimatedOffset = idx * 80.0; // adjust 80 to your avg bubble height
+    final maxExtent = _scrollController.position.maxScrollExtent;
+
+    _scrollController.animateTo(
+      estimatedOffset.clamp(0.0, maxExtent),
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOut,
+    );
+  });
+}
 
   @override
   Widget build(BuildContext context) {
@@ -155,9 +171,15 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
         if (state is SingleChatSendError) {
           feedbackUi.showError(state.error);
         }
+        
         if (state is SingleChatLoaded) {
-          context.read<SingleChatCubit>().markThreadAsRead();
-        }
+    context.read<SingleChatCubit>().markThreadAsRead();
+
+    // Scroll to searched message on first load
+    if (state.anchorTimestamp != null) {
+      _scrollToAnchor(state.anchorTimestamp!, state.messages);
+    }
+  }
         if (state is SingleChatDeleted) {
           Navigator.pop(context);
         }
@@ -206,6 +228,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                             ? messages.length + 1
                             : messages.length,
                         itemBuilder: (context, index) {
+                          print("\nSearched message: ${widget.searchedMessage}\n");
                           bool adsEnabled =
                               shouldShowAds(messages.length, isNoAds);
 
@@ -412,7 +435,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
   bool shouldShowAds(int messageLength, bool isNoAds) {
     return RedactService.isMonitored(widget.address) &&
         messageLength > 5 &&
-        !isNoAds;
+        !isNoAds && widget.searchedMessage == null;
   }
 
   AppBar _buildAppBar(List<AppSmsMessage> messages) {

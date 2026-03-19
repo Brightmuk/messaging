@@ -327,6 +327,11 @@ Future<void> syncExistingMessages() async {
       {required int limit, required int offset, bool isDefaultApp = true}) {
     return _dbHelper.getPaginatedChats(limit: limit, offset: offset, isDefaultApp: isDefaultApp);
   }
+  Future<List<AppSmsMessage>> getMessagesAfterTimestamp(
+  String threadId, {
+  required int afterDate,
+  int limit = 20,
+}) => _dbHelper.getMessagesAfterTimestamp(threadId, afterDate: afterDate, limit: limit);
 
   Future<List<AppSmsMessage>> getMessagesForThread(String threadId,
           {int limit = 20, int offset = 0, int? targetTimestamp}) =>

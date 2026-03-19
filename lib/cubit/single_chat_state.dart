@@ -16,8 +16,9 @@ final class SingleChatLoaded extends SingleChatState {
   final bool hasReachedMax;
   final bool hideStatus;
   final bool isSearching;
+  final int? anchorTimestamp;
 
-  SingleChatLoaded({required this.messages, this.hideStatus = false, this.hasReachedMax = false, this.isSearching = false});
+  SingleChatLoaded({required this.messages, this.hideStatus = false, this.hasReachedMax = false, this.isSearching = false, this.anchorTimestamp,});
 }
 final class SingleChatMessageUpdated extends SingleChatLoaded {
   final int updatedMessageId;

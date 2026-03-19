@@ -196,17 +196,35 @@ Future<List<AppSmsMessage>> getMessagesForThread(
   final db = await database;
 
   if (targetTimestamp != null) {
-    final List<Map<String, dynamic>> maps = await db.query(
+    // Load a window: N messages before + N after the target
+    const window = 15;
+
+    final before = await db.query(
       'messages',
-      where: 'threadId = ? AND date >= ?',
+      where: 'threadId = ? AND date <= ?',
       whereArgs: [threadId, targetTimestamp],
       orderBy: 'date DESC',
+      limit: window,
     );
-    return maps.map((m) => AppSmsMessage.fromMap(m)).toList();
+
+    final after = await db.query(
+      'messages',
+      where: 'threadId = ? AND date > ?',
+      whereArgs: [threadId, targetTimestamp],
+      orderBy: 'date ASC',
+      limit: window,
+    );
+
+    // Merge: before (reversed to ASC) + after, deduplicated
+    final merged = [
+      ...before.reversed.map(AppSmsMessage.fromMap),
+      ...after.map(AppSmsMessage.fromMap),
+    ];
+    return merged.reversed.toList();
   }
 
-  // Case 2: Standard Pagination (Normal chat opening)
-  final result = await db.query(
+  // Normal paginated fetch
+  final maps = await db.query(
     'messages',
     where: 'threadId = ?',
     whereArgs: [threadId],
@@ -214,9 +232,23 @@ Future<List<AppSmsMessage>> getMessagesForThread(
     limit: limit,
     offset: offset,
   );
-  
-  return result.map((json) => AppSmsMessage.fromMap(json)).toList();
+  return maps.map(AppSmsMessage.fromMap).toList();
 }
+  Future<List<AppSmsMessage>> getMessagesAfterTimestamp(
+    String threadId, {
+    required int afterDate,
+    int limit = 20,
+  }) async {
+    final db = await database;
+    final maps = await db.query(
+      'messages',
+      where: 'threadId = ? AND date > ?',
+      whereArgs: [threadId, afterDate],
+      orderBy: 'date ASC',
+      limit: limit,
+    );
+    return maps.map(AppSmsMessage.fromMap).toList();
+  }
 
   Future<AppChat?> getChatByNormalizedAddress(String normalizedAddress) async {
     final db = await database;

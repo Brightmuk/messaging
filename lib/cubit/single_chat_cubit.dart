@@ -13,6 +13,16 @@ class SingleChatCubit extends Cubit<SingleChatState> {
   final SmsService _smsService = SmsService();
   int? targetTimestamp;
   StreamSubscription? _updateSubscription;
+
+   // Anchor mode — true when opened from search
+  bool get _isAnchorMode => targetTimestamp != null;
+  bool _hasReachedTop = false;
+  bool _hasReachedBottom = false;
+
+  // Separate tracking for each direction in anchor mode
+  int? _oldestLoadedDate;
+  int? _newestLoadedDate;
+
   SingleChatCubit(this.threadId, {this.targetTimestamp}) : super(SingleChatInitial()) {
     getHideStatus();
     _setupListeners();
@@ -113,64 +123,97 @@ class SingleChatCubit extends Cubit<SingleChatState> {
   }
 
 
-Future<void> getMessages({bool isInitialLoad = true}) async {
-  bool isDemoMode = await UserDefaults.isDemoMode();
-  if(isDemoMode){
-    messages = DemoMessages.messages.where((msg)=>msg.threadId == threadId).toList();
-    
-    emit(SingleChatLoaded(
-      messages: messages,
-      hideStatus: hideStatus,
-      hasReachedMax: true,
-    ));
-    return;
-  }
-  if (_isFetching) return;
-  if (!isInitialLoad && _hasReachedMax) return;
-
-  _isFetching = true;
-
-  if (isInitialLoad) {
-    _currentPage = 0;
-    _hasReachedMax = false;
-   
-    if (messages.isEmpty) emit(SingleChatLoading());
-  }
-
-  try {
-    final newMessages = await _smsService.getMessagesForThread(
-      threadId,
-      limit: _pageSize,
-      offset: _currentPage * _pageSize,
-      targetTimestamp: targetTimestamp
-    );
-
-    if (newMessages.isEmpty || newMessages.length < _pageSize) {
-      _hasReachedMax = true;
+  Future<void> getMessages({bool isInitialLoad = true}) async {
+    bool isDemoMode = await UserDefaults.isDemoMode();
+    if (isDemoMode) {
+      messages = DemoMessages.messages.where((m) => m.threadId == threadId).toList();
+      emit(SingleChatLoaded(messages: messages, hideStatus: hideStatus, hasReachedMax: true));
+      return;
     }
+
+    if (_isFetching) return;
+    if (!isInitialLoad && !_isAnchorMode && _hasReachedTop) return;
+
+    _isFetching = true;
 
     if (isInitialLoad) {
-      messages = newMessages;
-    } else {
-      // Prevent duplicates if the scroll listener fired too fast
-      final existingIds = messages.map((m) => m.id).toSet();
-      final uniqueNewMessages = newMessages.where((m) => !existingIds.contains(m.id));
-      messages.addAll(uniqueNewMessages);
+      _currentPage = 0;
+      _hasReachedTop = false;
+      _hasReachedBottom = false;
+      if (messages.isEmpty) emit(SingleChatLoading());
     }
 
-    _currentPage++;
-    
-    emit(SingleChatLoaded(
-      messages: List.from(messages),
-      hideStatus: hideStatus,
-      hasReachedMax: _hasReachedMax,
-    ));
-  } catch (e) {
-    emit(SingleChatError(error: "Failed to get messages"));
-  } finally {
-    _isFetching = false;
+    try {
+      final newMessages = await _smsService.getMessagesForThread(
+        threadId,
+        limit: _pageSize,
+        offset: _currentPage * _pageSize,
+        targetTimestamp: isInitialLoad ? targetTimestamp : null,
+      );
+
+      if (isInitialLoad && _isAnchorMode) {
+        messages = newMessages;
+        // Track boundaries for directional pagination
+        _oldestLoadedDate = messages.isNotEmpty ? messages.last.date : null;
+        _newestLoadedDate = messages.isNotEmpty ? messages.first.date : null;
+        _hasReachedTop = newMessages.length < 15;
+        _hasReachedBottom = newMessages.length < 15;
+      } else if (isInitialLoad) {
+        messages = newMessages;
+        _hasReachedTop = newMessages.length < _pageSize;
+      } else {
+        final existingIds = messages.map((m) => m.id).toSet();
+        final unique = newMessages.where((m) => !existingIds.contains(m.id)).toList();
+        messages.addAll(unique); // addAll appends to bottom (older msgs in reversed list)
+        _hasReachedTop = unique.length < _pageSize;
+      }
+
+      _currentPage++;
+      _oldestLoadedDate = messages.isNotEmpty ? messages.last.date : _oldestLoadedDate;
+
+      emit(SingleChatLoaded(
+        messages: List.from(messages),
+        hideStatus: hideStatus,
+        hasReachedMax: _hasReachedTop,
+        anchorTimestamp: isInitialLoad ? targetTimestamp : null,
+      ));
+    } catch (e) {
+      emit(SingleChatError(error: "Failed to get messages"));
+    } finally {
+      _isFetching = false;
+    }
   }
-}
+    // Called when user scrolls DOWN (towards newer messages) in anchor mode
+  Future<void> loadNewerMessages() async {
+    if (!_isAnchorMode || _hasReachedBottom || _isFetching) return;
+    if (_newestLoadedDate == null) return;
+
+    _isFetching = true;
+    try {
+      final newer = await _smsService.getMessagesAfterTimestamp(
+        threadId,
+        afterDate: _newestLoadedDate!,
+        limit: _pageSize,
+      );
+
+      if (newer.isEmpty || newer.length < _pageSize) _hasReachedBottom = true;
+      if (newer.isEmpty) return;
+
+      final existingIds = messages.map((m) => m.id).toSet();
+      final unique = newer.where((m) => !existingIds.contains(m.id)).toList();
+      messages.insertAll(0, unique); // prepend — newer msgs go to top of reversed list
+      _newestLoadedDate = messages.first.date;
+
+      emit(SingleChatLoaded(
+        messages: List.from(messages),
+        hideStatus: hideStatus,
+        hasReachedMax: _hasReachedTop,
+      ));
+    } finally {
+      _isFetching = false;
+    }
+  }
+
 
 
   Future<void> sendMessage(String address, String message) async {
