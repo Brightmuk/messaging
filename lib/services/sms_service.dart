@@ -408,6 +408,9 @@ Future<void> syncExistingMessages() async {
 
   Future<String> getContactName(String phoneNumber) async =>
       ContactService().getName(phoneNumber);
+  Future<void> generateTestData(){
+    return _dbHelper.seedTestData();
+  }
 }
 
 enum SmsEventType {

@@ -1,3 +1,6 @@
+import 'dart:math';
+
+import 'package:flutter/material.dart';
 import 'package:messaging/models/app_chat.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
@@ -404,4 +407,255 @@ Future<List<AppSmsMessage>> searchGlobal(String query, bool isDefault) async {
     final db = await database;
     db.close();
   }
+  //TESTING CODE
+  Future<void> seedTestData() async {
+  final db = await database;
+
+  // Realistic name/number pairs
+  final List<Map<String, dynamic>> contacts = [
+    {'name': 'Alice Johnson', 'number': '+12025550101'},
+    {'name': 'Bob Smith', 'number': '+12025550102'},
+    {'name': 'Carol White', 'number': '+12025550103'},
+    {'name': 'David Brown', 'number': '+12025550104'},
+    {'name': 'Eve Davis', 'number': '+12025550105'},
+    {'name': 'Frank Miller', 'number': '+12025550106'},
+    {'name': 'Grace Wilson', 'number': '+12025550107'},
+    {'name': 'Henry Moore', 'number': '+12025550108'},
+    {'name': 'Isla Taylor', 'number': '+12025550109'},
+    {'name': 'Jack Anderson', 'number': '+12025550110'},
+    {'name': 'Karen Thomas', 'number': '+12025550111'},
+    {'name': 'Liam Jackson', 'number': '+12025550112'},
+    {'name': 'Mia Harris', 'number': '+12025550113'},
+    {'name': 'Noah Martin', 'number': '+12025550114'},
+    {'name': 'Olivia Lee', 'number': '+12025550115'},
+    {'name': 'Paul Garcia', 'number': '+12025550116'},
+    {'name': 'Quinn Martinez', 'number': '+12025550117'},
+    {'name': 'Rachel Robinson', 'number': '+12025550118'},
+    {'name': 'Sam Clark', 'number': '+12025550119'},
+    {'name': 'Tina Rodriguez', 'number': '+12025550120'},
+    {'name': 'Uma Lewis', 'number': '+12025550121'},
+    {'name': 'Victor Walker', 'number': '+12025550122'},
+    {'name': 'Wendy Hall', 'number': '+12025550123'},
+    {'name': 'Xander Allen', 'number': '+12025550124'},
+    {'name': 'Yara Young', 'number': '+12025550125'},
+    {'name': 'Zane King', 'number': '+12025550126'},
+    {'name': 'Amy Scott', 'number': '+12025550127'},
+    {'name': 'Brian Green', 'number': '+12025550128'},
+    {'name': 'Chloe Baker', 'number': '+12025550129'},
+    {'name': 'Derek Adams', 'number': '+12025550130'},
+    {'name': 'Ella Nelson', 'number': '+12025550131'},
+    {'name': 'Felix Carter', 'number': '+12025550132'},
+    {'name': 'Gina Mitchell', 'number': '+12025550133'},
+    {'name': 'Hank Perez', 'number': '+12025550134'},
+    {'name': 'Iris Roberts', 'number': '+12025550135'},
+    {'name': 'Jake Turner', 'number': '+12025550136'},
+    {'name': 'Kylie Phillips', 'number': '+12025550137'},
+    {'name': 'Leo Campbell', 'number': '+12025550138'},
+    {'name': 'Maya Parker', 'number': '+12025550139'},
+    {'name': 'Nate Evans', 'number': '+12025550140'},
+    {'name': 'Opal Edwards', 'number': '+12025550141'},
+    {'name': 'Pete Collins', 'number': '+12025550142'},
+    {'name': 'Rosa Stewart', 'number': '+12025550143'},
+    {'name': 'Sean Sanchez', 'number': '+12025550144'},
+    {'name': 'Tara Morris', 'number': '+12025550145'},
+    {'name': 'Ugo Rogers', 'number': '+12025550146'},
+    {'name': 'Vera Reed', 'number': '+12025550147'},
+    {'name': 'Will Cook', 'number': '+12025550148'},
+    {'name': 'Xena Morgan', 'number': '+12025550149'},
+    {'name': 'Yale Bell', 'number': '+12025550150'},
+    // Short codes / businesses for variety
+    {'name': 'Amazon', 'number': '262966'},
+    {'name': 'FedEx', 'number': '33339'},
+    {'name': 'Chase Bank', 'number': '24273'},
+    {'name': 'Netflix', 'number': '63759'},
+    {'name': 'Uber', 'number': '82785'},
+    {'name': 'Twitter', 'number': '40404'},
+    {'name': 'Google', 'number': '22000'},
+    {'name': 'PayPal', 'number': '729725'},
+    {'name': 'Apple', 'number': '27753'},
+    {'name': 'Spotify', 'number': '78674'},
+    {'name': 'Mom', 'number': '+12025550201'},
+    {'name': 'Dad', 'number': '+12025550202'},
+    {'name': 'Sister', 'number': '+12025550203'},
+    {'name': 'Brother', 'number': '+12025550204'},
+    {'name': 'Boss', 'number': '+12025550205'},
+    {'name': 'Doctor', 'number': '+12025550206'},
+    {'name': 'Dentist', 'number': '+12025550207'},
+    {'name': 'Landlord', 'number': '+12025550208'},
+    {'name': 'Gym', 'number': '+12025550209'},
+    {'name': 'Pizza Place', 'number': '+12025550210'},
+    {'name': 'Alex Kim', 'number': '+12025550211'},
+    {'name': 'Bella Cruz', 'number': '+12025550212'},
+    {'name': 'Carlos Diaz', 'number': '+12025550213'},
+    {'name': 'Diana Fox', 'number': '+12025550214'},
+    {'name': 'Ethan Gray', 'number': '+12025550215'},
+    {'name': 'Fiona Hunt', 'number': '+12025550216'},
+    {'name': 'George Iyer', 'number': '+12025550217'},
+    {'name': 'Hannah James', 'number': '+12025550218'},
+    {'name': 'Ivan Kline', 'number': '+12025550219'},
+    {'name': 'Julia Lane', 'number': '+12025550220'},
+    {'name': 'Kurt Mason', 'number': '+12025550221'},
+    {'name': 'Luna Nash', 'number': '+12025550222'},
+    {'name': 'Marco Owen', 'number': '+12025550223'},
+    {'name': 'Nina Price', 'number': '+12025550224'},
+    {'name': 'Oscar Quinn', 'number': '+12025550225'},
+    {'name': 'Petra Ray', 'number': '+12025550226'},
+    {'name': 'Quincy Stone', 'number': '+12025550227'},
+    {'name': 'Rita Upton', 'number': '+12025550228'},
+    {'name': 'Steve Vance', 'number': '+12025550229'},
+    {'name': 'Tess Wade', 'number': '+12025550230'},
+    {'name': 'Ursula Xavier', 'number': '+12025550231'},
+    {'name': 'Vincent York', 'number': '+12025550232'},
+    {'name': 'Wanda Zhang', 'number': '+12025550233'},
+    {'name': 'Xander Abbot', 'number': '+12025550234'},
+    {'name': 'Yasmine Berg', 'number': '+12025550235'},
+    {'name': 'Zack Cole', 'number': '+12025550236'},
+    {'name': 'Amber Dean', 'number': '+12025550237'},
+    {'name': 'Blake Ellis', 'number': '+12025550238'},
+    {'name': 'Cassie Ford', 'number': '+12025550239'},
+    {'name': 'Dylan Grant', 'number': '+12025550240'},
+  ];
+
+  // Realistic message pool
+  final List<String> inboundMessages = [
+    "Hey, are you free later?",
+    "Can you call me when you get a chance?",
+    "Just checking in 😊",
+    "Did you get my last message?",
+    "Running 10 minutes late, sorry!",
+    "Your package has been delivered.",
+    "Don't forget about tomorrow!",
+    "Thanks for the help earlier.",
+    "What time works for you?",
+    "I'll be there in 5.",
+    "Happy birthday! 🎂🎉",
+    "Your appointment is confirmed for Monday at 2pm.",
+    "Can you pick up milk on the way home?",
+    "Meeting pushed to 3pm.",
+    "Are you coming to the event?",
+    "Your OTP is 482910. Do not share this.",
+    "Payment of \$45.00 received. Thank you!",
+    "Your order has shipped! Track: 1Z999AA10123456784",
+    "Low balance alert: Your account has \$12.50 remaining.",
+    "Reminder: Your bill is due in 3 days.",
+    "You've been mentioned in a post.",
+    "New login detected on your account.",
+    "Your ride is 2 minutes away 🚗",
+    "Flight UA123 is on time. Gate B12.",
+    "Dinner tonight? 🍕",
+    "Call me ASAP.",
+    "lol yeah that was wild",
+    "omw",
+    "👍",
+    "K",
+    "On my way!",
+    "Can we reschedule?",
+    "Miss you ❤️",
+    "Where are you?",
+    "This is hilarious 😂",
+    "No worries at all!",
+    "See you soon.",
+    "Got it, thanks!",
+    "That sounds good to me.",
+    "Let me know when you land.",
+  ];
+
+  final List<String> outboundMessages = [
+    "Sure, what time?",
+    "On my way now.",
+    "Sounds good!",
+    "Yeah, I'll be there.",
+    "Can we do 6pm instead?",
+    "Just saw this, sorry for the late reply.",
+    "Thanks! 🙏",
+    "I'll call you in a bit.",
+    "No problem at all.",
+    "Done, just sent it over.",
+    "What's the address?",
+    "I'm outside.",
+    "Give me 10 minutes.",
+    "Perfect, see you then.",
+    "Got it!",
+    "Haha yeah 😂",
+    "Miss you too ❤️",
+    "Let me check and get back to you.",
+    "Did you get my email?",
+    "Yes, confirmed!",
+    "I'll be there at 7.",
+    "Can you send me the details?",
+    "Just finished, heading over now.",
+    "That works for me.",
+    "👍",
+    "Ok!",
+    "On it.",
+    "Just paid it.",
+    "Leaving now.",
+    "Already done!",
+  ];
+
+  final random = Random();
+  final now = DateTime.now().millisecondsSinceEpoch;
+  final batch = db.batch();
+
+  for (int i = 0; i < 100; i++) {
+    final contact = contacts[i % contacts.length];
+    final address = contact['number'] as String;
+    final threadId = (i + 1).toString();
+
+    // Random number of messages between 2 and 15
+    final messageCount = 2 + random.nextInt(14);
+
+    // Conversation starts anywhere in the last 60 days
+    final conversationStart =
+        now - Duration(days: random.nextInt(60)).inMilliseconds;
+    // Space messages a few minutes apart
+    final spacing = Duration(minutes: 3 + random.nextInt(30)).inMilliseconds;
+
+    String lastBody = '';
+    int lastDate = 0;
+
+    for (int j = 0; j < messageCount; j++) {
+      final isOutgoing = random.nextBool();
+      final msgDate = conversationStart + (j * spacing);
+      final body = isOutgoing
+          ? outboundMessages[random.nextInt(outboundMessages.length)]
+          : inboundMessages[random.nextInt(inboundMessages.length)];
+
+      lastBody = body;
+      lastDate = msgDate;
+
+      final message = {
+        'address': address,
+        'body': body,
+        'date': msgDate,
+        'type': isOutgoing ? 2 : 1,
+        'read': (isOutgoing || random.nextBool()) ? 1 : 0,
+        'threadId': threadId,
+        'simId': random.nextInt(2), // sim 0 or 1
+        'status': isOutgoing ? MessageStatus.sent.value : MessageStatus.unknown.value,
+      };
+
+      batch.insert('messages', message, conflictAlgorithm: ConflictAlgorithm.ignore);
+    }
+
+    // Insert chat summary using last message
+    batch.insert(
+      'chats',
+      {
+        'threadId': threadId,
+        'address': address,
+        'normalizedAddress': AppChat.normalizeAddress(address),
+        'lastMessage': lastBody,
+        'lastMessageDate': lastDate,
+        'unreadCount': random.nextInt(5),
+        'isArchived':  0, 
+        'isPinned':  0,  
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  await batch.commit(noResult: true);
+  debugPrint('✅ Seeded 100 test conversations');
+}
 }

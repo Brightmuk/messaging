@@ -344,6 +344,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
             label: const Text('New'),
             icon: const Icon(Icons.edit_outlined),
             onPressed: () async {
+              // SmsService().generateTestData();
               if (isDefault) {
                 Navigator.push(
                     context,
