@@ -102,7 +102,7 @@ class _PrivacyShieldOverlayState extends State<PrivacyShieldOverlay> {
                               ],
                             ),
                             Text(
-                              "M-Ficha Privacy Shield • Active",
+                              "Privacy Shield • Active",
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: colorMap(address),
                                 fontWeight: FontWeight.bold,
@@ -116,7 +116,7 @@ class _PrivacyShieldOverlayState extends State<PrivacyShieldOverlay> {
                         onPressed: () => FlutterOverlayWindow.closeOverlay(),
                         icon: const Icon(Icons.close_rounded, size: 22),
                         padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
+                        constraints: const BoxConstraints(), 
                         visualDensity: VisualDensity.compact,
                         color: isDarkMode ? Colors.white54 : Colors.black45,
                       ),
@@ -134,7 +134,7 @@ class _PrivacyShieldOverlayState extends State<PrivacyShieldOverlay> {
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     child: Text(
                       RedactService.redactAfterBalance(message, address),
-                      maxLines: 4,
+                      maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: isDarkMode ? Colors.white70 : Colors.black87,
@@ -145,7 +145,7 @@ class _PrivacyShieldOverlayState extends State<PrivacyShieldOverlay> {
                   ),
 
                   
-
+                
                   // 4. Action Buttons (Open and Dismiss)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
