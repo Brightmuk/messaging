@@ -24,6 +24,12 @@ class MainActivity: FlutterActivity() {
                     requestDefaultSmsRole()
                     result.success(true)
                 }
+                "openMainApp" ->{
+                    val intent = Intent(this, MainActivity::class.java)
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    startActivity(intent)
+                    result.success(true)
+                }
                 else -> result.notImplemented()
             }
         }

@@ -15,6 +15,7 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     
 
     <application
@@ -112,7 +113,9 @@
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="To show transaction messages with account balance hidden even if app is closed"/>
         </service>
-
+        <receiver android:name="com.dexterous.flutter_local_notifications.ActionBroadcastReceiver"
+    android:exported="false" />
+    
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />

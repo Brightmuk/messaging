@@ -7,6 +7,7 @@ import 'package:messaging/cubit/permissions_cubit.dart';
 import 'package:messaging/screens/onboarding.dart';
 import 'package:messaging/screens/permissions_screen.dart';
 import 'package:messaging/screens/widgets/privacy_overlay.dart';
+import 'package:messaging/services/notification_service.dart';
 import 'package:messaging/services/purchase_service.dart';
 import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
@@ -16,6 +17,7 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  NotificationService().initialize();
   MobileAds.instance.initialize();
   PurchaseService().initializeIAP();
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(

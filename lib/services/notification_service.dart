@@ -1,8 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_overlay_window/flutter_overlay_window.dart' as fo;
+import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/main.dart';
 import 'package:messaging/screens/single_chat_screen.dart';
+import 'package:messaging/services/database_helper.dart';
+import 'package:messaging/services/sms_service.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -24,17 +28,19 @@ class NotificationService {
 
     await _notifications.initialize(
       initializationSettings,
-      onDidReceiveNotificationResponse: _onNotificationTapped,
+      onDidReceiveNotificationResponse: _onNotificationResponse,
+      onDidReceiveBackgroundNotificationResponse:
+          _onBackgroundNotificationResponse,
     );
-    final NotificationAppLaunchDetails? launchDetails = 
+
+    final NotificationAppLaunchDetails? launchDetails =
         await _notifications.getNotificationAppLaunchDetails();
-    
+
     if (launchDetails?.didNotificationLaunchApp ?? false) {
       final response = launchDetails?.notificationResponse;
       if (response != null) {
-        // Delay slightly to ensure the Navigator is ready
         Future.delayed(const Duration(seconds: 1), () {
-          _onNotificationTapped(response);
+          _onNotificationResponse(response);
         });
       }
     }
@@ -47,7 +53,6 @@ class NotificationService {
       importance: Importance.high,
       enableVibration: true,
       playSound: true,
-      
     );
 
     await _notifications
@@ -55,25 +60,83 @@ class NotificationService {
             AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(channel);
   }
+    void _onNotificationResponse(NotificationResponse response) {
+      debugPrint("\nNotification response: $response\n");
+    if (response.actionId != null){
+      _handleNotificationAction(response);
+      return;
+    }
+    if (response.payload == null) return;
 
-  Future<void> showNotification({
-    required String title,
-    required String body,
-    String? payload,
-  }) async {
-    const AndroidNotificationDetails androidDetails =
-        AndroidNotificationDetails(
-      'sms_channel',
-      'SMS Messages',
-      channelDescription: 'Notifications for incoming SMS messages',
-      importance: Importance.high,
-      priority: Priority.high,
-      showWhen: true,
-      enableVibration: true,
-      playSound: true,
-    );
+    try {
+      final Map<String, dynamic> data = json.decode(response.payload!);
+      final String? address = data['address'];
+      final String? threadId = data['threadId'];
 
-    const NotificationDetails notificationDetails = NotificationDetails(
+      if (address != null && threadId != null) {
+        navigatorKey.currentState?.push(
+          MaterialPageRoute(
+            builder: (context) => SingleChatScreen(
+              address: address,
+              threadId: threadId,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      print("Error parsing notification payload: $e");
+    }
+  }
+
+  void _handleNotificationAction(NotificationResponse response) {
+    if (response.actionId == 'mark_as_read') {
+      final payload = response.payload;
+      if (payload == null) return;
+      try {
+        final data = json.decode(payload) as Map<String, dynamic>;
+        final threadId = data['threadId'] as String?;
+        if (threadId != null) {
+          SmsService().markThreadAsRead(threadId);
+        }
+      } catch (e) {
+        debugPrint('Failed to parse notification payload: $e');
+      }
+    }
+    // null actionId = user tapped the notification body (open app)
+    // handle deep link navigation here if needed
+  }
+
+  Future<void> showNotification(
+      {required String title,
+      required String body,
+      String? payload,
+      bool actions = false}) async {
+    AndroidNotificationDetails androidDetails =
+        AndroidNotificationDetails('sms_channel', 'SMS Messages',
+            channelDescription: 'Notifications for incoming SMS messages',
+            importance: Importance.high,
+            priority: Priority.high,
+            showWhen: true,
+            enableVibration: true,
+            playSound: true,
+            actions: actions
+                ? [
+                    const AndroidNotificationAction(
+                      'mark_as_read',
+                      'Mark as Read',
+                      cancelNotification: true,
+                      showsUserInterface: false,
+                    ),
+                    const AndroidNotificationAction(
+                      'open',
+                      'open',
+                      cancelNotification: true,
+                      showsUserInterface: true,
+                    ),
+                  ]
+                : []);
+
+    NotificationDetails notificationDetails = NotificationDetails(
       android: androidDetails,
     );
 
@@ -85,34 +148,42 @@ class NotificationService {
       payload: payload,
     );
   }
+  static Future<void> showOverlay({required String address, required String text}) async {
+    if(await canShowOverlay()){
+      fo.FlutterOverlayWindow.showOverlay(
+         enableDrag: true,
+          flag: fo.OverlayFlag.defaultFlag,
+          visibility: fo.NotificationVisibility.visibilityPublic,
+          positionGravity: fo.PositionGravity.auto,
+          height: 600,
+          width: fo.WindowSize.matchParent,
+          startPosition: const fo.OverlayPosition(0, -259),
+      ).then((val){
+          fo.FlutterOverlayWindow.shareData({'address':address,'redactedText': text});
+      });
+    }
+  }
+  static Future<bool> canShowOverlay() async {
+    return (await UserDefaults.canShowOverlay() &&  await fo.FlutterOverlayWindow.isPermissionGranted());
+  }
+  static Future<void> setShowOverlay(bool showOverlay) async {
+    if (showOverlay) {
+      bool granted = await fo.FlutterOverlayWindow.isPermissionGranted();
+      if (granted) {
+        await UserDefaults.setShowOverlay(true);
+      } else {
+        await fo.FlutterOverlayWindow.requestPermission();
+      }
+    } else {
+      await UserDefaults.setShowOverlay(false);
+    }
+  }
 
   void removeNotifications() async {
     await _notifications.cancelAll();
   }
 
-void _onNotificationTapped(NotificationResponse response) {
-    if (response.payload == null) return;
 
-    try {
-      final Map<String, dynamic> data = json.decode(response.payload!);
-      final String? address = data['address'];
-      final String? threadId = data['threadId'];
-
-      if(address != null && threadId != null){
-        navigatorKey.currentState?.push(
-        MaterialPageRoute(
-          builder: (context) => SingleChatScreen(
-            address: address,
-            threadId: threadId,
-          ),
-        ),
-      );
-      }
-
-    } catch (e) {
-      print("Error parsing notification payload: $e");
-    }
-  }
 
   Future<void> cancelNotification(int id) async {
     await _notifications.cancel(id);
@@ -123,3 +194,25 @@ void _onNotificationTapped(NotificationResponse response) {
   }
 }
 
+@pragma('vm:entry-point')
+void _onBackgroundNotificationResponse(NotificationResponse response) {
+  
+  debugPrint("Background notification response actionId: ${response.actionId}");
+  final int? notificationId = response.id;
+  if (response.actionId == 'mark_as_read') {
+    final payload = response.payload;
+    if (notificationId != null) {
+      FlutterLocalNotificationsPlugin().cancel(notificationId);
+    }
+    if (payload == null) return;
+    try {
+      final data = json.decode(payload) as Map<String, dynamic>;
+      final threadId = data['threadId'] as String?;
+      if (threadId != null) {
+        DatabaseHelper.instance.markThreadAsRead(threadId);
+      }
+    } catch (e) {
+      debugPrint('Failed to parse notification payload: $e');
+    }
+  }
+}

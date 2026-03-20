@@ -1,6 +1,6 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:messaging/services/redact_service.dart';
 
@@ -12,22 +12,24 @@ class PrivacyShieldOverlay extends StatefulWidget {
 }
 
 class _PrivacyShieldOverlayState extends State<PrivacyShieldOverlay> {
-  String address = "Shield Active";
-  String message = "Processing privacy shield...";
+
+  String address = "Privacy Shield";
+  String message = "Processing...";
   
   @override
   void initState() {
     super.initState();
-    
     FlutterOverlayWindow.overlayListener.listen((data) {
-      setState(() {
-        address = data['address'] ?? "Private Message";
-        message = data['redactedText'] ?? "Checked balance";
-      });
+      if (mounted) {
+        setState(() {
+          address = data['address'] ?? "Private Message";
+          message = data['redactedText'] ?? "Checked balance";
+        });
+      }
     });
     
-    Future.delayed(const Duration(seconds: 10), () {
-      
+    // Auto-close after 10s
+    Timer(const Duration(seconds: 10), () {
       if (mounted) FlutterOverlayWindow.closeOverlay();
     });
   }
@@ -40,92 +42,207 @@ class _PrivacyShieldOverlayState extends State<PrivacyShieldOverlay> {
     return Material(
       color: Colors.transparent,
       child: Container(
-        padding: const EdgeInsets.all(16),
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        width: double.infinity,
+        margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
         decoration: BoxDecoration(
-
-          color: isDarkMode ? const Color(0xFF1D1B20) : theme.colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: isDarkMode ? Colors.white10 : Colors.black.withOpacity(0.05), 
-            width: 1,
-          ),
+          color: isDarkMode ? const Color(0xFF212121) : Colors.white,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: isDarkMode ? Colors.white10 : Colors.black12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isDarkMode ? 0.5 : 0.1),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Security Icon with a soft background tint
+            // 1. Drag Handle
             Container(
-              padding: const EdgeInsets.all(8),
+              margin: const EdgeInsets.only(top: 10, bottom: 4),
+              width: 32,
+              height: 4,
               decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.1),
-                shape: BoxShape.circle,
+                color: isDarkMode ? Colors.white24 : Colors.black12,
+                borderRadius: BorderRadius.circular(2),
               ),
-              child: const Icon(Icons.shield_rounded, color: Colors.green, size: 24),
             ),
-            const SizedBox(width: 16),
-            Expanded(
+            
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
                 children: [
+                  // 2. Header Row
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Text(
-                        address,
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.onSurface,
+                      _buildIdentityAvatar(address, theme),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    address,
+                                    style: theme.textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 0.1,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                _buildShieldBadge(),
+                              ],
+                            ),
+                            Text(
+                              "M-Ficha Privacy Shield • Active",
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: colorMap(address),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      // Small privacy badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Text(
-                          "REDACTED",
-                          style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold),
-                        ),
+                      // Pushed to the far right
+                      IconButton(
+                        onPressed: () => FlutterOverlayWindow.closeOverlay(),
+                        icon: const Icon(Icons.close_rounded, size: 22),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        visualDensity: VisualDensity.compact,
+                        color: isDarkMode ? Colors.white54 : Colors.black45,
                       ),
-                      Spacer(),
-                      IconButton(onPressed: (){
-                        FlutterOverlayWindow.closeOverlay();
-                      }, icon: Icon(Icons.clear_outlined,size: 16,))
+                      const SizedBox(width: 4),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    RedactService.redactAfterBalance(message, address),
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+
+                  const Padding(
+                    padding: EdgeInsets.only(top: 8, bottom: 12),
+                    child: Divider(height: 1, thickness: 0.5),
+                  ),
+
+                  // 3. Message Body
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Text(
+                      RedactService.redactAfterBalance(message, address),
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: isDarkMode ? Colors.white70 : Colors.black87,
+                        height: 1.5,
+                        letterSpacing: 0.2,
+                      ),
                     ),
                   ),
+
+                  
+
+                  // 4. Action Buttons (Open and Dismiss)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                     
-                      TextButton(onPressed: (){
-                         FlutterOverlayWindow.closeOverlay();
-                      }, child: const Text('Done'))
+                      
+                      const SizedBox(width: 8),
+                      TextButton(
+                        onPressed: () async {
+                            try {
+                              await const MethodChannel('com.brimukon.messaging.defaultRole').invokeMethod('openMainApp');
+                              await FlutterOverlayWindow.closeOverlay();
+                            } catch (e) {
+                              debugPrint("Failed to open app: $e");
+                            }
+
+                          FlutterOverlayWindow.closeOverlay();
+                        },
+                        child:  Text(
+                          "OPEN",
+                          style: TextStyle(
+                            color: colorMap(address),
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => FlutterOverlayWindow.closeOverlay(),
+                        child: Text(
+                          "DISMISS",
+                          style: TextStyle(
+                            color: isDarkMode ? Colors.white54 : Colors.black54,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
                     ],
-                  )
-        
+                  ),
                 ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+  Color colorMap(String label) {
+    if (label.toUpperCase().contains("MPESA")) {
+      return Colors.green;
+    } else if (label.toUpperCase().contains("AIRTEL")) {
+      return Colors.red;
+    } else {
+      return Colors.blue;
+    }
+  }
+
+  Widget _buildIdentityAvatar(String label, ThemeData theme) {
+   
+    return CircleAvatar(
+      radius: 22,
+      backgroundColor: colorMap(address),
+      child: Text(
+        label.isNotEmpty ? label[0].toUpperCase() : "P",
+        style: const TextStyle(
+          color:  Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 18,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShieldBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: colorMap(address).withOpacity(0.12),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colorMap(address).withOpacity(0.2)),
+      ),
+      child:  Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.verified_user_rounded, color: colorMap(address), size: 10),
+          const SizedBox(width: 4),
+          Text(
+            "PROTECTED",
+            style: TextStyle(
+              color: colorMap(address), 
+              fontSize: 8, 
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
       ),
     );
   }

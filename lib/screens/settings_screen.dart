@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:messaging/core/events.dart';
 import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/core/utils/functions.dart';
@@ -7,6 +8,7 @@ import 'package:messaging/models/sim_card_state.dart';
 import 'package:messaging/screens/archived_chats_screen.dart';
 import 'package:messaging/screens/widgets/ad_free_tile.dart';
 import 'package:messaging/screens/widgets/no_ads_status_tile.dart';
+import 'package:messaging/services/notification_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/sms_service.dart';
@@ -38,6 +40,17 @@ class _SettingsScreenState extends State<SettingsScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _checkDefaultSmsStatus();
+      _verifyPermissionStatus();
+    }
+  }
+  bool _isWaitingForOverlayPermission = false;
+  Future<void> _verifyPermissionStatus() async {
+    if(!_isWaitingForOverlayPermission) return ;
+    bool isGranted = await FlutterOverlayWindow.isPermissionGranted();
+    if (isGranted) {
+      await UserDefaults.setShowOverlay(true);
+      _isWaitingForOverlayPermission = false;
+      setState(() {}); 
     }
   }
 
@@ -191,6 +204,25 @@ class _SettingsScreenState extends State<SettingsScreen>
                                 await UserDefaults.setHideStatus(value);
                                 setState(() {});
                               }
+                              );
+                          }
+                        ),
+                        const Divider(height: 1, indent: 16, endIndent: 16),
+                        FutureBuilder<bool>(
+                          future: NotificationService.canShowOverlay(),
+                          builder: (context, asyncSnapshot) {
+                            return SwitchListTile(
+                            
+                              title: const Text("Payment confirmation shortcuts"),
+                              subtitle: const Text('Show an overlay to quickly verify payments without opening the app'),
+                              value: asyncSnapshot.data ?? false, 
+                              onChanged: (value) async {
+                                if(!await FlutterOverlayWindow.isPermissionGranted()){
+                                  _isWaitingForOverlayPermission = true;
+                                }
+                                  await NotificationService.setShowOverlay(value);
+                                  setState(() {});
+                                }
                               );
                           }
                         ),

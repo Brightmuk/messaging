@@ -68,7 +68,7 @@ class SmsService {
   }
 
   Future<void> initialize() async {
-    await _notificationService.initialize();
+   
     telephony.listenIncomingSms(
       onNewMessage: _onMessageReceived,
       onBackgroundMessage: _onBackgroundMessage,
@@ -285,8 +285,15 @@ Future<void> syncExistingMessages() async {
     await _notificationService.showNotification(
       title: name,
       body: appMsg.body,
+      actions: true,
       payload: json.encode({'threadId': threadId, "address": appMsg.address}),
     );
+    // if( RedactService.isMonitored(appMsg.address) && await NotificationService.canShowOverlay()){
+    //   NotificationService.showOverlay(
+    //     text: appMsg.body,
+    //     address: appMsg.address
+    //   );
+    // }
   }
 
   Future<String> getThreadId(String? address) async {

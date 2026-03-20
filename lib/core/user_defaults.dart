@@ -8,6 +8,7 @@ class UserDefaults {
   static const String _hasOnboardedString = 'hasOnboarded';
   static const String _adsRemovedString = 'adsRemoved';
   static const String _demoModeKey = 'isDemoMode';
+  static const String _canshowOverlayKey = 'canShowOverlay';
 
   static Future<void> setHasOnboarded() async {
     final prefs = await SharedPreferences.getInstance();
@@ -77,5 +78,14 @@ class UserDefaults {
   static Future<void> setDemoMode(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_demoModeKey, value);
+  }
+    static Future<bool> canShowOverlay() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_canshowOverlayKey) ?? false;
+  }
+
+  static Future<void> setShowOverlay(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_canshowOverlayKey, value);
   }
 }
