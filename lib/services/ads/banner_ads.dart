@@ -14,10 +14,11 @@ class BannerAdService {
     await MobileAds.instance.initialize();
   }
 
-  static BannerAd createBannerAd({
+  static BannerAd? createBannerAd({
     required void Function(Ad) onAdLoaded,
     required void Function(Ad, LoadAdError) onAdFailedToLoad,
   }) {
+    
     return BannerAd(
       adUnitId: bannerAdUnitId,
       size: AdSize.banner,

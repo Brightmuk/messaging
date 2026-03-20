@@ -207,25 +207,25 @@ class _SettingsScreenState extends State<SettingsScreen>
                               );
                           }
                         ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        FutureBuilder<bool>(
-                          future: NotificationService.canShowOverlay(),
-                          builder: (context, asyncSnapshot) {
-                            return SwitchListTile(
+                        // const Divider(height: 1, indent: 16, endIndent: 16),
+                        // FutureBuilder<bool>(
+                        //   future: NotificationService.canShowOverlay(),
+                        //   builder: (context, asyncSnapshot) {
+                        //     return SwitchListTile(
                             
-                              title: const Text("Payment confirmation shortcuts"),
-                              subtitle: const Text('Show an overlay to quickly verify payments without opening the app'),
-                              value: asyncSnapshot.data ?? false, 
-                              onChanged: (value) async {
-                                if(!await FlutterOverlayWindow.isPermissionGranted()){
-                                  _isWaitingForOverlayPermission = true;
-                                }
-                                  await NotificationService.setShowOverlay(value);
-                                  setState(() {});
-                                }
-                              );
-                          }
-                        ),
+                        //       title: const Text("Payment confirmation shortcuts"),
+                        //       subtitle: const Text('Show an overlay to quickly verify payments without opening the app'),
+                        //       value: asyncSnapshot.data ?? false, 
+                        //       onChanged: (value) async {
+                        //         if(!await FlutterOverlayWindow.isPermissionGranted()){
+                        //           _isWaitingForOverlayPermission = true;
+                        //         }
+                        //           await NotificationService.setShowOverlay(value);
+                        //           setState(() {});
+                        //         }
+                        //       );
+                        //   }
+                        // ),
                        
                       ],
                     ),

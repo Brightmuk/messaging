@@ -10,223 +10,220 @@ class NoAdsPurchaseSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
 
     return BlocConsumer<PaymentCubit, PaymentState>(
       listener: (context, state) {
-        if(state is PaymentSuccess){
-          Navigator.pop(context);
-        }
+        if (state is PaymentSuccess) Navigator.pop(context);
       },
       builder: (context, state) {
         return Container(
-          height:
-              MediaQuery.of(context).size.height * 0.85, // Almost full screen
+          height: MediaQuery.of(context).size.height * 0.85,
           decoration: BoxDecoration(
             color: theme.scaffoldBackgroundColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
           ),
-          child: Column(
-            children: [
-              // 1. The Header with your signature Gradient
-              Stack(
-                children: [
-                 
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Colors.blue.shade700, Colors.blue.shade900],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                    ),
-                    child:  const Column(
+          child: SafeArea(
+            child: Column(
+              children: [
+                // 1. Sophisticated Header
+                _buildPremiumHeader(context, isDarkMode),
+            
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 28.0),
+                    child: Column(
                       children: [
-                         Icon(Icons.star, size: 60, color: Colors.orangeAccent),
-                         SizedBox(height: 12),
-                         Text(
-                          "Ad-Free Forever",
-                          style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                        const SizedBox(height: 32),
+                        _buildFeatureRow(Icons.auto_awesome, "Ad-free experience", "Browse your messages without interruptions."),
+                        _buildFeatureRow(Icons.speed, "Streamlined Interface & Performance", "A faster, distraction-free experience with zero external ad-resource loading."),
+                        _buildFeatureRow(Icons.verified_user_outlined, "Priority Updates", "Get the latest privacy features before anyone else."),
+                        
+                        const Spacer(),
+            
+                        // 2. Pricing Section
+                        Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                "SPECIAL INTRODUCTORY OFFER",
+                                style: TextStyle(
+                                  color: Colors.amber.shade800,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                              textBaseline: TextBaseline.alphabetic,
+                              children: [
+                                Text("Ksh 500",
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                        decoration: TextDecoration.lineThrough,
+                                        color: theme.colorScheme.onSurface.withOpacity(0.4))),
+                                const SizedBox(width: 12),
+                                Text("Ksh 360",
+                                    style: theme.textTheme.displaySmall?.copyWith(
+                                        fontWeight: FontWeight.w900,
+                                        color: theme.colorScheme.onSurface)),
+                              ],
+                            ),
+                            Text("One-time payment. Lifetime access.",
+                                style: theme.textTheme.labelSmall?.copyWith(color: Colors.grey)),
+                          ],
                         ),
-                        Text('One time purchase',style: TextStyle(color: Colors.white),)
+                        
+                        const SizedBox(height: 32),
+            
+                        // 3. High-End CTA
+                        _buildMainButton(context, state),
+                        
+                        const SizedBox(height: 20),
+            
+                        // 4. Footer Links
+                        _buildFooter(context),
+                        const SizedBox(height: 15),
                       ],
                     ),
                   ),
-                   Positioned(
-                right: -20,
-                top: -20,
-                child: Icon(
-                  Icons.star,
-                  size: 150, 
-                  color: Colors.white.withOpacity(0.1),
                 ),
-              ),
-               Positioned(
-                right: -10,
-                bottom: 10,
-                child: Icon(
-                  Icons.star,
-                  size: 50, 
-                  color: Colors.white.withOpacity(0.1),
-                ),
-              ),
-                  
-                  // THE CLOSE BUTTON
-                  Positioned(
-                    top: 12,
-                    left: 12,
-                    child: IconButton(
-                      icon: const Icon(Icons.clear, color: Colors.white70, size: 28),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ),
-                ],
-              ),
-
-              // 2. The Features/Information
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    children: [
-                      _buildFeatureRow(Icons.block,
-                          "Remove all advertisements permanently."),
-                      _buildFeatureRow(Icons.bolt,
-                          "Faster performance & cleaner interface."),
-                      _buildFeatureRow(
-                          Icons.favorite, "Support the developers of M-Ficha."),
-                      const Spacer(),
-
-                      // 3. Pricing Section
-                       Text("Limited Time Offer",
-                          style: theme.textTheme.labelMedium!.copyWith(color: theme.colorScheme.onSurface.withAlpha(100))),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text("Ksh 500",
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                  decoration: TextDecoration.lineThrough,
-                                  color: theme.colorScheme.onSurface.withAlpha(100)
-                                  )),
-                          const SizedBox(width: 12),
-                          const Text("Ksh 360",
-                              style: TextStyle(
-                                  fontSize: 32, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-
-                      // 4. CTA Buttons
-                      SizedBox(
-                        width: double.infinity,
-                        height: 56,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.orange.shade700,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16)),
-                          ),
-                          onPressed: (state is PaymentProcessing)?  null: () {
-                            context.read<PaymentCubit>().startPurchase();
-                        
-                          },
-                          child: (state is PaymentProcessing) ?  const SizedBox(
-                              width: 20, 
-                              height: 20, 
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            ): const Text("UPGRADE NOW",
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 16)),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // 5. Restore Purchase Link
-                      TextButton(
-                        onPressed: () =>
-                            context.read<PaymentCubit>().restorePurchase(),
-                        child: RichText(
-                          text: TextSpan(
-                            style: theme.textTheme.bodyMedium,
-                            children: [
-                              const TextSpan(text: "Already purchased? "),
-                              TextSpan(
-                                text: "Restore",
-                                style: TextStyle(
-                                    color: Colors.blue.shade700,
-                                    fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: RichText(
-                          textAlign: TextAlign.center,
-                          text: TextSpan(
-                            style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey), // Base style
-                            children: [
-                              const TextSpan(text: "By purchasing this item you have read and agree to our\n "),
-                              TextSpan(
-                                text: "Terms & Conditions",
-                                style: TextStyle(
-                                  color: Colors.blue.shade700,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                // THIS MAKES IT CLICKABLE
-                                recognizer: TapGestureRecognizer()
-                                  ..onTap = () {
-                                    _launchUrl('https://brimukon.com/terms');
-                                  },
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
     );
   }
 
-  Widget _buildFeatureRow(IconData icon, String text) {
+  Widget _buildPremiumHeader(BuildContext context, bool isDarkMode) {
+    return Stack(
+      children: [
+        Container(
+          width: double.infinity,
+          height: 200,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: isDarkMode 
+                  ? [const Color(0xFF1A237E), const Color(0xFF000000)]
+                  : [const Color(0xFF283593), const Color(0xFF1565C0)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.workspace_premium, size: 48, color: Colors.amberAccent),
+              const SizedBox(height: 16),
+              const Text(
+                "M-FICHA PRO",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2.0,
+                ),
+              ),
+              Text(
+                "Elevate your messaging privacy",
+                style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+        Positioned(
+          top: 16,
+          right: 16,
+          child: IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.close, color: Colors.white54),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFeatureRow(IconData icon, String title, String subtitle) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12.0),
+      padding: const EdgeInsets.symmetric(vertical: 14.0),
       child: Row(
         children: [
-          CircleAvatar(
-            backgroundColor: Colors.blue.withOpacity(0.1),
-            child: Icon(icon, color: Colors.blue.shade700, size: 20),
+          Icon(icon, color: Colors.blue.shade400, size: 28),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+              ],
+            ),
           ),
-          const SizedBox(width: 16),
-          Expanded(child: Text(text, style: const TextStyle(fontSize: 15))),
         ],
       ),
     );
   }
-  Future<void> _launchUrl(String urlString) async {
-    final Uri url = Uri.parse(urlString);
-    try {
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
-      } else {
-        
-      }
-    } catch (e) {
-      debugPrint("Error launching URL: $e");
-    }
+
+  Widget _buildMainButton(BuildContext context, PaymentState state) {
+    final bool isProcessing = state is PaymentProcessing;
+    return SizedBox(
+      width: double.infinity,
+      height: 58,
+      child: ElevatedButton(
+        onPressed: isProcessing ? null : () => context.read<PaymentCubit>().startPurchase(),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF1A237E), // Deep Indigo
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        ),
+        child: isProcessing
+            ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+            : const Text("ACTIVATE PRO ACCESS", style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.1)),
+      ),
+    );
+  }
+
+  Widget _buildFooter(BuildContext context) {
+    return Column(
+      children: [
+        TextButton(
+          onPressed: () => context.read<PaymentCubit>().restorePurchase(),
+          child: Text("Restore Previous Purchase", style: TextStyle(color: Colors.blue.shade700, fontSize: 13, fontWeight: FontWeight.w600)),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: RichText(
+            textAlign: TextAlign.center,
+            text: TextSpan(
+              style: const TextStyle(color: Colors.grey, fontSize: 11),
+              children: [
+                const TextSpan(text: "Terms apply. By upgrading, you agree to our "),
+                TextSpan(
+                  text: "Terms of Service",
+                  style: const TextStyle(decoration: TextDecoration.underline),
+                  recognizer: TapGestureRecognizer()..onTap = () => _launchUrl('https://brimukon.com/m-ficha/terms'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _launchUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 }

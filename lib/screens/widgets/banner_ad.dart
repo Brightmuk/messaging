@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:messaging/core/user_defaults.dart';
+import 'package:messaging/cubit/payment_cubit.dart';
 import 'package:messaging/services/ads/banner_ads.dart';
-
 
 class MfichaBannerAd extends StatefulWidget {
   const MfichaBannerAd({super.key});
@@ -20,7 +22,8 @@ class _MfichaBannerAdState extends State<MfichaBannerAd> {
     _loadAd();
   }
 
-  void _loadAd() {
+  void _loadAd() async {
+    if (await UserDefaults.getAdsRemoved()) return;
     _bannerAd = BannerAdService.createBannerAd(
       onAdLoaded: (ad) {
         setState(() => _isLoaded = true);
@@ -42,12 +45,20 @@ class _MfichaBannerAdState extends State<MfichaBannerAd> {
   @override
   Widget build(BuildContext context) {
     if (_isLoaded && _bannerAd != null) {
-      return Container(
-        alignment: Alignment.center,
-        width: _bannerAd!.size.width.toDouble(),
-        height: _bannerAd!.size.height.toDouble(),
-        margin: const EdgeInsets.symmetric(vertical: 8),
-        child: AdWidget(ad: _bannerAd!),
+      return BlocBuilder<PaymentCubit, PaymentState>(
+        builder: (context, state) {
+          if(state is PaymentPaid || state is PaymentSuccess){
+            return const SizedBox.shrink();
+          }
+
+          return Container(
+            alignment: Alignment.center,
+            width: _bannerAd!.size.width.toDouble(),
+            height: _bannerAd!.size.height.toDouble(),
+            margin: const EdgeInsets.symmetric(vertical: 8),
+            child: AdWidget(ad: _bannerAd!),
+          );
+        },
       );
     }
     return const SizedBox.shrink();
