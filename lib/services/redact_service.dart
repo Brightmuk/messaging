@@ -20,7 +20,8 @@ class RedactService {
     'airtelmoney',
     'zidii',
     'mshwari',
-    'tkash'
+    'tkash',
+    // '791670106'
   ];
 
   static RedactResult redactAfterBalance(String message, String address) {

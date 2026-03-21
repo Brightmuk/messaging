@@ -268,7 +268,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                               message: message,
                               selected: isSelected,
                               showDateSeparator: showDateSeparator,
-                              isHighlighted: widget.searchedMessage?.id == message.id,
+                              isHighlighted: widget.searchedMessage == message,
                             ),
                           );
                         },

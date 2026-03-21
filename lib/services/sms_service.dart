@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:another_telephony/telephony.dart';
@@ -501,7 +502,7 @@ class SmsService {
   static Future<void> _onBackgroundMessage(SmsMessage message) async {
     try {
       if (message.body == null || message.address == null) return;
-
+      await Firebase.initializeApp();
       final smsService = SmsService();
       final notificationService = NotificationService();
       await notificationService.initialize();
@@ -532,8 +533,8 @@ class SmsService {
         lowPriority: RedactService.isMonitored(message.address!),
         payload: payload,
       );
-    } catch (_) {
-      debugPrint("[SmsService] error on background message");
+    } catch (e) {
+      debugPrint("[SmsService] error on background message $e");
     }
   }
 

@@ -76,6 +76,7 @@ class AppSmsMessage {
   }
 
   factory AppSmsMessage.fromMap(Map<String, dynamic> map) {
+    print("\n\nMesage: $map\n\n");
     return AppSmsMessage(
       id: map['id'],
       address: map['address'],
@@ -91,6 +92,8 @@ class AppSmsMessage {
 
   bool get isOutgoing => type == 2;
   bool get isIncoming => type == 1;
+  String get simcardId => simId.toString();
+
 
   @override
   bool operator ==(Object other) {
