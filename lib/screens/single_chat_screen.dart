@@ -496,6 +496,12 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
         ],
       ),
       actions: [
+          isMpesa(widget.address) ? IconButton(
+          icon: const Icon(Icons.business_center_outlined),
+          onPressed: (){
+            
+          },
+        ):const SizedBox.shrink(),
         
         IconButton(
           icon: const Icon(Icons.call_outlined),
@@ -506,7 +512,9 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
       ],
     );
   }
-
+  bool isMpesa(String address){
+    return address.toLowerCase() == 'mpesa';
+  }
   Widget _buildSimSlot({
     required bool isLoading,
     required bool hasData,
