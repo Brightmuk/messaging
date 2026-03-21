@@ -67,7 +67,7 @@ class _MessageBubbleState extends State<MessageBubble> {
                 duration: const Duration(milliseconds: 200),
                 margin: EdgeInsets.only(
                   bottom: 4,
-                  left: widget.isOutgoing ? 50 : 12,
+                  left: widget.isOutgoing ? 50 : 12, // More space on the opposite side
                   right: widget.isOutgoing ? 12 : 50,
                 ),
                 padding:
@@ -76,17 +76,11 @@ class _MessageBubbleState extends State<MessageBubble> {
                   maxWidth: MediaQuery.of(context).size.width * 0.8,
                 ),
                 decoration: BoxDecoration(
-                  color:  
-                   widget.selected
+                  color: (widget.selected || _shouldHighlight)
                       ? Theme.of(context).colorScheme.primaryContainer
                       : widget.isOutgoing
-                          ? (_shouldHighlight 
-            ? const Color.fromARGB(255, 177, 127, 233) :
-                            Theme.of(context).colorScheme.primary)
-                          : (_shouldHighlight 
-            ? Colors.purple : Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest),
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.only(
                     topLeft: const Radius.circular(20),
                     topRight: const Radius.circular(20),
@@ -94,7 +88,7 @@ class _MessageBubbleState extends State<MessageBubble> {
                     bottomRight: Radius.circular(widget.isOutgoing ? 4 : 20),
                   ),
                   boxShadow: widget.selected
-                      ? [BoxShadow(color: Colors.black12, blurRadius: 4)]
+                      ? const [BoxShadow(color: Colors.black12, blurRadius: 4)]
                       : null,
                 ),
                 child: Column(
@@ -164,6 +158,21 @@ class _MessageBubbleState extends State<MessageBubble> {
                           : null,
                       child: _buildStatusIcon(widget.message.status)),
                 ],
+                // Stack(
+                //   alignment: Alignment.center,
+                //   children: [
+                //     const Icon(Icons.sim_card, size: 16),
+                //     Container(
+                //       padding: const EdgeInsets.all(2),
+                //       decoration: BoxDecoration(
+                //         shape: BoxShape.circle,
+                //         color: Theme.of(context).colorScheme.onSurface,
+
+                //       ),
+                //       child: Text(widget.message.simcardId,style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.surface)),
+                //     )
+                //   ]
+                // )
                 
                   ],
                 ),
