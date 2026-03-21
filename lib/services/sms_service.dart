@@ -9,7 +9,6 @@ import 'package:messaging/models/sim_card_state.dart';
 import 'package:messaging/services/contact_db.dart';
 import 'package:messaging/services/contact_service.dart';
 import 'package:messaging/services/redact_service.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:sim_card_info/sim_card_info.dart';
 import 'package:sim_card_info/sim_info.dart';
 import 'package:uuid/uuid.dart';

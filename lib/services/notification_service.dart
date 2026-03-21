@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart' as fo;
@@ -16,6 +18,7 @@ class NotificationService {
 
   final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
+ 
   String? _pendingPayload;  
   Future<void> initialize() async {
     const AndroidInitializationSettings initializationSettingsAndroid =
@@ -25,6 +28,7 @@ class NotificationService {
         InitializationSettings(
       android: initializationSettingsAndroid,
     );
+    final FirebaseMessaging _fcm = FirebaseMessaging.instance;
 
     await _notifications.initialize(
       initializationSettings,
@@ -32,6 +36,29 @@ class NotificationService {
       onDidReceiveBackgroundNotificationResponse:
           _onBackgroundNotificationResponse,
     );
+    String? token = await _fcm.getToken();
+    print("\nFCM Token: $token\n");
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      RemoteNotification? notification = message.notification;
+      AndroidNotification? android = message.notification?.android;
+
+      if (notification != null && android != null) {
+        _notifications.show(
+          notification.hashCode,
+          notification.title,
+          notification.body,
+          NotificationDetails(
+            android: AndroidNotificationDetails(
+              'alert_channel', 
+              'Alert Channel',
+              importance: Importance.max,
+              priority: Priority.high,
+              icon: android.smallIcon,
+            ),
+          ),
+        );
+      }
+    });
 
     final NotificationAppLaunchDetails? launchDetails =
         await _notifications.getNotificationAppLaunchDetails();
@@ -44,8 +71,16 @@ class NotificationService {
         });
       }
     }
+    const AndroidNotificationChannel alertChannel = AndroidNotificationChannel(
+      'alert_channel',
+      'Alert Channel',
+      description: 'Notifications for alerts',
+      importance: Importance.high,
+      enableVibration: true,
+      playSound: true,
+      
+    );
 
-    // Create notification channel
     const AndroidNotificationChannel channel = AndroidNotificationChannel(
       'sms_channel',
       'SMS Messages',
@@ -72,6 +107,10 @@ class NotificationService {
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(lowPriorityChannel);
+    await _notifications
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(alertChannel);   
   }
 
 void _onNotificationResponse(NotificationResponse response) {
@@ -242,4 +281,10 @@ void _onBackgroundNotificationResponse(NotificationResponse response) {
       debugPrint('Failed to parse notification payload: $e');
     }
   }
+}
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // If you need to use Firebase services here, call initializeApp
+  await Firebase.initializeApp();
+  debugPrint("Handling a background message: ${message.messageId}");
 }

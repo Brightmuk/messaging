@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -17,18 +18,10 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  NotificationService().initialize();
+  setupNotifications();
   MobileAds.instance.initialize();
   PurchaseService().initializeIAP();
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-  systemNavigationBarColor: Colors.transparent,
-  systemNavigationBarDividerColor: Colors.transparent,
-  systemNavigationBarContrastEnforced: false,      
-  statusBarColor: Colors.transparent,
-  systemNavigationBarIconBrightness: Brightness.dark,
-));
-
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  setupEdgeToEdge();
   runApp(
     MultiProvider(
       providers: [
@@ -76,15 +69,34 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
+void setupNotifications() async{
+  await Firebase.initializeApp();
+  NotificationService().initialize();
+  
+}
+
+void setupEdgeToEdge() {
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    systemNavigationBarColor: Colors.transparent,
+    systemNavigationBarDividerColor: Colors.transparent,
+    systemNavigationBarContrastEnforced: false,
+    statusBarColor: Colors.transparent,
+    systemNavigationBarIconBrightness: Brightness.dark,
+  ));
+
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+}
+
 @pragma("vm:entry-point")
 void overlayMain() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(
     MaterialApp(
       debugShowCheckedModeBanner: false,
-       theme: AppTheme.lightTheme,
+      theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system, 
+      themeMode: ThemeMode.system,
       home: const PrivacyShieldOverlay(),
     ),
   );
