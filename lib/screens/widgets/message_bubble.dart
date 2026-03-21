@@ -52,7 +52,7 @@ class _MessageBubbleState extends State<MessageBubble> {
   @override
   Widget build(BuildContext context) {
     String redactedMessage = RedactService.redactAfterBalance(
-      widget.message.body, widget.message.address);
+      widget.message.body, widget.message.address).message;
      return Column(
       children: [
         if (widget.showDateSeparator) _buildDateSeparator(widget.message.date),
@@ -67,7 +67,7 @@ class _MessageBubbleState extends State<MessageBubble> {
                 duration: const Duration(milliseconds: 200),
                 margin: EdgeInsets.only(
                   bottom: 4,
-                  left: widget.isOutgoing ? 50 : 12, // More space on the opposite side
+                  left: widget.isOutgoing ? 50 : 12,
                   right: widget.isOutgoing ? 12 : 50,
                 ),
                 padding:

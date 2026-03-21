@@ -1,28 +1,72 @@
+enum RedactType { received, paid, sent, balanceCheck, any }
+
+class RedactResult {
+  final String message;
+  final RedactType redactType;
+
+  const RedactResult({
+    required this.message,
+    required this.redactType,
+  });
+
+  bool get isRedacted => message.endsWith('...');
+  bool get isOutgoing => redactType == RedactType.sent || redactType == RedactType.paid;
+
+}
+
 class RedactService {
-  static List<String> monitoredConversations = ['mpesa', 'airtelmoney','zidii','mshwari','tkash'];
-  static String redactAfterBalance(String message, String address) {
-    // 1. Check if the address is monitored (M-Pesa, etc.)
-    if (!monitoredConversations.any((keyword) => address.toLowerCase().contains(keyword))) {
-      return message;
-    }
+  static const List<String> monitoredConversations = [
+    'mpesa', 'airtelmoney', 'zidii', 'mshwari', 'tkash'
+  ];
 
-    final RegExp balancePattern = RegExp(
-      r'(balance|bal|amt)(?:\s+is)?(?:\s*[:\-])?\s*(?:Ksh|KSH)',
-      caseSensitive: false,
+static RedactResult redactAfterBalance(String message, String address) {
+  final RedactType type = _detectType(message);
+
+  if (!isMonitored(address)) {
+    return RedactResult(message: message, redactType: type);
+  }
+
+  final RegExp balancePattern = RegExp(
+    r'(balance|bal|amt)(?:\s+is)?(?:\s*[:\-])?\s*(?:Ksh|KSH)',
+    caseSensitive: false,
+  );
+
+  final match = balancePattern.firstMatch(message);
+
+  if (match != null) {
+    return RedactResult(
+      message: '${message.substring(0, match.end)}...',
+      redactType: type,
     );
+  }
 
-    final match = balancePattern.firstMatch(message);
+  return RedactResult(message: message, redactType: type);
+}
 
-    if (match != null) {
-      // Cut the message right after the word 'Balance' or 'Ksh'
-      // match.end gives us the position after "Ksh"
-      return "${message.substring(0, match.end)}...";
+  static RedactType _detectType(String message) {
+    final lower = message.toLowerCase();
+
+    // Order matters — check most specific patterns first
+    if (RegExp(r'\b(received|you have received|credited)\b').hasMatch(lower)) {
+      return RedactType.received;
+    }
+    if (RegExp(r'\b(paid to|payment to|pay bill|paybill)\b').hasMatch(lower)) {
+      return RedactType.paid;
+    }
+    if (RegExp(r'\b(sent to|you have sent|transferred to)\b').hasMatch(lower)) {
+      return RedactType.sent;
+    }
+    if (RegExp(r'\b(balance inquiry|bal inq|account balance)\b').hasMatch(lower)) {
+      return RedactType.balanceCheck;
     }
 
-    return message;
+    return RedactType.any;
   }
 
-static bool isMonitored(String address) {
-  return monitoredConversations.any((keyword) => address.toLowerCase().contains(keyword));
+  static bool isMonitored(String address) {
+    return monitoredConversations.any(
+      (keyword) => address.toLowerCase().contains(keyword),
+    );
   }
+ 
 }

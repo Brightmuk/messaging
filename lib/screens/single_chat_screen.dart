@@ -473,7 +473,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                       builder: (context) => SelectContactScreen(
                         isForwarding: true,
                         forwardMessage: RedactService.redactAfterBalance(
-                            body, _selectedMessages.first.address),
+                            body, _selectedMessages.first.address).message,
                       ),
                     ));
               },

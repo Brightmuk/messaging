@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:android_intent_plus/android_intent.dart';
+import 'package:android_intent_plus/flag.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
@@ -133,7 +135,7 @@ class _PrivacyShieldOverlayState extends State<PrivacyShieldOverlay> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     child: Text(
-                      RedactService.redactAfterBalance(message, address),
+                      RedactService.redactAfterBalance(message, address).message,
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodyMedium?.copyWith(
@@ -151,18 +153,25 @@ class _PrivacyShieldOverlayState extends State<PrivacyShieldOverlay> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       
-                      const SizedBox(width: 8),
+                      
                       TextButton(
-                        onPressed: () async {
-                            try {
-                              await const MethodChannel('com.brimukon.messaging.defaultRole').invokeMethod('openMainApp');
-                              await FlutterOverlayWindow.closeOverlay();
-                            } catch (e) {
-                              debugPrint("Failed to open app: $e");
-                            }
+                         onPressed: () async {
+                              try {
+                                
+                                const intent = AndroidIntent(
+                                  action: 'android.intent.action.MAIN',
+                                  package: 'com.brimukon.messaging',
+                                  componentName: 'com.brimukon.messaging.MainActivity',
+                                  flags: [Flag.FLAG_ACTIVITY_NEW_TASK, Flag.FLAG_ACTIVITY_REORDER_TO_FRONT],
+                                );
 
-                          FlutterOverlayWindow.closeOverlay();
-                        },
+                                await intent.launch();
+                                await FlutterOverlayWindow.closeOverlay();
+                              } catch (e) {
+                                debugPrint("Could not launch app via Intent: $e");
+                                await FlutterOverlayWindow.closeOverlay();
+                              }
+                            },
                         child:  Text(
                           "OPEN",
                           style: TextStyle(

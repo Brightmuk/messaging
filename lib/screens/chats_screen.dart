@@ -510,7 +510,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                     const SizedBox(height: 4),
                     Text(
                       RedactService.redactAfterBalance(
-                          chat.lastMessage ?? '', chat.address),
+                          chat.lastMessage ?? '', chat.address).message,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodyMedium?.copyWith(
@@ -800,7 +800,7 @@ void _showPrivacyDialog(BuildContext context, AppChat chat, BrandPalette palette
                   
                   // The "Message" Body
                   Text(
-                    RedactService.redactAfterBalance(chat.lastMessage??'', chat.address),
+                    RedactService.redactAfterBalance(chat.lastMessage??'', chat.address).message,
                     style: theme.textTheme.bodyLarge?.copyWith(
                       height: 1.5,
                       letterSpacing: 0.2,

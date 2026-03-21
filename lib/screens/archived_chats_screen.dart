@@ -125,7 +125,7 @@ class _ArchivedChatsScreenState extends State<ArchivedChatsScreen> {
                                 const SizedBox(height: 4),
                                 Text(
                                   RedactService.redactAfterBalance(
-                                      chat.lastMessage ?? '', chat.address),
+                                      chat.lastMessage ?? '', chat.address).message,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: theme.textTheme.bodyMedium?.copyWith(
