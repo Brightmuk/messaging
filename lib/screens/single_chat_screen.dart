@@ -453,7 +453,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
             onPressed: () {
               final text = _selectedMessages
                   .map((m) =>
-                      RedactService.redactAfterBalance(m.body, m.address))
+                      RedactService.redactAfterBalance(m.body, m.address).message)
                   .join('\n');
               Clipboard.setData(ClipboardData(text: text));
               setState(() => _selectedMessages.clear());

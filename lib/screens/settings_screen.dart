@@ -214,7 +214,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                             return SwitchListTile(
                             
                               title: const Text("Payment confirmation shortcuts"),
-                              subtitle: const Text('Show an overlay to quickly verify payments without opening the app'),
+                              subtitle: const Text('Show a secured overlay to quickly verify payments without opening the app'),
                               value: asyncSnapshot.data ?? false, 
                               onChanged: (value) async {
                                 if(!await FlutterOverlayWindow.isPermissionGranted()){
