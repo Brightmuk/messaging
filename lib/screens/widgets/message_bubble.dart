@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:messaging/core/utils/date_formatter.dart';
 import 'package:messaging/cubit/single_chat_cubit.dart';
 import 'package:messaging/models/app_message.dart';
-import 'package:messaging/services/redact_service.dart';
+import 'package:messaging/services/mask_service.dart';
 
 class MessageBubble extends StatefulWidget {
     final AppSmsMessage message;
@@ -51,7 +51,7 @@ class _MessageBubbleState extends State<MessageBubble> {
 
   @override
   Widget build(BuildContext context) {
-    String redactedMessage = RedactService.redactAfterBalance(
+    String maskedMessage = MaskService.maskAfterBalance(
       widget.message.body, widget.message.address).message;
      return Column(
       children: [
@@ -103,11 +103,12 @@ class _MessageBubbleState extends State<MessageBubble> {
                         color: widget.isOutgoing && !widget.selected
                             ? Theme.of(context).colorScheme.onPrimary
                             : Theme.of(context).colorScheme.onSurface,
+                            fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize
                       ),
                       children: [
-                        TextSpan(text: _showMore? widget.message.body: redactedMessage),
+                        TextSpan(text: _showMore? widget.message.body: maskedMessage),
 
-                        !isRedactedMessage(redactedMessage) || !widget.hide || !RedactService.isMonitored(widget.message.address)? const TextSpan(): TextSpan(
+                        !isRedactedMessage(maskedMessage) || !widget.hide || !MaskService.isMonitored(widget.message.address)? const TextSpan(): TextSpan(
                           text:  _showMore? " hide": " see more",
                           style: const TextStyle(
                             color: Colors.blue, 
@@ -184,8 +185,8 @@ class _MessageBubbleState extends State<MessageBubble> {
       ],
     );
   }
-  bool isRedactedMessage(String redactedMessage){
-    return widget.message.body != redactedMessage;
+  bool isRedactedMessage(String maskedMessage){
+    return widget.message.body != maskedMessage;
   }
     void _handleRetry(AppSmsMessage message) async {
        final confirm = await showDialog<bool>(

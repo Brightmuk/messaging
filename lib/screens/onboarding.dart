@@ -17,15 +17,16 @@ class _MfichaOnboardingState extends State<MfichaOnboarding> {
 
   final List<OnboardingSlide> _slides = [
     OnboardingSlide(
+      title: "\"Siri Yako, Simu Yako.\"",
+      body: "M-Ficha is built with a 'Local-Only' promise. Every text including M-PESA, is stored directly on your phone's memory. We dont store messages on a server",
+      image: 'assets/images/private_messaging.png',
+    ),
+    OnboardingSlide(
       title: "\"Onyesha message\"",
       body: "Optionally hide your account balances from M-PESA and Airtel Money messages, keeping your financial information private.",
       image: 'assets/images/balance_redaction.png',
     ),
-    OnboardingSlide(
-      title: "\"Siri Yako, Simu Yako.\"",
-      body: "A private messaging app built for Kenyans. Your messages are always saved on device.",
-      image: 'assets/images/private_messaging.png',
-    ),
+
   ];
 
   @override

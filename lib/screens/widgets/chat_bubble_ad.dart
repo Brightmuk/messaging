@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:messaging/services/ads/native_ads_service.dart';
-import 'package:messaging/services/redact_service.dart';
+import 'package:messaging/services/mask_service.dart';
 
 class ChatAdBubble extends StatefulWidget {
   final String address;
@@ -48,7 +48,7 @@ class _ChatAdBubbleState extends State<ChatAdBubble> {
 
   @override
   Widget build(BuildContext context) {
-    if  (!RedactService.isMonitored(widget.address) ||  !_isLoaded || _myLoadedNativeAd == null) return const SizedBox.shrink();
+    if  (!MaskService.isMonitored(widget.address) ||  !_isLoaded || _myLoadedNativeAd == null) return const SizedBox.shrink();
 
     return Align(
       alignment: Alignment.centerLeft,

@@ -19,7 +19,6 @@ class PermissionsScreen extends StatelessWidget {
       },
       child: Scaffold(
         appBar: AppBar(
-         
           centerTitle: true,
         ),
         body: BlocBuilder<PermissionsCubit, PermissionsState>(
@@ -29,29 +28,43 @@ class PermissionsScreen extends StatelessWidget {
                 Expanded(
                   child: ListView(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 24, ),
+                      horizontal: 24,
+                    ),
                     children: [
-                      const Icon(Icons.security_outlined,
-                          size: 40, color: Colors.blue),
-                      const SizedBox(height: 16),
-                      Text(
-                        "Permissions we use",
-                        style: theme.textTheme.titleLarge
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        "To act as full messenger and provide privacy for your financial transactions, M-Ficha uses these permissions",
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant),
-                        textAlign: TextAlign.center,
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.secondaryContainer
+                              .withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.security_outlined,
+                              size: 36,
+                              // Using the theme color keeps it visually harmonious
+                              color: theme.colorScheme.primary,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              "To act as a full messenger and provide privacy for your financial transactions, M-Ficha uses these permissions",
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSecondaryContainer,
+                                height: 1.4,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 32),
 
                       // --- SECTION 1: CORE FUNCTIONALITY ---
                       _buildSectionHeader(theme, "MESSENGER & PRIVACY"),
-                        const _PermissionInfoTile(
+                      const _PermissionInfoTile(
                         icon: Icons.sms_outlined,
                         title: "SMS Access",
                         desc:
@@ -61,35 +74,32 @@ class PermissionsScreen extends StatelessWidget {
                         icon: Icons.account_balance_wallet_outlined,
                         title: "Read SMS",
                         desc:
-                            "Essential for detecting and redacting balances in M-PESA & Airtel Money messages.",
+                            "Essential for detecting and masking balances in M-PESA & Airtel Money messages (locally).",
                       ),
                       const SizedBox(height: 24),
 
                       // --- SECTION 2: DEFAULT APP FEATURES ---
-                   
-                        _buildSectionHeader(theme, "SMART INBOX FEATURES"),
-                        const _PermissionInfoTile(
-                          icon: Icons.contacts_outlined,
-                          title: "Contacts",
-                          desc:
-                              "Identifies senders so that you see names from your contact list",
-                        ),
-                        const _PermissionInfoTile(
-                          icon: Icons.sim_card_outlined,
-                          title: "Phone & SIM",
-                          desc:
-                              "This is needed for managing dual-SIM setups.",
-                        ),
-                        const SizedBox(height: 24),
-                      
+
+                      _buildSectionHeader(theme, "SMART INBOX FEATURES"),
+                      const _PermissionInfoTile(
+                        icon: Icons.contacts_outlined,
+                        title: "Contacts",
+                        desc:
+                            "Identifies senders so that you see names from your contact list",
+                      ),
+                      const _PermissionInfoTile(
+                        icon: Icons.sim_card_outlined,
+                        title: "Phone & SIM",
+                        desc: "This is needed for managing dual-SIM setups.",
+                      ),
+                      const SizedBox(height: 24),
 
                       // --- SECTION 3: OPTIONAL ---
                       _buildSectionHeader(theme, "ALERTS"),
                       const _PermissionInfoTile(
                         icon: Icons.notifications_none_outlined,
                         title: "Notifications",
-                        desc:
-                            "Alerts you when a you receive a new message.",
+                        desc: "Alerts you when a you receive a new message.",
                       ),
                     ],
                   ),
@@ -99,7 +109,6 @@ class PermissionsScreen extends StatelessWidget {
                 SafeArea(
                   child: Container(
                     padding: const EdgeInsets.all(24.0),
-                   
                     child: SizedBox(
                       width: double.infinity,
                       height: 56,
@@ -202,7 +211,7 @@ class PermissionsScreen extends StatelessWidget {
 
   String _getPermissionReason(Permission p) {
     if (p == Permission.sms) {
-      return "M-Ficha needs SMS access to redact your balances and manage messages.";
+      return "M-Ficha needs SMS access to mask your balances and manage messages.";
     }
     if (p == Permission.contacts) {
       return "We need Contacts access to show names instead of just numbers in your inbox.";

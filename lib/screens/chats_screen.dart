@@ -21,7 +21,7 @@ import 'package:messaging/screens/widgets/rating_dialog.dart';
 import 'package:messaging/services/contact_service.dart';
 import 'package:messaging/services/notification_service.dart';
 import 'package:messaging/services/rating_limiter.dart';
-import 'package:messaging/services/redact_service.dart';
+import 'package:messaging/services/mask_service.dart';
 import 'package:messaging/services/transaction_summary_service.dart';
 import 'package:provider/provider.dart';
 import 'select_contact_screen.dart';
@@ -399,7 +399,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
               style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 16),
           const Text(
-            "To manage your messages and enable real-time balance redaction, M-Ficha needs to be your default messenger",
+            "To manage your messages and enable real-time balance masking, M-Ficha needs to be your default messenger",
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 50),
@@ -509,7 +509,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                         contactStream: ContactService().contactStream),
                     const SizedBox(height: 4),
                     Text(
-                      RedactService.redactAfterBalance(
+                      MaskService.maskAfterBalance(
                           chat.lastMessage ?? '', chat.address).message,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -800,7 +800,7 @@ void _showPrivacyDialog(BuildContext context, AppChat chat, BrandPalette palette
                   
                   // The "Message" Body
                   Text(
-                    RedactService.redactAfterBalance(chat.lastMessage??'', chat.address).message,
+                    MaskService.maskAfterBalance(chat.lastMessage??'', chat.address).message,
                     style: theme.textTheme.bodyLarge?.copyWith(
                       height: 1.5,
                       letterSpacing: 0.2,

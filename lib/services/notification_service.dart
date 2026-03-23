@@ -225,7 +225,7 @@ void _navigateToChat(String? payload) {
       ).then((v)async {
         await Future.delayed(const Duration(milliseconds: 100));
         fo.FlutterOverlayWindow.shareData(
-            {'address': address, 'redactedText': text});
+            {'address': address, 'maskedText': text});
       });
     }
   }

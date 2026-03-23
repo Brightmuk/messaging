@@ -16,7 +16,7 @@ import 'package:messaging/screens/widgets/chat_bubble_ad.dart';
 import 'package:messaging/screens/widgets/message_bubble.dart';
 import 'package:messaging/services/contact_service.dart';
 import 'package:messaging/services/notification_service.dart';
-import 'package:messaging/services/redact_service.dart';
+import 'package:messaging/services/mask_service.dart';
 import 'package:messaging/services/sms_service.dart';
 import 'package:provider/provider.dart';
 import 'package:sim_card_info/sim_info.dart';
@@ -413,7 +413,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
             ],
           ),
           floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-          floatingActionButton: RedactService.isMonitored(widget.address)
+          floatingActionButton: MaskService.isMonitored(widget.address)
               ? Padding(
                   padding: const EdgeInsets.only(bottom: 50),
                   child: FloatingActionButton.small(
@@ -433,7 +433,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
   }
 
   bool shouldShowAds(int messageLength, bool isNoAds) {
-    return RedactService.isMonitored(widget.address) &&
+    return MaskService.isMonitored(widget.address) &&
         messageLength > 5 &&
         !isNoAds && widget.searchedMessage == null;
   }
@@ -453,7 +453,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
             onPressed: () {
               final text = _selectedMessages
                   .map((m) =>
-                      RedactService.redactAfterBalance(m.body, m.address).message)
+                      MaskService.maskAfterBalance(m.body, m.address).message)
                   .join('\n');
               Clipboard.setData(ClipboardData(text: text));
               setState(() => _selectedMessages.clear());
@@ -472,7 +472,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
                     MaterialPageRoute(
                       builder: (context) => SelectContactScreen(
                         isForwarding: true,
-                        forwardMessage: RedactService.redactAfterBalance(
+                        forwardMessage: MaskService.maskAfterBalance(
                             body, _selectedMessages.first.address).message,
                       ),
                     ));
@@ -499,7 +499,9 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
           isMpesa(widget.address) ? IconButton(
           icon: const Icon(Icons.business_center_outlined),
           onPressed: (){
-            
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Coming soon!'))
+            );
           },
         ):const SizedBox.shrink(),
         

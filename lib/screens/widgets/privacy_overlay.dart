@@ -4,7 +4,7 @@ import 'package:android_intent_plus/flag.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
-import 'package:messaging/services/redact_service.dart';
+import 'package:messaging/services/mask_service.dart';
 
 class PrivacyShieldOverlay extends StatefulWidget {
   const PrivacyShieldOverlay({Key? key}) : super(key: key);
@@ -25,7 +25,7 @@ class _PrivacyShieldOverlayState extends State<PrivacyShieldOverlay> {
       if (mounted) {
         setState(() {
           address = data['address'] ?? "Private Message";
-          message = data['redactedText'] ?? "Checked balance";
+          message = data['maskedText'] ?? "Checked balance";
         });
       }
     });
@@ -135,7 +135,7 @@ class _PrivacyShieldOverlayState extends State<PrivacyShieldOverlay> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     child: Text(
-                      RedactService.redactAfterBalance(message, address).message,
+                      MaskService.maskAfterBalance(message, address).message,
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodyMedium?.copyWith(

@@ -4,7 +4,7 @@ import 'package:messaging/models/app_chat.dart';
 import 'package:messaging/screens/single_chat_screen.dart';
 import 'package:messaging/screens/widgets/contact_name_text.dart';
 import 'package:messaging/services/contact_service.dart';
-import 'package:messaging/services/redact_service.dart';
+import 'package:messaging/services/mask_service.dart';
 import 'package:messaging/services/sms_service.dart';
 
 class ArchivedChatsScreen extends StatefulWidget {
@@ -124,7 +124,7 @@ class _ArchivedChatsScreenState extends State<ArchivedChatsScreen> {
                                         ContactService().contactStream),
                                 const SizedBox(height: 4),
                                 Text(
-                                  RedactService.redactAfterBalance(
+                                  MaskService.maskAfterBalance(
                                       chat.lastMessage ?? '', chat.address).message,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,

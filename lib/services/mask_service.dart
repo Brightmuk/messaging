@@ -1,20 +1,20 @@
-enum RedactType { received, paid, sent, balanceCheck, any }
+enum MaskType { received, paid, sent, balanceCheck, any }
 
-class RedactResult {
+class MaskResult {
   final String message;
-  final RedactType redactType;
+  final MaskType maskType;
 
-  const RedactResult({
+  const MaskResult({
     required this.message,
-    required this.redactType,
+    required this.maskType,
   });
 
   bool get isRedacted => message.endsWith('...');
   bool get isOutgoing =>
-      redactType == RedactType.sent || redactType == RedactType.paid;
+      maskType == MaskType.sent || maskType == MaskType.paid;
 }
 
-class RedactService {
+class MaskService {
   static const List<String> monitoredConversations = [
     'mpesa',
     'airtelmoney',
@@ -24,11 +24,11 @@ class RedactService {
     // '791670106'
   ];
 
-  static RedactResult redactAfterBalance(String message, String address) {
-    final RedactType type = _detectType(message);
+  static MaskResult maskAfterBalance(String message, String address) {
+    final MaskType type = _detectType(message);
 
     if (!isMonitored(address)) {
-      return RedactResult(message: message, redactType: type);
+      return MaskResult(message: message, maskType: type);
     }
 
     // Matches any "balance is Ksh/currency" pattern as a universal fallback
@@ -41,30 +41,30 @@ class RedactService {
     final match = balancePattern.firstMatch(message);
 
     if (match != null) {
-      // Keep "balance is " but redact from the currency onwards
-      return RedactResult(
+      // Keep "balance is " but mask from the currency onwards
+      return MaskResult(
         message:
             '${message.substring(0, match.start + match.group(1)!.length)}...',
-        redactType: type,
+        maskType: type,
       );
     }
 
-    return RedactResult(message: message, redactType: type);
+    return MaskResult(message: message, maskType: type);
   }
 
-  static RedactType _detectType(String message) {
+  static MaskType _detectType(String message) {
     final lower = message.toLowerCase();
 
     if (lower.contains('you have received')) {
-      return RedactType.received;
+      return MaskType.received;
     }
 
     if (RegExp(r'paid to .+\.|sent to .+ for account').hasMatch(lower)) {
-      return RedactType.paid;
+      return MaskType.paid;
     }
 
     if (lower.contains('sent to')) {
-      return RedactType.sent;
+      return MaskType.sent;
     }
 
     // if (RegExp(r'account balance was|balance is [\d,]+').hasMatch(lower)) {
@@ -73,15 +73,15 @@ class RedactService {
 
     // reversal — debited from account
     if (lower.contains('reversal') || lower.contains('reversed')) {
-      return RedactType.any;
+      return MaskType.any;
     }
 
     // failed transaction — no funds moved
     if (lower.contains('failed') || lower.contains('insufficient funds')) {
-      return RedactType.any;
+      return MaskType.any;
     }
 
-    return RedactType.any;
+    return MaskType.any;
   }
 
   static bool isMonitored(String address) {

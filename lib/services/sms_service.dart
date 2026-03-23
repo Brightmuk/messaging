@@ -9,7 +9,7 @@ import 'package:messaging/models/app_chat.dart';
 import 'package:messaging/models/sim_card_state.dart';
 import 'package:messaging/services/contact_db.dart';
 import 'package:messaging/services/contact_service.dart';
-import 'package:messaging/services/redact_service.dart';
+import 'package:messaging/services/mask_service.dart';
 import 'package:sim_card_info/sim_card_info.dart';
 import 'package:sim_card_info/sim_info.dart';
 import 'package:uuid/uuid.dart';
@@ -487,7 +487,7 @@ class SmsService {
 
       await _notificationService.showNotification(
         title: contactName,
-        body: RedactService.redactAfterBalance(
+        body: MaskService.maskAfterBalance(
                 message.body!, message.address!)
             .message,
         actions: true,
@@ -516,10 +516,10 @@ class SmsService {
 
       final payload =
           json.encode({'threadId': threadId, 'address': message.address});
-      final redactResult =
-          RedactService.redactAfterBalance(message.body!, message.address!);
-      final showOverlay = const {RedactType.paid, RedactType.sent}
-          .contains(redactResult.redactType);
+      final maskResult =
+          MaskService.maskAfterBalance(message.body!, message.address!);
+      final showOverlay = const {MaskType.paid, MaskType.sent}
+          .contains(maskResult.maskType);
 
       if (showOverlay) {
         NotificationService.showOverlay(
@@ -528,9 +528,9 @@ class SmsService {
 
       notificationService.showNotification(
         title: title,
-        body: redactResult.message,
+        body: maskResult.message,
         actions: true,
-        lowPriority: RedactService.isMonitored(message.address!),
+        lowPriority: MaskService.isMonitored(message.address!),
         payload: payload,
       );
     } catch (e) {

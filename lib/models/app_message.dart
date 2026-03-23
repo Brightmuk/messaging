@@ -76,7 +76,6 @@ class AppSmsMessage {
   }
 
   factory AppSmsMessage.fromMap(Map<String, dynamic> map) {
-    print("\n\nMesage: $map\n\n");
     return AppSmsMessage(
       id: map['id'],
       address: map['address'],
