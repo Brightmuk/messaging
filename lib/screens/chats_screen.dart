@@ -630,7 +630,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
           ),
           const SizedBox(height: 8),
       
-          // 3. The "Redacted" Preview & Show Button
+          // 3. The "Masked" Preview & Show Button
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

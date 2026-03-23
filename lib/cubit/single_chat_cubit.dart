@@ -46,6 +46,7 @@ class SingleChatCubit extends Cubit<SingleChatState> {
   bool _hasReachedMax = false;
   bool get hasReachedMax => _hasReachedMax;
 
+
   void handleSmsUpdates(SmsEvent event) {
     debugPrint("Handling event: ${event.type}");
     switch (event.type) {

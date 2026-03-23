@@ -9,6 +9,7 @@ class UserDefaults {
   static const String _adsRemovedString = 'adsRemoved';
   static const String _demoModeKey = 'isDemoMode';
   static const String _canshowOverlayKey = 'canShowOverlay';
+  static const String _textScaleKey = 'textScale';
 
   static Future<void> setHasOnboarded() async {
     final prefs = await SharedPreferences.getInstance();
@@ -87,5 +88,13 @@ class UserDefaults {
   static Future<void> setShowOverlay(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_canshowOverlayKey, value);
+  }
+  static Future<double> getTextScale() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getDouble(_textScaleKey) ?? 1;
+  }
+  static Future<void> setTextScale(double scale)async{
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_textScaleKey, scale);
   }
 }

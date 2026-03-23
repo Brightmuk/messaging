@@ -9,7 +9,7 @@ class MaskResult {
     required this.maskType,
   });
 
-  bool get isRedacted => message.endsWith('...');
+  bool get isMasked => message.endsWith('...');
   bool get isOutgoing =>
       maskType == MaskType.sent || maskType == MaskType.paid;
 }
