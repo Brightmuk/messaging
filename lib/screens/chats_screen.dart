@@ -247,6 +247,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                                           builder: (context) =>
                                               const GlobalSearchPage()),
                                     )),
+                                    
                             IconButton(
                               icon: const Icon(Icons.settings_outlined),
                               onPressed: () => Navigator.push(
@@ -256,6 +257,9 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                                         const SettingsScreen()),
                               ),
                             ),
+                            
+                             
+                           
                           ],
                   ),
                 if (state is PermissionRevoked)
@@ -344,7 +348,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
             label: const Text('New'),
             icon: const Icon(Icons.edit_outlined),
             onPressed: () async {
-              
+             
               // NotificationService.showOverlay(address: "Mpesa", text: "TKFL9ADWCV has been successfully reversed on 8/3/26 at 10:48 PM and Ksh50.00 is debited from your M-PESA account. New M-PESA account balance is Ksh3,920.00");
               // SmsService().generateTestData();
               if (isDefault) {

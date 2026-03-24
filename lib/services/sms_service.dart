@@ -62,8 +62,6 @@ class SmsService {
     }
   }
 
-
-
   Future<void> initialize() async {
     try {
       telephony.listenIncomingSms(
@@ -116,23 +114,32 @@ class SmsService {
     }
   }
 
-
   Future<void> syncExistingMessages() async {
     try {
       debugPrint("Syncing history from system provider...");
 
       final List<SmsMessage> inboxMessages = await telephony.getInboxSms(
         columns: [
-          SmsColumn.ADDRESS, SmsColumn.BODY, SmsColumn.DATE,
-          SmsColumn.THREAD_ID, SmsColumn.READ, SmsColumn.TYPE, SmsColumn.ID,
+          SmsColumn.ADDRESS,
+          SmsColumn.BODY,
+          SmsColumn.DATE,
+          SmsColumn.THREAD_ID,
+          SmsColumn.READ,
+          SmsColumn.TYPE,
+          SmsColumn.ID,
         ],
         sortOrder: [OrderBy(SmsColumn.DATE, sort: Sort.ASC)],
       );
 
       final List<SmsMessage> sentMessages = await telephony.getSentSms(
         columns: [
-          SmsColumn.ADDRESS, SmsColumn.BODY, SmsColumn.DATE,
-          SmsColumn.THREAD_ID, SmsColumn.READ, SmsColumn.TYPE, SmsColumn.ID,
+          SmsColumn.ADDRESS,
+          SmsColumn.BODY,
+          SmsColumn.DATE,
+          SmsColumn.THREAD_ID,
+          SmsColumn.READ,
+          SmsColumn.TYPE,
+          SmsColumn.ID,
         ],
         sortOrder: [OrderBy(SmsColumn.DATE, sort: Sort.ASC)],
       );
@@ -188,7 +195,7 @@ class SmsService {
     try {
       messageId = await _dbHelper.insertMessage(smsMessage);
       await _updateChat(threadId, address, message, date);
-    await startSendTimeout(smsMessage.copyWith(id: messageId));
+      await startSendTimeout(smsMessage.copyWith(id: messageId));
       await telephony.sendSms(
         to: address,
         message: message,
@@ -204,6 +211,7 @@ class SmsService {
           if (status == SendStatus.DELIVERED) {
             await cancelSendTimeout(messageId!);
             await markMessageAsDelivered(smsMessage.copyWith(id: messageId));
+            _writeOutgoingToSystemDb(smsMessage);
           }
         },
       );
@@ -216,7 +224,7 @@ class SmsService {
       await cancelSendTimeout(messageId!);
       await markMessageAsFailed(smsMessage.copyWith(id: messageId));
       debugPrint("[SmsService] error sending sms: $e");
-      
+
       return false;
     }
   }
@@ -236,10 +244,10 @@ class SmsService {
           try {
             if (status == SendStatus.DELIVERED) {
               await markMessageAsDelivered(message);
+              _writeOutgoingToSystemDb(message);
             }
           } catch (_) {
             debugPrint('[SmsService] error marking message as delivered');
-          
           }
         },
       );
@@ -256,6 +264,26 @@ class SmsService {
         debugPrint('[SmsService] error retrying sending message');
       }
     }
+  }
+
+  Future<void> _writeOutgoingToSystemDb(AppSmsMessage message) async {
+    try {
+      await _channel.invokeMethod('writeOutgoingToSystemDb', {
+        'address': message.address,
+        'body': message.body,
+        'date': message.date,
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _writeIncmoingToSystemDb(AppSmsMessage message) async {
+    try {
+      await _channel.invokeMethod('writeIncomingToSystemDb', {
+        'address': message.address,
+        'body': message.body,
+        'date': message.date,
+      });
+    } catch (_) {}
   }
 
   Future<List<AppChat>> getArchivedChats() async {
@@ -286,8 +314,6 @@ class SmsService {
     }
   }
 
-
-
   Future<void> _saveIncomingMessage(SmsMessage msg, String threadId) async {
     try {
       final appMsg = AppSmsMessage(
@@ -302,6 +328,7 @@ class SmsService {
       );
 
       await _dbHelper.insertMessage(appMsg);
+      _writeIncmoingToSystemDb(appMsg);
       await _updateChat(threadId, appMsg.address, appMsg.body, appMsg.date,
           incrementUnread: true);
       _messageUpdateController
@@ -319,7 +346,6 @@ class SmsService {
           chats.where((c) => c.isSameThread(null, address)).firstOrNull;
       return chat?.threadId ?? const Uuid().v4();
     } catch (_) {
-
       return const Uuid().v4();
     }
   }
@@ -356,11 +382,10 @@ class SmsService {
       );
     } catch (_) {
       debugPrint("[SmsService] error updating chat");
-
     }
   }
 
-   Future<List<AppChat>> getPaginatedChats({
+  Future<List<AppChat>> getPaginatedChats({
     required int limit,
     required int offset,
     bool isDefaultApp = true,
@@ -412,7 +437,6 @@ class SmsService {
       return [];
     }
   }
-
 
   Future<void> markMessageAsSent(AppSmsMessage message) async {
     try {
@@ -474,7 +498,6 @@ class SmsService {
       _messageUpdateController.add(SmsEvent(type: SmsEventType.threadUpdated));
     } catch (_) {
       debugPrint("[SmsService] error marking threads as archived");
-
     }
   }
 
@@ -487,8 +510,7 @@ class SmsService {
 
       await _notificationService.showNotification(
         title: contactName,
-        body: MaskService.maskAfterBalance(
-                message.body!, message.address!)
+        body: MaskService.maskAfterBalance(message.body!, message.address!)
             .message,
         actions: true,
         payload:
@@ -498,6 +520,7 @@ class SmsService {
       debugPrint("[SmsService] error on message received");
     }
   }
+
   @pragma('vm:entry-point')
   static Future<void> _onBackgroundMessage(SmsMessage message) async {
     try {
@@ -518,8 +541,8 @@ class SmsService {
           json.encode({'threadId': threadId, 'address': message.address});
       final maskResult =
           MaskService.maskAfterBalance(message.body!, message.address!);
-      final showOverlay = const {MaskType.paid, MaskType.sent}
-          .contains(maskResult.maskType);
+      final showOverlay =
+          const {MaskType.paid, MaskType.sent}.contains(maskResult.maskType);
 
       if (showOverlay) {
         NotificationService.showOverlay(
@@ -558,7 +581,7 @@ class SmsService {
     }
   }
 
-   Future<void> deleteMessages(List<AppSmsMessage> messages) async {
+  Future<void> deleteMessages(List<AppSmsMessage> messages) async {
     try {
       final ids = messages.map((m) => m.id!).toList();
       await _dbHelper.deleteMessages(ids);
@@ -584,6 +607,63 @@ class SmsService {
       ));
     } catch (_) {
       debugPrint("[SmsService] error deleting messages");
+    }
+  }
+
+  Future<void> syncMessagesSince(int fromTimestamp) async {
+    try {
+      debugPrint("[SmsService] Re-syncing messages since $fromTimestamp");
+
+      final filter =
+          SmsFilter.where(SmsColumn.DATE).greaterThan(fromTimestamp.toString());
+
+      final inboxMessages = await telephony.getInboxSms(
+        columns: [
+          SmsColumn.ADDRESS,
+          SmsColumn.BODY,
+          SmsColumn.DATE,
+          SmsColumn.THREAD_ID,
+          SmsColumn.READ,
+          SmsColumn.TYPE,
+          SmsColumn.ID,
+        ],
+        filter: filter,
+        sortOrder: [OrderBy(SmsColumn.DATE, sort: Sort.ASC)],
+      );
+
+      final sentMessages = await telephony.getSentSms(
+        columns: [
+          SmsColumn.ADDRESS,
+          SmsColumn.BODY,
+          SmsColumn.DATE,
+          SmsColumn.THREAD_ID,
+          SmsColumn.READ,
+          SmsColumn.TYPE,
+          SmsColumn.ID,
+        ],
+        filter: filter,
+        sortOrder: [OrderBy(SmsColumn.DATE, sort: Sort.ASC)],
+      );
+
+      final allMessages = [...inboxMessages, ...sentMessages];
+      if (allMessages.isEmpty) {
+        debugPrint("[SmsService] No new messages found since $fromTimestamp");
+        return;
+      }
+
+      allMessages.sort((a, b) => (a.date ?? 0).compareTo(b.date ?? 0));
+      debugPrint("[SmsService] Syncing ${allMessages.length} missed messages");
+
+      await _dbHelper.batchSyncMessages(allMessages);
+      _messageUpdateController.add(SmsEvent(type: SmsEventType.syncCompleted));
+    } catch (_) {}
+  }
+
+  Future<int> getLatestMessageDate() async {
+    try {
+      return await _dbHelper.getLatestMessageDate();
+    } catch (_) {
+      return 0;
     }
   }
 }

@@ -149,6 +149,13 @@ Future<void> batchSyncMessages(List<tel.SmsMessage> messages) async {
     await batch.commit(noResult: true);
   });
 }
+Future<int> getLatestMessageDate() async {
+  final db = await database;
+  final result = await db.rawQuery(
+    'SELECT MAX(date) as maxDate FROM messages'
+  );
+  return (result.firstOrNull?['maxDate'] as int?) ?? 0;
+}
 
   // --- Standard Operations ---
 

@@ -12,6 +12,7 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity: FlutterActivity() {
     
     private val CHANNEL = "com.brimukon.messaging.defaultRole"
+    private val smsRepo by lazy { SmsRepository(context) }
     
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -23,6 +24,36 @@ class MainActivity: FlutterActivity() {
                 "requestDefaultSmsRole" -> {
                     requestDefaultSmsRole()
                     result.success(true)
+                }
+                "writeOutgoingToSystemDb" -> {
+                    val address = call.argument<String>("address") 
+                        ?: return@setMethodCallHandler result.error("INVALID_ARGS", "address is required", null)
+                    val body = call.argument<String>("body") 
+                        ?: return@setMethodCallHandler result.error("INVALID_ARGS", "body is required", null)
+                    val date = call.argument<Long>("date") ?: System.currentTimeMillis()
+                    
+                    val uri = smsRepo.writeOutgoingToSystemDb(address, body, date)
+                    result.success(mapOf(
+                        "uri" to uri?.toString()
+                    ))
+                }
+                "writeIncomingToSystemDb" -> {
+                    val address = call.argument<String>("address") 
+                        ?: return@setMethodCallHandler result.error("INVALID_ARGS", "address is required", null)
+                    val body = call.argument<String>("body") 
+                        ?: return@setMethodCallHandler result.error("INVALID_ARGS", "body is required", null)
+                    val date = call.argument<Long>("date") ?: System.currentTimeMillis()
+                   
+                    val uri = smsRepo.writeIncomingToSystemDb(address, body, date)
+                    result.success(mapOf(
+                        "uri" to uri?.toString()
+                    ))
+                }
+                "getSystemThreadId" -> {
+                    val address = call.argument<String>("address")
+                        ?: return@setMethodCallHandler result.error("INVALID_ARGS", "address is required", null)
+                    val threadId = smsRepo.getOrCreateSystemThreadId(address)
+                    result.success(threadId)
                 }
                 else -> result.notImplemented()
             }
@@ -49,6 +80,4 @@ class MainActivity: FlutterActivity() {
             startActivity(intent)
         }
     }
-
 }
-
