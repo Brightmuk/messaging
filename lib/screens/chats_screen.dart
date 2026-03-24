@@ -144,7 +144,6 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     bool isNoAds = Provider.of<PaymentCubit>(context).isNoAds;
 
     return Scaffold(
@@ -264,8 +263,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                   ),
                 if (state is PermissionRevoked)
                   SliverFillRemaining(child: _buildPermissionsPrompt(context))
-                else if (state is ChatsLoading || state is ChatsInitial)
-                  const SliverFillRemaining(child: ChatsLoadingWidget())
+                
                 else if (state is ChatsLoaded)
                   state.chats.isEmpty
                       ? const SliverFillRemaining(
@@ -319,21 +317,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                               ),
                         )
                 else
-                  SliverFillRemaining(
-                      child: Center(
-                          child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 30,
-                        color: theme.colorScheme.tertiaryContainer,
-                      ),
-
-                    ],
-                  )
-                  )
-                  ),
+                  const SliverFillRemaining(child: ChatsLoadingWidget())
                   
               ],
             ),

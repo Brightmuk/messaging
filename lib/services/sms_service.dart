@@ -155,6 +155,54 @@ class SmsService {
       debugPrint('[SmsService] error syncing existing messages');
     }
   }
+    Future<void> syncMessagesSince(int fromTimestamp) async {
+    try {
+      debugPrint("[SmsService] Re-syncing messages since $fromTimestamp");
+
+      final filter =
+          SmsFilter.where(SmsColumn.DATE).greaterThan(fromTimestamp.toString());
+
+      final inboxMessages = await telephony.getInboxSms(
+        columns: [
+          SmsColumn.ADDRESS,
+          SmsColumn.BODY,
+          SmsColumn.DATE,
+          SmsColumn.THREAD_ID,
+          SmsColumn.READ,
+          SmsColumn.TYPE,
+          SmsColumn.ID,
+        ],
+        filter: filter,
+        sortOrder: [OrderBy(SmsColumn.DATE, sort: Sort.ASC)],
+      );
+
+      final sentMessages = await telephony.getSentSms(
+        columns: [
+          SmsColumn.ADDRESS,
+          SmsColumn.BODY,
+          SmsColumn.DATE,
+          SmsColumn.THREAD_ID,
+          SmsColumn.READ,
+          SmsColumn.TYPE,
+          SmsColumn.ID,
+        ],
+        filter: filter,
+        sortOrder: [OrderBy(SmsColumn.DATE, sort: Sort.ASC)],
+      );
+
+      final allMessages = [...inboxMessages, ...sentMessages];
+      if (allMessages.isEmpty) {
+        debugPrint("[SmsService] No new messages found since $fromTimestamp");
+        return;
+      }
+
+      allMessages.sort((a, b) => (a.date ?? 0).compareTo(b.date ?? 0));
+      debugPrint("[SmsService] Syncing ${allMessages.length} missed messages");
+
+      await _dbHelper.batchSyncMessages(allMessages);
+      _messageUpdateController.add(SmsEvent(type: SmsEventType.syncCompleted));
+    } catch (_) {}
+  }
 
   Future<void> startSendTimeout(AppSmsMessage smsMessage) async {
     try {
@@ -268,22 +316,28 @@ class SmsService {
 
   Future<void> _writeOutgoingToSystemDb(AppSmsMessage message) async {
     try {
-      await _channel.invokeMethod('writeOutgoingToSystemDb', {
+      final result = await _channel.invokeMethod('writeOutgoingToSystemDb', {
         'address': message.address,
         'body': message.body,
         'date': message.date,
       });
-    } catch (_) {}
+       debugPrint("SmsService] Write to system result: $result");
+    } catch (e) {
+      debugPrint("[SmsService] Write to system error: $e");
+    }
   }
 
   Future<void> _writeIncmoingToSystemDb(AppSmsMessage message) async {
     try {
-      await _channel.invokeMethod('writeIncomingToSystemDb', {
+      final result  = await _channel.invokeMethod('writeIncomingToSystemDb', {
         'address': message.address,
         'body': message.body,
         'date': message.date,
       });
-    } catch (_) {}
+      debugPrint("SmsService] Write to system result: $result");
+    } catch (e) {
+      debugPrint("[SmsService] Write to system error: $e");
+    }
   }
 
   Future<List<AppChat>> getArchivedChats() async {
@@ -328,9 +382,12 @@ class SmsService {
       );
 
       await _dbHelper.insertMessage(appMsg);
-      _writeIncmoingToSystemDb(appMsg);
+      
       await _updateChat(threadId, appMsg.address, appMsg.body, appMsg.date,
           incrementUnread: true);
+        
+        await _writeIncmoingToSystemDb(appMsg);
+        
       _messageUpdateController
           .add(SmsEvent(type: SmsEventType.messageReceived, message: appMsg));
     } catch (_) {
@@ -526,7 +583,6 @@ class SmsService {
     try {
       if (message.body == null || message.address == null) return;
       await Firebase.initializeApp();
-      final smsService = SmsService();
       final notificationService = NotificationService();
       await notificationService.initialize();
 
@@ -534,8 +590,6 @@ class SmsService {
       final db = ContactDb();
       final contactName = await db.getName(message.address ?? '');
       final title = contactName ?? message.address ?? 'New Message';
-
-      await smsService._saveIncomingMessage(message, threadId);
 
       final payload =
           json.encode({'threadId': threadId, 'address': message.address});
@@ -610,54 +664,7 @@ class SmsService {
     }
   }
 
-  Future<void> syncMessagesSince(int fromTimestamp) async {
-    try {
-      debugPrint("[SmsService] Re-syncing messages since $fromTimestamp");
 
-      final filter =
-          SmsFilter.where(SmsColumn.DATE).greaterThan(fromTimestamp.toString());
-
-      final inboxMessages = await telephony.getInboxSms(
-        columns: [
-          SmsColumn.ADDRESS,
-          SmsColumn.BODY,
-          SmsColumn.DATE,
-          SmsColumn.THREAD_ID,
-          SmsColumn.READ,
-          SmsColumn.TYPE,
-          SmsColumn.ID,
-        ],
-        filter: filter,
-        sortOrder: [OrderBy(SmsColumn.DATE, sort: Sort.ASC)],
-      );
-
-      final sentMessages = await telephony.getSentSms(
-        columns: [
-          SmsColumn.ADDRESS,
-          SmsColumn.BODY,
-          SmsColumn.DATE,
-          SmsColumn.THREAD_ID,
-          SmsColumn.READ,
-          SmsColumn.TYPE,
-          SmsColumn.ID,
-        ],
-        filter: filter,
-        sortOrder: [OrderBy(SmsColumn.DATE, sort: Sort.ASC)],
-      );
-
-      final allMessages = [...inboxMessages, ...sentMessages];
-      if (allMessages.isEmpty) {
-        debugPrint("[SmsService] No new messages found since $fromTimestamp");
-        return;
-      }
-
-      allMessages.sort((a, b) => (a.date ?? 0).compareTo(b.date ?? 0));
-      debugPrint("[SmsService] Syncing ${allMessages.length} missed messages");
-
-      await _dbHelper.batchSyncMessages(allMessages);
-      _messageUpdateController.add(SmsEvent(type: SmsEventType.syncCompleted));
-    } catch (_) {}
-  }
 
   Future<int> getLatestMessageDate() async {
     try {
