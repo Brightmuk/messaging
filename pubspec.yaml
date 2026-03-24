@@ -37,6 +37,7 @@ dependencies:
   android_intent_plus: ^6.0.0
   firebase_messaging: ^16.1.2
   firebase_core: ^4.5.0
+  audioplayers: ^6.0.0
 
 dev_dependencies:
   flutter_test:
@@ -49,6 +50,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/audio/
 
 flutter_launcher_icons:
   android: "launcher_icon"

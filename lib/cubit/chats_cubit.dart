@@ -27,6 +27,7 @@ class ChatsCubit extends Cubit<ChatsState> {
       return;
     }
     _smsService = SmsService();
+     await _syncMissedMessages();
     _setupListeners();
     loadChats(isInitialLoad: true);
     ContactService().init();
@@ -125,12 +126,10 @@ class ChatsCubit extends Cubit<ChatsState> {
     if (shouldReset) {
       _currentPage = 0;
       _hasReachedMax = false;
-      // Don't emit Loading if we already have data (prevents white flicker)
       if (chats.isEmpty) emit(ChatsLoading());
     }
 
     try {
-       await _syncMissedMessages();
 
       final newChats = await _smsService.getPaginatedChats(
           limit: _pageSize,
@@ -276,6 +275,7 @@ class ChatsCubit extends Cubit<ChatsState> {
         debugPrint("App is now default SMS app");
         emit(ChatsLoading());
         timer.cancel();
+       
         _init();
       } else {
         debugPrint("Still waiting for default role... (${_count}s)");

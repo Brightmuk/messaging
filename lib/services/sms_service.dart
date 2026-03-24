@@ -10,6 +10,7 @@ import 'package:messaging/models/sim_card_state.dart';
 import 'package:messaging/services/contact_db.dart';
 import 'package:messaging/services/contact_service.dart';
 import 'package:messaging/services/mask_service.dart';
+import 'package:messaging/services/sound_service.dart';
 import 'package:sim_card_info/sim_card_info.dart';
 import 'package:sim_card_info/sim_info.dart';
 import 'package:uuid/uuid.dart';
@@ -197,7 +198,7 @@ class SmsService {
       }
 
       allMessages.sort((a, b) => (a.date ?? 0).compareTo(b.date ?? 0));
-      debugPrint("[SmsService] Syncing ${allMessages.length} missed messages");
+      debugPrint("[SmsService] Syncing ${allMessages.first.id} missed messages");
 
       await _dbHelper.batchSyncMessages(allMessages);
       _messageUpdateController.add(SmsEvent(type: SmsEventType.syncCompleted));
@@ -260,6 +261,7 @@ class SmsService {
             await cancelSendTimeout(messageId!);
             await markMessageAsDelivered(smsMessage.copyWith(id: messageId));
             _writeOutgoingToSystemDb(smsMessage);
+            await SoundService().playSent();
           }
         },
       );
@@ -327,18 +329,6 @@ class SmsService {
     }
   }
 
-  Future<void> _writeIncmoingToSystemDb(AppSmsMessage message) async {
-    try {
-      final result  = await _channel.invokeMethod('writeIncomingToSystemDb', {
-        'address': message.address,
-        'body': message.body,
-        'date': message.date,
-      });
-      debugPrint("SmsService] Write to system result: $result");
-    } catch (e) {
-      debugPrint("[SmsService] Write to system error: $e");
-    }
-  }
 
   Future<List<AppChat>> getArchivedChats() async {
     try {
@@ -370,6 +360,7 @@ class SmsService {
 
   Future<void> _saveIncomingMessage(SmsMessage msg, String threadId) async {
     try {
+      print("Received message with id: ${msg.id}");
       final appMsg = AppSmsMessage(
         status: MessageStatus.unknown,
         address: msg.address ?? '',
@@ -385,9 +376,7 @@ class SmsService {
       
       await _updateChat(threadId, appMsg.address, appMsg.body, appMsg.date,
           incrementUnread: true);
-        
-        await _writeIncmoingToSystemDb(appMsg);
-        
+
       _messageUpdateController
           .add(SmsEvent(type: SmsEventType.messageReceived, message: appMsg));
     } catch (_) {
@@ -559,6 +548,7 @@ class SmsService {
   }
 
   void _onMessageReceived(SmsMessage message) async {
+    print("\n\nReceived message: ${message.id}\n");
     try {
       final threadId = await getThreadId(message.address);
       final contactName = ContactService().getName(message.address ?? '');
@@ -573,6 +563,7 @@ class SmsService {
         payload:
             json.encode({'threadId': threadId, 'address': message.address}),
       );
+      
     } catch (_) {
       debugPrint("[SmsService] error on message received");
     }

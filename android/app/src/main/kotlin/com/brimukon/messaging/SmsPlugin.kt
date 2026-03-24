@@ -37,15 +37,15 @@ class SmsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 val address = call.argument<String>("address") ?: return result.error("ERR", "No address", null)
                 val body = call.argument<String>("body") ?: return result.error("ERR", "No body", null)
                 val date = call.argument<Long>("date") ?: System.currentTimeMillis()
-                val uri = smsRepo.writeOutgoingToSystemDb(address, body, date)
-                result.success(mapOf("uri" to uri?.toString()))
+                val newSystemId = smsRepo.writeOutgoingToSystemDb(address, body, date)
+                result.success(newSystemId)
             }
             "writeIncomingToSystemDb" -> {
                 val address = call.argument<String>("address") ?: return result.error("ERR", "No address", null)
                 val body = call.argument<String>("body") ?: return result.error("ERR", "No body", null)
                 val date = call.argument<Long>("date") ?: System.currentTimeMillis()
-                val uri = smsRepo.writeIncomingToSystemDb(address, body, date)
-                result.success(mapOf("uri" to uri?.toString()))
+                val newSystemId = smsRepo.writeIncomingToSystemDb(address, body, date)
+                result.success(newSystemId)
             }
             "getSystemThreadId" -> {
                 val address = call.argument<String>("address") ?: return result.error("ERR", "No address", null)

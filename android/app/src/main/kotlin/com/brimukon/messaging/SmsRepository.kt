@@ -12,7 +12,7 @@ class SmsRepository(private val context: Context) {
         body: String,
         date: Long,
         threadId: Long? = null
-    ): Uri? {
+    ): Long? {
         val systemThreadId = getOrCreateSystemThreadId(address)
 
         val values = ContentValues().apply {
@@ -25,10 +25,11 @@ class SmsRepository(private val context: Context) {
             if (systemThreadId != -1L) put("thread_id", systemThreadId)
         }
         return try {
-            context.contentResolver.insert(
+            val uri = context.contentResolver.insert(
                 Uri.parse("content://sms/sent"),
                 values
             )
+             uri?.lastPathSegment?.toLong()
         } catch (e: Exception) {
             null
         }
@@ -40,7 +41,7 @@ class SmsRepository(private val context: Context) {
         body: String,
         date: Long,
         threadId: Long? = null
-    ): Uri? {
+    ): Long? {
         val values = ContentValues().apply {
             put("address", address)
             put("body", body)
@@ -51,10 +52,12 @@ class SmsRepository(private val context: Context) {
             if (threadId != null) put("thread_id", threadId)
         }
         return try {
-            context.contentResolver.insert(
+            val uri = context.contentResolver.insert(
                 Uri.parse("content://sms/inbox"),
                 values
             )
+            // Extract the ID from the end of the URI (e.g., content://sms/inbox/123)
+            uri?.lastPathSegment?.toLong()
         } catch (e: Exception) {
             null
         }

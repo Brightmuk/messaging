@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/models/app_message.dart';
 import 'package:messaging/services/sms_service.dart';
+import 'package:messaging/services/sound_service.dart';
 import 'package:meta/meta.dart';
 
 part 'single_chat_state.dart';
@@ -63,11 +64,16 @@ class SingleChatCubit extends Cubit<SingleChatState> {
                 hideStatus: hideStatus,
                 updatedMessageId: updatedMessage.id!,
               ));
+              
             }
           }
           break;
-      case SmsEventType.messagePending:
       case SmsEventType.messageReceived:
+        SoundService().playReceived();
+        continue pending;
+        pending: 
+      case SmsEventType.messagePending:
+     
         final newMessage = event.message;
          if (newMessage != null && newMessage.threadId == threadId) {
           if(messages.contains(newMessage)){
