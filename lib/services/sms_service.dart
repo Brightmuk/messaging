@@ -360,7 +360,6 @@ class SmsService {
 
   Future<void> _saveIncomingMessage(SmsMessage msg, String threadId) async {
     try {
-      print("Received message with id: ${msg.id}");
       final appMsg = AppSmsMessage(
         status: MessageStatus.unknown,
         address: msg.address ?? '',
@@ -548,7 +547,6 @@ class SmsService {
   }
 
   void _onMessageReceived(SmsMessage message) async {
-    print("\n\nReceived message: ${message.id}\n");
     try {
       final threadId = await getThreadId(message.address);
       final contactName = ContactService().getName(message.address ?? '');
@@ -576,12 +574,12 @@ class SmsService {
       await Firebase.initializeApp();
       final notificationService = NotificationService();
       await notificationService.initialize();
-
+      final smsService = SmsService();
       final threadId = await _getThreadIdSt(message.address);
       final db = ContactDb();
       final contactName = await db.getName(message.address ?? '');
       final title = contactName ?? message.address ?? 'New Message';
-
+      await smsService._saveIncomingMessage(message, threadId);
       final payload =
           json.encode({'threadId': threadId, 'address': message.address});
       final maskResult =

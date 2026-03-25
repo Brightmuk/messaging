@@ -20,14 +20,16 @@ class ChatsCubit extends Cubit<ChatsState> {
     _init();
   }
 
-  void _init() async {
+  void _init({bool fromDefaultUpdate = false}) async {
     final isDefault = await SmsService.isDefaultSmsApp();
     if (!isDefault) {
       emit(PermissionRevoked());
       return;
     }
-    _smsService = SmsService();
-     await _syncMissedMessages();
+    if(fromDefaultUpdate){
+      await _syncMissedMessages();
+    }
+     _smsService = SmsService();
     _setupListeners();
     loadChats(isInitialLoad: true);
     ContactService().init();
@@ -112,6 +114,9 @@ class ChatsCubit extends Cubit<ChatsState> {
 
     if (_isDemoMode) {
       return emit(ChatsLoaded(getDemoChats(), isDefaultApp: isDefault));
+    }
+    if(!await UserDefaults.hasSynced()){
+     await _smsService.syncExistingMessages();
     }
 
     // Determine if we need to reset the list (e.g., mode changed or initial load)
@@ -275,8 +280,8 @@ class ChatsCubit extends Cubit<ChatsState> {
         debugPrint("App is now default SMS app");
         emit(ChatsLoading());
         timer.cancel();
-       
-        _init();
+         
+        _init(fromDefaultUpdate: true);
       } else {
         debugPrint("Still waiting for default role... (${_count}s)");
       }
