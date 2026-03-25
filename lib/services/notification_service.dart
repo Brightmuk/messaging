@@ -35,9 +35,9 @@ class NotificationService {
       onDidReceiveNotificationResponse: _onNotificationResponse,
       onDidReceiveBackgroundNotificationResponse:
           _onBackgroundNotificationResponse,
-    );
+    ); 
     String? token = await _fcm.getToken();
-    print("\nFCM Token: $token\n");
+    debugPrint("\nFCM Token: $token\n");
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       RemoteNotification? notification = message.notification;
       AndroidNotification? android = message.notification?.android;

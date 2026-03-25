@@ -16,7 +16,6 @@ class NativeAdService {
         onAdLoaded: (ad) => onAdLoaded(ad as NativeAd),
         onAdFailedToLoad: (ad, error) {
           ad.dispose();
-          print('Ad failed to load: $error');
         },
       ),
       request: const AdRequest(),
@@ -60,7 +59,6 @@ class NativeAdService {
         onAdLoaded: (ad) => onAdLoaded(ad as NativeAd),
         onAdFailedToLoad: (ad, error) {
           ad.dispose();
-          print('Ad failed to load: $error');
         },
       ),
       request: const AdRequest(),

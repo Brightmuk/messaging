@@ -108,7 +108,6 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
   }
   void setupFont() async {
     _currentScale = await UserDefaults.getTextScale();
-    print("Current scale: $_currentScale");
   }
   Timer? _debounceTimer;
 
@@ -116,7 +115,7 @@ void updateFontScale(double scale) {
   if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
 
   _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
-    print("Updating scale to: $scale"); 
+
    await UserDefaults.setTextScale(scale);
   });
 }
