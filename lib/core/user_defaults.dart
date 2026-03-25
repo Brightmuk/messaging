@@ -91,7 +91,7 @@ class UserDefaults {
   }
   static Future<double> getTextScale() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getDouble(_textScaleKey) ?? 1;
+    return prefs.getDouble(_textScaleKey) ?? 1.1;
   }
   static Future<void> setTextScale(double scale)async{
     final prefs = await SharedPreferences.getInstance();

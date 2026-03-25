@@ -5,12 +5,15 @@ class ContactNameText extends StatelessWidget {
   final bool unread;
   final String rawAddress;
   final Stream<int> contactStream;
+  final TextStyle? style;
 
   const ContactNameText(
       {super.key,
-      required this.unread,
+      this.unread = false,
       required this.rawAddress,
-      required this.contactStream});
+      required this.contactStream,
+       this.style
+      });
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +61,7 @@ class ContactNameText extends StatelessWidget {
               // 2. ADD THIS: Ensure text doesn't wrap or stretch unexpectedly
               overflow: TextOverflow.ellipsis,
               maxLines: 1,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              style: style ?? Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: unread ? FontWeight.bold : FontWeight.normal,
                   ),
             ),

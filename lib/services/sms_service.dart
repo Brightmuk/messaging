@@ -7,6 +7,7 @@ import 'package:another_telephony/telephony.dart';
 import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/models/app_chat.dart';
 import 'package:messaging/models/sim_card_state.dart';
+import 'package:messaging/services/ac_chat_session_service.dart';
 import 'package:messaging/services/contact_db.dart';
 import 'package:messaging/services/contact_service.dart';
 import 'package:messaging/services/mask_service.dart';
@@ -552,8 +553,8 @@ class SmsService {
       final contactName = ContactService().getName(message.address ?? '');
       await _saveIncomingMessage(message, threadId);
       if (message.body == null || message.address == null) return;
-
-      await _notificationService.showNotification(
+      if(!ActiveChatSession().isActive(threadId)){
+          await _notificationService.showNotification(
         title: contactName,
         body: MaskService.maskAfterBalance(message.body!, message.address!)
             .message,
@@ -561,7 +562,8 @@ class SmsService {
         payload:
             json.encode({'threadId': threadId, 'address': message.address}),
       );
-      
+      }
+
     } catch (_) {
       debugPrint("[SmsService] error on message received");
     }

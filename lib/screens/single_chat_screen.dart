@@ -14,7 +14,9 @@ import 'package:messaging/models/app_chat.dart';
 import 'package:messaging/models/sim_card_state.dart';
 import 'package:messaging/screens/select_contact_screen.dart';
 import 'package:messaging/screens/widgets/chat_bubble_ad.dart';
+import 'package:messaging/screens/widgets/contact_name_text.dart';
 import 'package:messaging/screens/widgets/message_bubble.dart';
+import 'package:messaging/services/ac_chat_session_service.dart';
 import 'package:messaging/services/contact_service.dart';
 import 'package:messaging/services/notification_service.dart';
 import 'package:messaging/services/mask_service.dart';
@@ -93,6 +95,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
   @override
   void initState() {
     super.initState();
+    ActiveChatSession().enter(widget.threadId);
     WidgetsBinding.instance.addObserver(this);
     _scrollController.addListener(_onScroll);
     Future.microtask(() {
@@ -152,7 +155,7 @@ void updateFontScale(double scale) {
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
-   
+   ActiveChatSession().leave();
     super.dispose();
   }
   void _scrollToAnchor(int timestamp, List<AppSmsMessage> messages) {
@@ -176,7 +179,7 @@ void updateFontScale(double scale) {
 }
 final ValueNotifier<double> _textScaleNotifier = ValueNotifier<double>(1.0);
 double _baseScale = 1.0;
-double _currentScale = 1.0;
+double _currentScale = 1.1;
 
 // Set limits so the UI doesn't break
 final double _minScale = 0.8;
@@ -533,7 +536,10 @@ final double _maxScale = 2;
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(ContactService().getName(widget.address)),
+          ContactNameText(
+            style: Theme.of(context).textTheme.titleMedium,
+                        rawAddress: widget.address,
+                        contactStream: ContactService().contactStream),
           Text('SMS', style: Theme.of(context).textTheme.bodySmall),
         ],
       ),

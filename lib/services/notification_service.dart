@@ -60,17 +60,7 @@ class NotificationService {
       }
     });
 
-    final NotificationAppLaunchDetails? launchDetails =
-        await _notifications.getNotificationAppLaunchDetails();
-
-    if (launchDetails?.didNotificationLaunchApp ?? false) {
-      final response = launchDetails?.notificationResponse;
-      if (response != null) {
-        Future.delayed(const Duration(seconds: 1), () {
-          _onNotificationResponse(response);
-        });
-      }
-    }
+    
     const AndroidNotificationChannel alertChannel = AndroidNotificationChannel(
       'alert_channel',
       'Alert Channel',
@@ -112,6 +102,16 @@ class NotificationService {
             AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(alertChannel);   
   }
+  Future<void> handleInitialMessage() async {
+  final launchDetails = await _notifications.getNotificationAppLaunchDetails();
+  if (launchDetails?.didNotificationLaunchApp ?? false) {
+    final response = launchDetails?.notificationResponse;
+    if (response?.payload != null) {
+      // Try to navigate immediately
+      _onNotificationResponse(response!);
+    }
+  }
+}
 
 void _onNotificationResponse(NotificationResponse response) {
   if (response.actionId != null) {

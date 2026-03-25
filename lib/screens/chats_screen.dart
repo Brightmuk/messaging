@@ -68,6 +68,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
     _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       _checkDialogs();
+      NotificationService().handleInitialMessage();
     });
 
   }

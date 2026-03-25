@@ -26,10 +26,11 @@ class ChatsCubit extends Cubit<ChatsState> {
       emit(PermissionRevoked());
       return;
     }
+    _smsService = SmsService();
     if(fromDefaultUpdate){
       await _syncMissedMessages();
     }
-     _smsService = SmsService();
+
     _setupListeners();
     loadChats(isInitialLoad: true);
     ContactService().init();
