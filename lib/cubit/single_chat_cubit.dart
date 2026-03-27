@@ -8,7 +8,7 @@ import 'package:messaging/services/sound_service.dart';
 import 'package:meta/meta.dart';
 
 part 'single_chat_state.dart';
-
+const anchorWindow = 20;
 class SingleChatCubit extends Cubit<SingleChatState> {
   final String threadId;
   final SmsService _smsService = SmsService();
@@ -16,9 +16,11 @@ class SingleChatCubit extends Cubit<SingleChatState> {
   StreamSubscription? _updateSubscription;
 
    // Anchor mode — true when opened from search
-  bool get _isAnchorMode => targetTimestamp != null;
+  bool get isAnchorMode => targetTimestamp != null;
   bool _hasReachedTop = false;
   bool _hasReachedBottom = false;
+  bool get hasReachedBottom => _hasReachedBottom;
+  bool get hasReachedTop => _hasReachedTop;
 
   // Separate tracking for each direction in anchor mode
   int? _oldestLoadedDate;
@@ -42,10 +44,10 @@ class SingleChatCubit extends Cubit<SingleChatState> {
 
   List<AppSmsMessage> messages = [];
   int _currentPage = 0;
-  final int _pageSize = 20;
+  final int _pageSize = 45;
   bool _isFetching = false;
   bool _hasReachedMax = false;
-  bool get hasReachedMax => _hasReachedMax;
+  bool get hasReachedMax => _hasReachedMax || _hasReachedTop;
 
 
   void handleSmsUpdates(SmsEvent event) {
@@ -130,71 +132,110 @@ class SingleChatCubit extends Cubit<SingleChatState> {
   }
 
 
-  Future<void> getMessages({bool isInitialLoad = true}) async {
-    bool isDemoMode = await UserDefaults.isDemoMode();
-    if (isDemoMode) {
-      messages = DemoMessages.messages.where((m) => m.threadId == threadId).toList();
-      emit(SingleChatLoaded(messages: messages, hideStatus: hideStatus, hasReachedMax: true));
-      return;
-    }
+Future<void> getMessages({bool isInitialLoad = true}) async {
+  if (await _handleDemoMode()) return;
+  if (_shouldSkipFetch(isInitialLoad)) return;
 
-    if (_isFetching) return;
-    if (!isInitialLoad && !_isAnchorMode && _hasReachedTop) return;
+  _isFetching = true;
+  _prepareInitialLoad(isInitialLoad);
 
-    _isFetching = true;
+  try {
+    final newMessages = await _smsService.getMessagesForThread(
+      threadId,
+      limit: _pageSize,
+      offset: _currentPage * _pageSize,
+      targetTimestamp: isInitialLoad ? targetTimestamp : null,
+    );
 
-    if (isInitialLoad) {
-      _currentPage = 0;
-      _hasReachedTop = false;
-      _hasReachedBottom = false;
-      if (messages.isEmpty) emit(SingleChatLoading());
-    }
+    _applyMessages(newMessages, isInitialLoad);
 
-    try {
-      final newMessages = await _smsService.getMessagesForThread(
-        threadId,
-        limit: _pageSize,
-        offset: _currentPage * _pageSize,
-        targetTimestamp: isInitialLoad ? targetTimestamp : null,
-      );
+    _currentPage++;
+    _oldestLoadedDate = messages.isNotEmpty ? messages.last.date : _oldestLoadedDate;
 
-      if (isInitialLoad && _isAnchorMode) {
-        messages = newMessages;
-        // Track boundaries for directional pagination
-        _oldestLoadedDate = messages.isNotEmpty ? messages.last.date : null;
-        _newestLoadedDate = messages.isNotEmpty ? messages.first.date : null;
-        _hasReachedTop = newMessages.length < 15;
-        _hasReachedBottom = newMessages.length < 15;
-      } else if (isInitialLoad) {
-        messages = newMessages;
-        _hasReachedTop = newMessages.length < _pageSize;
-      } else {
-        final existingIds = messages.map((m) => m.id).toSet();
-        final unique = newMessages.where((m) => !existingIds.contains(m.id)).toList();
-        messages.addAll(unique); // addAll appends to bottom (older msgs in reversed list)
-        _hasReachedTop = unique.length < _pageSize;
-      }
-
-      _currentPage++;
-      _oldestLoadedDate = messages.isNotEmpty ? messages.last.date : _oldestLoadedDate;
-
-      emit(SingleChatLoaded(
-        messages: List.from(messages),
-        hideStatus: hideStatus,
-        hasReachedMax: _hasReachedTop,
-        anchorTimestamp: isInitialLoad ? targetTimestamp : null,
-      ));
-    } catch (e) {
-      emit(SingleChatError(error: "Failed to get messages"));
-    } finally {
-      _isFetching = false;
-    }
+    emit(SingleChatLoaded(
+      messages: List.from(messages),
+      hideStatus: hideStatus,
+      hasReachedMax: _hasReachedTop,
+      anchorTimestamp: isInitialLoad ? targetTimestamp : null,
+    ));
+  } catch (e) {
+    emit(SingleChatError(error: "Failed to get messages"));
+  } finally {
+    _isFetching = false;
   }
+}
+
+// Returns true if demo mode handled the emission — caller should return early
+Future<bool> _handleDemoMode() async {
+  final isDemoMode = await UserDefaults.isDemoMode();
+  if (!isDemoMode) return false;
+
+  messages = DemoMessages.messages
+      .where((m) => m.threadId == threadId)
+      .toList();
+
+  emit(SingleChatLoaded(
+    messages: messages,
+    hideStatus: hideStatus,
+    hasReachedMax: true,
+  ));
+
+  return true;
+}
+
+// Returns true if the fetch should be skipped entirely
+bool _shouldSkipFetch(bool isInitialLoad) {
+  if (_isFetching) return true;
+  if (!isInitialLoad && !isAnchorMode && _hasReachedTop) return true;
+  return false;
+}
+
+// Resets pagination state and emits loading if this is a fresh load
+void _prepareInitialLoad(bool isInitialLoad) {
+  if (!isInitialLoad) return;
+
+  _currentPage = 0;
+  _hasReachedTop = false;
+  _hasReachedBottom = false;
+
+  if (messages.isEmpty) emit(SingleChatLoading());
+}
+
+void _applyMessages(List<AppSmsMessage> newMessages, bool isInitialLoad) {
+  if (isInitialLoad && isAnchorMode) {
+    // First time on search
+    _applyAnchorInitialLoad(newMessages);
+  } else if (isInitialLoad) { 
+    //Normal conversation load
+    _applyNormalInitialLoad(newMessages);
+  } else { //Paginated history load
+  
+    _applyPaginatedLoad(newMessages);
+  }
+}
+
+void _applyAnchorInitialLoad(List<AppSmsMessage> newMessages) {
+  messages = newMessages;
+  _oldestLoadedDate = messages.isNotEmpty ? messages.last.date : null;
+  _newestLoadedDate = messages.isNotEmpty ? messages.first.date : null;
+  _hasReachedTop = newMessages.length < anchorWindow;
+  _hasReachedBottom = newMessages.length < anchorWindow;
+}
+
+void _applyNormalInitialLoad(List<AppSmsMessage> newMessages) {
+  messages = newMessages;
+  _hasReachedTop = newMessages.length < _pageSize;
+}
+
+void _applyPaginatedLoad(List<AppSmsMessage> newMessages) {
+  messages.addAll(newMessages);
+  _hasReachedTop = newMessages.length < _pageSize;
+}
     // Called when user scrolls DOWN (towards newer messages) in anchor mode
   Future<void> loadNewerMessages() async {
-    if (!_isAnchorMode || _hasReachedBottom || _isFetching) return;
+    if (!isAnchorMode || _hasReachedBottom || _isFetching) return;
     if (_newestLoadedDate == null) return;
-
+   
     _isFetching = true;
     try {
       final newer = await _smsService.getMessagesAfterTimestamp(
@@ -202,14 +243,43 @@ class SingleChatCubit extends Cubit<SingleChatState> {
         afterDate: _newestLoadedDate!,
         limit: _pageSize,
       );
-
+      
       if (newer.isEmpty || newer.length < _pageSize) _hasReachedBottom = true;
       if (newer.isEmpty) return;
 
-      final existingIds = messages.map((m) => m.id).toSet();
-      final unique = newer.where((m) => !existingIds.contains(m.id)).toList();
-      messages.insertAll(0, unique); // prepend — newer msgs go to top of reversed list
-      _newestLoadedDate = messages.first.date;
+      messages.insertAll(0, newer); 
+      _newestLoadedDate = newer.first.date;
+      _hasReachedBottom = newer.length < _pageSize;
+
+      emit(SingleChatLoaded(
+        messages: List.from(messages),
+        hideStatus: hideStatus,
+        hasReachedMax: _hasReachedBottom,
+      ));
+    } finally {
+      _isFetching = false;
+    }
+  }
+    Future<void> loadOlderMessages() async {
+      print("loadOlderMessages called ");
+    if (!isAnchorMode || _hasReachedTop || _isFetching) return;
+    if (_oldestLoadedDate == null) return;
+   
+    _isFetching = true;
+    try {
+      final older = await _smsService.getMessagesBeforeTimestamp(
+        threadId,
+        beforeDate: _oldestLoadedDate!,
+        limit: _pageSize,
+      );
+      print("Older messages: ${older.length}");
+      
+      if (older.isEmpty || older.length < _pageSize) _hasReachedBottom = true;
+      if (older.isEmpty) return;
+
+      messages.addAll(older.reversed.toList()); 
+      _oldestLoadedDate = older.first.date;
+      _hasReachedBottom = older.length < _pageSize;
 
       emit(SingleChatLoaded(
         messages: List.from(messages),

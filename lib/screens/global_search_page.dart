@@ -14,6 +14,7 @@ class GlobalSearchPage extends StatefulWidget {
 }
 
 class _GlobalSearchPageState extends State<GlobalSearchPage> {
+  final FocusNode _focus = FocusNode();
   final TextEditingController _controller = TextEditingController();
 
   @override
@@ -26,6 +27,7 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
           appBar: AppBar(
             title: TextField(
               controller: _controller,
+              focusNode: _focus,
               autofocus: true, // Keyboard pops up immediately
               decoration: const InputDecoration(
                 filled: false,
@@ -78,6 +80,7 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
                         ],
                       ),
                       onTap: () {
+                        _focus.requestFocus();
                         Navigator.push(
                             context,
                             MaterialPageRoute(

@@ -1,6 +1,8 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:messaging/core/utils/date_formatter.dart';
+import 'package:messaging/cubit/single_chat_cubit.dart';
 import 'package:messaging/models/app_chat.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
@@ -203,8 +205,7 @@ Future<List<AppSmsMessage>> getMessagesForThread(
   final db = await database;
 
   if (targetTimestamp != null) {
-    // Load a window: N messages before + N after the target
-    const window = 15;
+    const window = anchorWindow;
 
     final before = await db.query(
       'messages',
@@ -218,16 +219,18 @@ Future<List<AppSmsMessage>> getMessagesForThread(
       'messages',
       where: 'threadId = ? AND date > ?',
       whereArgs: [threadId, targetTimestamp],
-      orderBy: 'date ASC',
+      orderBy: 'date ASC', // newest in 'after' window last
       limit: window,
     );
 
-    // Merge: before (reversed to ASC) + after, deduplicated
+    // after reversed = DESC, before already DESC
+    // Combined: newest first, consistent with non-search queries
     final merged = [
-      ...before.reversed.map(AppSmsMessage.fromMap),
-      ...after.map(AppSmsMessage.fromMap),
+      ...after.reversed.map(AppSmsMessage.fromMap), // DESC (newest after target first)
+      ...before.map(AppSmsMessage.fromMap),          // DESC (target + older)
     ];
-    return merged.reversed.toList();
+
+    return merged; 
   }
 
   // Normal paginated fetch
@@ -241,21 +244,39 @@ Future<List<AppSmsMessage>> getMessagesForThread(
   );
   return maps.map(AppSmsMessage.fromMap).toList();
 }
-  Future<List<AppSmsMessage>> getMessagesAfterTimestamp(
+  Future<List<AppSmsMessage>> getMessagesBeforeTimestamp(
     String threadId, {
-    required int afterDate,
+    required int beforeDate,
     int limit = 20,
   }) async {
+    print("Getting messages before timestamp: ${formatMessageDate(beforeDate)}");
     final db = await database;
     final maps = await db.query(
       'messages',
-      where: 'threadId = ? AND date > ?',
-      whereArgs: [threadId, afterDate],
+      where: 'threadId = ? AND date < ?',
+      whereArgs: [threadId, beforeDate],
       orderBy: 'date ASC',
       limit: limit,
     );
     return maps.map(AppSmsMessage.fromMap).toList();
   }
+  Future<List<AppSmsMessage>> getMessagesAfterTimestamp(
+    String threadId, {
+    required int afterDate,
+    int limit = 20,
+  }) async {
+    
+    final db = await database;
+    final maps = await db.query(
+      'messages',
+      where: 'threadId = ? AND date > ?',
+      whereArgs: [threadId, afterDate],
+      orderBy: 'date DESC',
+      limit: limit,
+    );
+    return maps.map(AppSmsMessage.fromMap).toList();
+  }
+
 
   Future<AppChat?> getChatByNormalizedAddress(String normalizedAddress) async {
     final db = await database;

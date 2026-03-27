@@ -43,7 +43,7 @@ class _MessageBubbleState extends State<MessageBubble> {
     _shouldHighlight = widget.isHighlighted;
     if (widget.isHighlighted) {
       // Trigger the fade effect shortly after the bubble is rendered
-      Future.delayed(const Duration(seconds: 1), () {
+      Future.delayed(const Duration(seconds: 2), () {
         if (mounted) setState(() => _shouldHighlight = false);
       });
     }
@@ -127,7 +127,7 @@ class _MessageBubbleState extends State<MessageBubble> {
                               .textTheme
                               .bodyMedium
                               ?.copyWith(
-                                color: widget.isOutgoing && !widget.selected
+                                color: (widget.isOutgoing && !(widget.selected || _shouldHighlight))
                                     ? Theme.of(context).colorScheme.onPrimary
                                     : Theme.of(context).colorScheme.onSurface,
                               ),

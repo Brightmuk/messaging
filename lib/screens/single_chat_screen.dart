@@ -22,6 +22,7 @@ import 'package:messaging/services/notification_service.dart';
 import 'package:messaging/services/mask_service.dart';
 import 'package:messaging/services/sms_service.dart';
 import 'package:provider/provider.dart';
+import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:sim_card_info/sim_info.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/app_message.dart';
@@ -44,7 +45,9 @@ class SingleChatScreen extends StatelessWidget {
     return MultiProvider(
         providers: [
           BlocProvider(create: (c) => SimCardCubit()),
-          BlocProvider(create: (c) => SingleChatCubit(threadId, targetTimestamp: searchedMessage?.date)),
+          BlocProvider(
+              create: (c) => SingleChatCubit(threadId,
+                  targetTimestamp: searchedMessage?.date)),
         ],
         child: SingleChatScreenView(
           threadId: threadId,
@@ -61,13 +64,12 @@ class SingleChatScreenView extends StatefulWidget {
   final String? initialMessage;
   final AppSmsMessage? searchedMessage;
 
-  const SingleChatScreenView({
-    super.key,
-    required this.threadId,
-    required this.address,
-    this.initialMessage,
-    this.searchedMessage
-  });
+  const SingleChatScreenView(
+      {super.key,
+      required this.threadId,
+      required this.address,
+      this.initialMessage,
+      this.searchedMessage});
 
   @override
   State<SingleChatScreenView> createState() => _SingleChatScreenViewState();
@@ -76,11 +78,12 @@ class SingleChatScreenView extends StatefulWidget {
 class _SingleChatScreenViewState extends State<SingleChatScreenView>
     with WidgetsBindingObserver {
   final TextEditingController _messageController = TextEditingController();
-  final ScrollController _scrollController = ScrollController();
+  final ItemScrollController _itemScrollController = ItemScrollController();
+  final ItemPositionsListener _itemPositionsListener =
+      ItemPositionsListener.create();
   final telephony = Telephony.instance;
   final Set<AppSmsMessage> _selectedMessages = {};
   bool get _isSelectionMode => _selectedMessages.isNotEmpty;
-
 
   void _toggleSelection(AppSmsMessage message) {
     setState(() {
@@ -97,7 +100,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
     super.initState();
     ActiveChatSession().enter(widget.threadId);
     WidgetsBinding.instance.addObserver(this);
-    _scrollController.addListener(_onScroll);
+    _itemPositionsListener.itemPositions.addListener(_onScroll);
     Future.microtask(() {
       if (mounted) {
         context.read<SingleChatCubit>().markThreadAsRead();
@@ -109,35 +112,109 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
     setupFont();
     _clearNotifications();
   }
+
   void setupFont() async {
     _currentScale = await UserDefaults.getTextScale();
   }
+
   Timer? _debounceTimer;
 
-void updateFontScale(double scale) {
-  if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
+  void updateFontScale(double scale) {
+    if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
 
-  _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
+      await UserDefaults.setTextScale(scale);
+    });
+  }
+bool _isLoadingNewer = false;
+bool _isLoadingOlder = false;
 
-   await UserDefaults.setTextScale(scale);
-  });
-}
+Timer? _olderDebounce;
+Timer? _newerDebounce;
 
-  void _onScroll() {
-  final pos = _scrollController.position;
+void _onScroll() {
+  if (widget.searchedMessage != null && !_hasScrolledToAnchor) return;
+  final positions = _itemPositionsListener.itemPositions.value;
+  if (positions.isEmpty) return;
+
   final cubit = context.read<SingleChatCubit>();
 
-  // Scrolling up (towards older messages) — list is reversed so maxScrollExtent = oldest
-  if (pos.pixels >= pos.maxScrollExtent - 200) {
-    if (!cubit.hasReachedMax) {
-      cubit.getMessages(isInitialLoad: false);
-    }
+  final visiblePositions = positions
+      .where((p) => p.itemTrailingEdge > 0 && p.itemLeadingEdge < 1)
+      .toList();
+
+  if (visiblePositions.isEmpty) return;
+
+  final lastVisibleIndex = visiblePositions
+      .map((p) => p.index)
+      .fold<int>(0, (max, i) => i > max ? i : max);
+
+  final firstVisibleIndex = visiblePositions
+      .map((p) => p.index)
+      .fold<int>(999999, (min, i) => i < min ? i : min);
+
+  final totalItems = cubit.messages.length;
+
+  // ── Load older messages ───────────────────────────────────────────────
+  if (lastVisibleIndex >= totalItems - 30 && !_isLoadingOlder && !cubit.hasReachedMax) {
+    _olderDebounce?.cancel();
+    _olderDebounce = Timer(const Duration(milliseconds: 200), () async {
+      if (!mounted) return;
+      _isLoadingOlder = true;
+      if(cubit.isAnchorMode){
+        await cubit.loadOlderMessages();
+     }else{
+       await cubit.getMessages(isInitialLoad: false);
+     }
+      if (mounted) _isLoadingOlder = false;
+    });
   }
 
-  // Scrolling down (towards newer messages) — only needed in anchor mode
-  if (pos.pixels <= 200) {
-    cubit.loadNewerMessages();
+  // ── Load newer messages (anchor mode only) ────────────────────────────
+  if (firstVisibleIndex <= 5 && !_isLoadingNewer && cubit.isAnchorMode) {
+    _newerDebounce?.cancel();
+    _newerDebounce = Timer(const Duration(milliseconds: 400), () {
+      if (!mounted) return;
+      _loadNewerWithoutJump();
+    });
   }
+}
+
+Future<void> _loadNewerWithoutJump() async {
+  if (_isLoadingNewer) return;
+
+  final positions = _itemPositionsListener.itemPositions.value;
+  if (positions.isEmpty) return;
+
+  final cubit = context.read<SingleChatCubit>();
+
+  // Capture topmost visible item before load
+  final firstVisible = positions
+      .where((p) => p.itemTrailingEdge > 0 && p.itemLeadingEdge < 1)
+      .reduce((a, b) => a.index < b.index ? a : b);
+
+  final anchorIndex = firstVisible.index;
+  final anchorAlignment = firstVisible.itemLeadingEdge.clamp(0.0, 1.0);
+  final countBefore = cubit.messages.length;
+
+  _isLoadingNewer = true;
+  await cubit.loadNewerMessages();
+
+  final newItemsCount = cubit.messages.length - countBefore;
+
+  if (newItemsCount > 0 && mounted) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_itemScrollController.isAttached) {
+        // Shift index by how many items were prepended to cancel the visual jump
+        _itemScrollController.jumpTo(
+          index: anchorIndex + newItemsCount,
+          alignment: anchorAlignment,
+        );
+      }
+    });
+  }
+
+  if (mounted) _isLoadingNewer = false;
 }
 
   @override
@@ -153,38 +230,69 @@ void updateFontScale(double scale) {
 
   @override
   void dispose() {
+    _olderDebounce?.cancel();
+    _newerDebounce?.cancel();
     _messageController.dispose();
-    _scrollController.dispose();
-   ActiveChatSession().leave();
+    _itemPositionsListener.itemPositions.removeListener(_onScroll);
+    WidgetsBinding.instance.removeObserver(this);
+    ActiveChatSession().leave();
     super.dispose();
   }
-  void _scrollToAnchor(int timestamp, List<AppSmsMessage> messages) {
-  final idx = messages.indexWhere((m) => m.date == timestamp);
-  if (idx == -1) return;
+bool _hasScrolledToAnchor = false;
+void _scrollToAnchor(int timestamp, List<AppSmsMessage> messages) {
+  // Match by both id and timestamp for precision
+  int index = -1;
+
+  if (widget.searchedMessage != null) {
+    index = messages.indexWhere((m) => m.id == widget.searchedMessage!.id);
+  }
+
+  // Fallback to timestamp if id match failed
+  if (index == -1) {
+    index = messages.indexWhere((m) => m.date == timestamp);
+  }
+
+  if (index == -1) return;
+   // ✅ Adjust for ad slot at index 3
+  final bool adsEnabled = shouldShowAds(messages.length, 
+      context.read<PaymentCubit>().isNoAds); // or pass isNoAds in
+  if (adsEnabled && index >= 3) {
+    index += 1; // shift past the ad bubble
+  }
 
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    if (!_scrollController.hasClients) return;
-
-    // Estimate position — ListView is reversed so idx 0 is at pixels=0 (bottom)
-    // We need to scroll UP from bottom, so higher idx = higher pixels value
-    final estimatedOffset = idx * 80.0; // adjust 80 to your avg bubble height
-    final maxExtent = _scrollController.position.maxScrollExtent;
-
-    _scrollController.animateTo(
-      estimatedOffset.clamp(0.0, maxExtent),
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeOut,
-    );
+    if (_itemScrollController.isAttached) {
+      _itemScrollController.scrollTo(
+        index: index,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOut,
+        alignment: 0.5,
+      );
+    } else {
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (_itemScrollController.isAttached) {
+          _itemScrollController.scrollTo(
+            index: index,
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeOut,
+            alignment: 0.5,
+          );
+        }
+      });
+    }
   });
+ Future.delayed(const Duration(milliseconds: 600), () {
+    _hasScrolledToAnchor = true; 
+ });
 }
-final ValueNotifier<double> _textScaleNotifier = ValueNotifier<double>(1.0);
-double _baseScale = 1.0;
-double _currentScale = 1.1;
+
+  final ValueNotifier<double> _textScaleNotifier = ValueNotifier<double>(1.0);
+  double _baseScale = 1.0;
+  double _currentScale = 1.1;
 
 // Set limits so the UI doesn't break
-final double _minScale = 0.8;
-final double _maxScale = 2;
-
+  final double _minScale = 0.8;
+  final double _maxScale = 2;
 
   @override
   Widget build(BuildContext context) {
@@ -197,15 +305,16 @@ final double _maxScale = 2;
         if (state is SingleChatSendError) {
           feedbackUi.showError(state.error);
         }
-        
-        if (state is SingleChatLoaded) {
-    context.read<SingleChatCubit>().markThreadAsRead();
 
-    // Scroll to searched message on first load
-    if (state.anchorTimestamp != null) {
-      _scrollToAnchor(state.anchorTimestamp!, state.messages);
-    }
-  }
+        if (state is SingleChatLoaded) {
+
+        if (state.anchorTimestamp != null && !_hasScrolledToAnchor) {
+      
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted) _scrollToAnchor(state.anchorTimestamp!, state.messages);
+          });
+        }
+      }
         if (state is SingleChatDeleted) {
           Navigator.pop(context);
         }
@@ -222,178 +331,209 @@ final double _maxScale = 2;
             body: const Center(child: Text("Error loading messages")),
           );
         }
-        final messages = (state is SingleChatLoaded && state.isSearching)?
-        state.messages:
-        context.read<SingleChatCubit>().messages;
-        
+        final messages = (state is SingleChatLoaded && state.isSearching)
+            ? state.messages
+            : context.read<SingleChatCubit>().messages;
+
         bool hide = context.read<SingleChatCubit>().hideStatus;
         return Scaffold(
           appBar: _buildAppBar(messages),
           body: ValueListenableBuilder<double>(
-      valueListenable: _textScaleNotifier,
-            builder: (context, scale, child) {
-              return GestureDetector(
-                onScaleStart: (details) {
-                            _baseScale = _currentScale;
-                          },
-                          onScaleUpdate: (details) {
-                            double newScale = _baseScale * details.scale;
-                              double value = newScale.clamp(_minScale, _maxScale);
-                            setState(() {
-                              _currentScale = value;
-                            });
-                            updateFontScale(value);
-                          },
-                child: Column(
-                  children: [
-                    messages.isEmpty
-                        ? Expanded(
-                            child: Center(
-                              child: Text(
-                                'No messages',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyLarge
-                                    ?.copyWith(
-                                      color: Theme.of(context).colorScheme.outline,
+              valueListenable: _textScaleNotifier,
+              builder: (context, scale, child) {
+                return GestureDetector(
+                  onScaleStart: (details) {
+                    _baseScale = _currentScale;
+                  },
+                  onScaleUpdate: (details) {
+                    double newScale = _baseScale * details.scale;
+                    double value = newScale.clamp(_minScale, _maxScale);
+                    setState(() {
+                      _currentScale = value;
+                    });
+                    updateFontScale(value);
+                  },
+                  child: Column(
+                    children: [
+                      messages.isEmpty
+                          ? Expanded(
+                              child: Center(
+                                child: Text(
+                                  'No messages',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyLarge
+                                      ?.copyWith(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .outline,
+                                      ),
+                                ),
+                              ),
+                            )
+                          : Expanded(
+                              child: ScrollablePositionedList.builder(
+                                reverse: true,
+                                itemScrollController: _itemScrollController,
+                                itemPositionsListener: _itemPositionsListener,
+                                padding: const EdgeInsets.all(16),
+                                itemCount:
+                                    shouldShowAds(messages.length, isNoAds)
+                                        ? messages.length + 1
+                                        : messages.length,
+                                itemBuilder: (context, index) {
+                                  bool adsEnabled =
+                                      shouldShowAds(messages.length, isNoAds);
+
+                                  if (adsEnabled && index == 3) {
+                                    return ChatAdBubble(
+                                        address: messages.isNotEmpty
+                                            ? messages[0].address
+                                            : "");
+                                  }
+
+                                  final int messageIndex =
+                                      (adsEnabled && index > 3)
+                                          ? index - 1
+                                          : index;
+
+                                  if (messageIndex < 0 ||
+                                      messageIndex >= messages.length) {
+                                    return const SizedBox.shrink();
+                                  }
+
+                                  final message = messages[messageIndex];
+                                  final isOutgoing = message.isOutgoing;
+                                  final isSelected =
+                                      _selectedMessages.contains(message);
+                                  final showDateSeparator =
+                                      _shouldShowDateSeparator(
+                                          messageIndex, messages);
+
+                                  final isHighlighted =
+                                      widget.searchedMessage?.id == message.id;
+
+                                  return GestureDetector(
+                                    onLongPress: () =>
+                                        _toggleSelection(message),
+                                    onTap: () {
+                                      if (_isSelectionMode) {
+                                        _toggleSelection(message);
+                                      }
+                                    },
+                                    child: MessageBubble(
+                                      key: ValueKey(
+                                          '${message.id}_${message.status}'),
+                                      hide: hide,
+                                      isOutgoing: isOutgoing,
+                                      message: message,
+                                      selected: isSelected,
+                                      showDateSeparator: showDateSeparator,
+                                      isHighlighted: isHighlighted,
+                                      currentScale: _currentScale,
                                     ),
+                                  );
+                                },
                               ),
                             ),
-                          )
-                        : Expanded(
-                            child: ListView.builder(
-                              reverse: true,
-                              controller: _scrollController,
-                              padding: const EdgeInsets.all(16),
-                              itemCount: shouldShowAds(messages.length, isNoAds)
-                                  ? messages.length + 1
-                                  : messages.length,
-                              itemBuilder: (context, index) {
-                                
-                                bool adsEnabled =
-                                    shouldShowAds(messages.length, isNoAds);
-                                        
-                                if (adsEnabled && index == 3) {
-                                  return ChatAdBubble(
-                                      address: messages.isNotEmpty
-                                          ? messages[0].address
-                                          : "");
-                                }
-                                        
-                                final int messageIndex =
-                                    (adsEnabled && index > 3) ? index - 1 : index;
-                                        
-                                if (messageIndex < 0 ||
-                                    messageIndex >= messages.length) {
-                                  return const SizedBox.shrink();
-                                }
-                                        
-                                final message = messages[messageIndex];
-                                final isOutgoing = message.isOutgoing;
-                                final isSelected =
-                                    _selectedMessages.contains(message);
-                                final showDateSeparator =
-                                    _shouldShowDateSeparator(messageIndex, messages);
-                               
-                                return GestureDetector(
-                                  onLongPress: () => _toggleSelection(message),
-                                  onTap: () {
-                                    if (_isSelectionMode) {
-                                      _toggleSelection(message);
-                                    }
-                                  },
-                                  child: MessageBubble(
-                                    key: ValueKey('${message.id}_${message.status}'),
-                                    hide: hide,
-                                    isOutgoing: isOutgoing,
-                                    message: message,
-                                    selected: isSelected,
-                                    showDateSeparator: showDateSeparator,
-                                    isHighlighted: widget.searchedMessage == message,
-                                    currentScale: _currentScale,
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                    AppChat.supportsReplies(widget.address)
-                        ? Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.surface,
-                            ),
-                            child: SafeArea(
-                              child: BlocBuilder<SimCardCubit, SimCardState>(
-                                builder: (context, state) {
-                                  final isLoading = state is SimCardInitial;
-                
-                                  final simCardState =
-                                      state is SimCardLoaded ? state.state : null;
-                                  final hasData = simCardState != null &&
-                                      simCardState.allCards.isNotEmpty;
-                                  final defaultSim = simCardState?.allCards
-                                      .where(
-                                        (sim) =>
-                                            int.tryParse(sim.slotIndex.toString()) ==
-                                            simCardState.defaultCard,
-                                      )
-                                      .firstOrNull;
-                
-                                  return FutureBuilder<bool>(
-                                            future: SmsService.isDefaultSmsApp(),
-                                            builder: (context, sn) {
-                                              if(sn.hasData && !sn.data!){
-                                                return Padding(
-                                                  padding: const EdgeInsets.only(bottom: 10),
-                                                  child: RichText(
-                                                    textAlign: TextAlign.center,
-                                                    text: TextSpan(
-                                                      style: theme.textTheme.bodyMedium?.copyWith(
-                                                        color: theme.colorScheme.onSurfaceVariant,
-                                                      ),
-                                                      children: [
-                                                        TextSpan(
-                                                          text: "Set as default app",
-                                                          style: TextStyle(
-                                                            color: theme.colorScheme.primary,
-                                                            fontWeight: FontWeight.bold,
-                                                          ),
-                                                          recognizer: TapGestureRecognizer()
-                                                            ..onTap = () {
-                                                              SmsService.requestDefaultSmsRole();
-                                                            },
-                                                        ),
-                                                        const TextSpan(text: " to start sending messages"),
-                                                      ],
-                                                    ),
+                      AppChat.supportsReplies(widget.address)
+                          ? Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.surface,
+                              ),
+                              child: SafeArea(
+                                child: BlocBuilder<SimCardCubit, SimCardState>(
+                                  builder: (context, state) {
+                                    final isLoading = state is SimCardInitial;
+
+                                    final simCardState = state is SimCardLoaded
+                                        ? state.state
+                                        : null;
+                                    final hasData = simCardState != null &&
+                                        simCardState.allCards.isNotEmpty;
+                                    final defaultSim = simCardState?.allCards
+                                        .where(
+                                          (sim) =>
+                                              int.tryParse(
+                                                  sim.slotIndex.toString()) ==
+                                              simCardState.defaultCard,
+                                        )
+                                        .firstOrNull;
+
+                                    return FutureBuilder<bool>(
+                                        future: SmsService.isDefaultSmsApp(),
+                                        builder: (context, sn) {
+                                          if (sn.hasData && !sn.data!) {
+                                            return Padding(
+                                              padding: const EdgeInsets.only(
+                                                  bottom: 10),
+                                              child: RichText(
+                                                textAlign: TextAlign.center,
+                                                text: TextSpan(
+                                                  style: theme
+                                                      .textTheme.bodyMedium
+                                                      ?.copyWith(
+                                                    color: theme.colorScheme
+                                                        .onSurfaceVariant,
                                                   ),
-                                                );
-                                              }
-                                      return Row(
-                                        crossAxisAlignment: CrossAxisAlignment.end,
-                                        children: [
-                                          SizedBox(
-                                            width: 48,
-                                            height: 48,
-                                            child: _buildSimSlot(
-                                              isLoading: isLoading,
-                                              hasData: simCardState != null &&
-                                                  simCardState.allCards.isNotEmpty,
-                                              simCardState: simCardState,
-                                              defaultSim: defaultSim,
-                                            ),
-                                          ),
-                                      
-                                          Expanded(
+                                                  children: [
+                                                    TextSpan(
+                                                      text:
+                                                          "Set as default app",
+                                                      style: TextStyle(
+                                                        color: theme.colorScheme
+                                                            .primary,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                      recognizer:
+                                                          TapGestureRecognizer()
+                                                            ..onTap = () {
+                                                              SmsService
+                                                                  .requestDefaultSmsRole();
+                                                            },
+                                                    ),
+                                                    const TextSpan(
+                                                        text:
+                                                            " to start sending messages"),
+                                                  ],
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                          return Row(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.end,
+                                            children: [
+                                              SizedBox(
+                                                width: 48,
+                                                height: 48,
+                                                child: _buildSimSlot(
+                                                  isLoading: isLoading,
+                                                  hasData:
+                                                      simCardState != null &&
+                                                          simCardState.allCards
+                                                              .isNotEmpty,
+                                                  simCardState: simCardState,
+                                                  defaultSim: defaultSim,
+                                                ),
+                                              ),
+
+                                              Expanded(
                                                 child: TextField(
-                                                  controller: _messageController,
+                                                  controller:
+                                                      _messageController,
                                                   maxLines: 5,
                                                   minLines: 1,
-                                                  enabled: !isLoading && hasData,
-                                                  onChanged: (value) => setState(() {}),
+                                                  enabled:
+                                                      !isLoading && hasData,
+                                                  onChanged: (value) =>
+                                                      setState(() {}),
                                                   textCapitalization:
-                                                      TextCapitalization.sentences,
+                                                      TextCapitalization
+                                                          .sentences,
                                                   decoration: InputDecoration(
                                                     hintText: isLoading
                                                         ? 'Checking SIMs...'
@@ -401,35 +541,47 @@ final double _maxScale = 2;
                                                             ? 'Message'
                                                             : 'No SIM detected'),
                                                     contentPadding:
-                                                        const EdgeInsets.symmetric(
-                                                            horizontal: 20, vertical: 10),
+                                                        const EdgeInsets
+                                                            .symmetric(
+                                                            horizontal: 20,
+                                                            vertical: 10),
                                                     filled: true,
                                                     fillColor: Theme.of(context)
                                                         .colorScheme
                                                         .surfaceContainerHighest,
                                                     border: OutlineInputBorder(
-                                                      borderRadius: BorderRadius.circular(28),
-                                                      borderSide: BorderSide.none,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              28),
+                                                      borderSide:
+                                                          BorderSide.none,
                                                     ),
                                                     suffixIcon: Padding(
                                                       padding:
-                                                          const EdgeInsets.only(right: 4),
+                                                          const EdgeInsets.only(
+                                                              right: 4),
                                                       child: Column(
-                                                        mainAxisSize: MainAxisSize.min,
+                                                        mainAxisSize:
+                                                            MainAxisSize.min,
                                                         mainAxisAlignment:
-                                                            MainAxisAlignment.center,
+                                                            MainAxisAlignment
+                                                                .center,
                                                         children: [
                                                           IconButton.filled(
                                                             onPressed: (isLoading ||
                                                                     !hasData ||
                                                                     _messageController
-                                                                        .text.isEmpty)
+                                                                        .text
+                                                                        .isEmpty)
                                                                 ? null
-                                                                : () => _sendMessage(),
+                                                                : () =>
+                                                                    _sendMessage(),
                                                             icon: Icon(
-                                                              Icons.arrow_upward,
-                                                              color:
-                                                                  theme.colorScheme.onPrimary,
+                                                              Icons
+                                                                  .arrow_upward,
+                                                              color: theme
+                                                                  .colorScheme
+                                                                  .onPrimary,
                                                             ),
                                                           ),
                                                         ],
@@ -438,25 +590,23 @@ final double _maxScale = 2;
                                                   ),
                                                 ),
                                               ),
-                                      
-                                          // --- TEXT FIELD SECTION ---
-                                          const SizedBox(width: 8),
-                                        ],
-                                      );
-                                    }
-                                  );
-                                },
+
+                                              // --- TEXT FIELD SECTION ---
+                                              const SizedBox(width: 8),
+                                            ],
+                                          );
+                                        });
+                                  },
+                                ),
                               ),
-                            ),
-                          )
-                        : const SizedBox(
-                            height: 50,
-                          )
-                  ],
-                ),
-              );
-            }
-          ),
+                            )
+                          : const SizedBox(
+                              height: 50,
+                            )
+                    ],
+                  ),
+                );
+              }),
           floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
           floatingActionButton: MaskService.isMonitored(widget.address)
               ? Padding(
@@ -465,6 +615,7 @@ final double _maxScale = 2;
                     heroTag: 'Toggle Hide',
                     onPressed: () {
                       context.read<SingleChatCubit>().toggleHide();
+                      // context.read<SingleChatCubit>().loadNewerMessages();
                     },
                     child: Icon(hide
                         ? Icons.visibility_off_outlined
@@ -480,7 +631,8 @@ final double _maxScale = 2;
   bool shouldShowAds(int messageLength, bool isNoAds) {
     return MaskService.isMonitored(widget.address) &&
         messageLength > 5 &&
-        !isNoAds && widget.searchedMessage == null;
+        !isNoAds &&
+        widget.searchedMessage == null;
   }
 
   AppBar _buildAppBar(List<AppSmsMessage> messages) {
@@ -518,7 +670,8 @@ final double _maxScale = 2;
                       builder: (context) => SelectContactScreen(
                         isForwarding: true,
                         forwardMessage: MaskService.maskAfterBalance(
-                            body, _selectedMessages.first.address).message,
+                                body, _selectedMessages.first.address)
+                            .message,
                       ),
                     ));
               },
@@ -531,28 +684,27 @@ final double _maxScale = 2;
       );
     }
 
-
     return AppBar(
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ContactNameText(
-            style: Theme.of(context).textTheme.titleMedium,
-                        rawAddress: widget.address,
-                        contactStream: ContactService().contactStream),
+              style: Theme.of(context).textTheme.titleMedium,
+              rawAddress: widget.address,
+              contactStream: ContactService().contactStream),
           Text('SMS', style: Theme.of(context).textTheme.bodySmall),
         ],
       ),
       actions: [
-          isMpesa(widget.address) ? IconButton(
-          icon: const Icon(Icons.business_center_outlined),
-          onPressed: (){
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Coming soon!'))
-            );
-          },
-        ):const SizedBox.shrink(),
-        
+        isMpesa(widget.address)
+            ? IconButton(
+                icon: const Icon(Icons.business_center_outlined),
+                onPressed: () {
+                  ScaffoldMessenger.of(context)
+                      .showSnackBar(SnackBar(content: Text('Coming soon!')));
+                },
+              )
+            : const SizedBox.shrink(),
         IconButton(
           icon: const Icon(Icons.call_outlined),
           onPressed: int.tryParse(widget.address) == null
@@ -562,9 +714,11 @@ final double _maxScale = 2;
       ],
     );
   }
-  bool isMpesa(String address){
+
+  bool isMpesa(String address) {
     return address.toLowerCase() == 'mpesa';
   }
+
   Widget _buildSimSlot({
     required bool isLoading,
     required bool hasData,
@@ -718,7 +872,9 @@ final double _maxScale = 2;
     );
 
     if (confirm == true) {
-      await context.read<SingleChatCubit>().deleteMessages(_selectedMessages.toList());
+      await context
+          .read<SingleChatCubit>()
+          .deleteMessages(_selectedMessages.toList());
     }
     setState(() => _selectedMessages.clear());
   }

@@ -464,6 +464,22 @@ class SmsService {
       return [];
     }
   }
+    Future<List<AppSmsMessage>> getMessagesBeforeTimestamp(
+    String threadId, {
+    required int beforeDate,
+    int limit = 20,
+  }) async {
+    try {
+      return await _dbHelper.getMessagesBeforeTimestamp(
+        threadId,
+        beforeDate: beforeDate,
+        limit: limit,
+      );
+    } catch (_) {
+      debugPrint("[SmsService] error getting messages after timestamp");
+      return [];
+    }
+  }
 
   Future<List<AppSmsMessage>> getMessagesForThread(
     String threadId, {
