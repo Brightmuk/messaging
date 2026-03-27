@@ -14,10 +14,9 @@ class PrivacyShieldOverlay extends StatefulWidget {
 }
 
 class _PrivacyShieldOverlayState extends State<PrivacyShieldOverlay> {
-
   String address = "Privacy Shield";
   String message = "Processing...";
-  
+
   @override
   void initState() {
     super.initState();
@@ -29,7 +28,7 @@ class _PrivacyShieldOverlayState extends State<PrivacyShieldOverlay> {
         });
       }
     });
-    
+
     // Auto-close after 10s
     Timer(const Duration(seconds: 10), () {
       if (mounted) FlutterOverlayWindow.closeOverlay();
@@ -38,9 +37,21 @@ class _PrivacyShieldOverlayState extends State<PrivacyShieldOverlay> {
 
   @override
   Widget build(BuildContext context) {
+    return OverlayWidget(message: message, address: address);
+  }
+}
+
+class OverlayWidget extends StatelessWidget {
+  final String address;
+  final String message;
+
+  const OverlayWidget(
+      {super.key, required this.address, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-
     return Material(
       color: Colors.transparent,
       child: Container(
@@ -49,7 +60,8 @@ class _PrivacyShieldOverlayState extends State<PrivacyShieldOverlay> {
         decoration: BoxDecoration(
           color: isDarkMode ? const Color(0xFF212121) : Colors.white,
           borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: isDarkMode ? Colors.white10 : Colors.black12),
+          border:
+              Border.all(color: isDarkMode ? Colors.white10 : Colors.black12),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.2),
@@ -71,7 +83,7 @@ class _PrivacyShieldOverlayState extends State<PrivacyShieldOverlay> {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            
+
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
               child: Column(
@@ -92,7 +104,8 @@ class _PrivacyShieldOverlayState extends State<PrivacyShieldOverlay> {
                                 Flexible(
                                   child: Text(
                                     address,
-                                    style: theme.textTheme.titleMedium?.copyWith(
+                                    style:
+                                        theme.textTheme.titleMedium?.copyWith(
                                       fontWeight: FontWeight.w900,
                                       letterSpacing: 0.1,
                                     ),
@@ -118,7 +131,7 @@ class _PrivacyShieldOverlayState extends State<PrivacyShieldOverlay> {
                         onPressed: () => FlutterOverlayWindow.closeOverlay(),
                         icon: const Icon(Icons.close_rounded, size: 22),
                         padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(), 
+                        constraints: const BoxConstraints(),
                         visualDensity: VisualDensity.compact,
                         color: isDarkMode ? Colors.white54 : Colors.black45,
                       ),
@@ -146,33 +159,32 @@ class _PrivacyShieldOverlayState extends State<PrivacyShieldOverlay> {
                     ),
                   ),
 
-                  
-                
                   // 4. Action Buttons (Open and Dismiss)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      
-                      
                       TextButton(
-                         onPressed: () async {
-                              try {
-                                
-                                const intent = AndroidIntent(
-                                  action: 'android.intent.action.MAIN',
-                                  package: 'com.brimukon.messaging',
-                                  componentName: 'com.brimukon.messaging.MainActivity',
-                                  flags: [Flag.FLAG_ACTIVITY_NEW_TASK, Flag.FLAG_ACTIVITY_REORDER_TO_FRONT],
-                                );
+                        onPressed: () async {
+                          try {
+                            const intent = AndroidIntent(
+                              action: 'android.intent.action.MAIN',
+                              package: 'com.brimukon.messaging',
+                              componentName:
+                                  'com.brimukon.messaging.MainActivity',
+                              flags: [
+                                Flag.FLAG_ACTIVITY_NEW_TASK,
+                                Flag.FLAG_ACTIVITY_REORDER_TO_FRONT
+                              ],
+                            );
 
-                                await intent.launch();
-                                await FlutterOverlayWindow.closeOverlay();
-                              } catch (e) {
-                                debugPrint("Could not launch app via Intent: $e");
-                                await FlutterOverlayWindow.closeOverlay();
-                              }
-                            },
-                        child:  Text(
+                            await intent.launch();
+                            await FlutterOverlayWindow.closeOverlay();
+                          } catch (e) {
+                            debugPrint("Could not launch app via Intent: $e");
+                            await FlutterOverlayWindow.closeOverlay();
+                          }
+                        },
+                        child: Text(
                           "OPEN",
                           style: TextStyle(
                             color: colorMap(address),
@@ -204,6 +216,7 @@ class _PrivacyShieldOverlayState extends State<PrivacyShieldOverlay> {
       ),
     );
   }
+
   Color colorMap(String label) {
     if (label.toUpperCase().contains("MPESA")) {
       return Colors.green;
@@ -215,14 +228,13 @@ class _PrivacyShieldOverlayState extends State<PrivacyShieldOverlay> {
   }
 
   Widget _buildIdentityAvatar(String label, ThemeData theme) {
-   
     return CircleAvatar(
       radius: 22,
       backgroundColor: colorMap(address),
       child: Text(
         label.isNotEmpty ? label[0].toUpperCase() : "P",
         style: const TextStyle(
-          color:  Colors.white,
+          color: Colors.white,
           fontWeight: FontWeight.bold,
           fontSize: 18,
         ),
@@ -238,7 +250,7 @@ class _PrivacyShieldOverlayState extends State<PrivacyShieldOverlay> {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: colorMap(address).withOpacity(0.2)),
       ),
-      child:  Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.verified_user_rounded, color: colorMap(address), size: 10),
@@ -246,8 +258,8 @@ class _PrivacyShieldOverlayState extends State<PrivacyShieldOverlay> {
           Text(
             "PROTECTED",
             style: TextStyle(
-              color: colorMap(address), 
-              fontSize: 8, 
+              color: colorMap(address),
+              fontSize: 8,
               fontWeight: FontWeight.w900,
             ),
           ),

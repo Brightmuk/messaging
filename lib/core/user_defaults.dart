@@ -9,6 +9,7 @@ class UserDefaults {
   static const String _adsRemovedString = 'adsRemoved';
   static const String _demoModeKey = 'isDemoMode';
   static const String _canshowOverlayKey = 'canShowOverlay';
+   static const String _nextShowOverlayPromptKey = 'nextShowOverlayPrompt';
   static const String _textScaleKey = 'textScale';
 
   static Future<void> setHasOnboarded() async {
@@ -88,6 +89,19 @@ class UserDefaults {
   static Future<void> setShowOverlay(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_canshowOverlayKey, value);
+  }
+  static Future<bool> canShowOverlayPrompt() async {
+    final prefs = await SharedPreferences.getInstance();
+    int? timestamp = prefs.getInt(_nextShowOverlayPromptKey) ?? 0;
+    DateTime date = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    DateTime now = DateTime.now();
+    return date.isBefore(now);
+
+  }
+  static Future<void> setDismissedShowOverlayPrompt() async {
+    final prefs = await SharedPreferences.getInstance();
+    DateTime nextshow = DateTime.now().add(const Duration(days: 25));
+    await prefs.setInt(_nextShowOverlayPromptKey, nextshow.millisecondsSinceEpoch);
   }
   static Future<double> getTextScale() async {
     final prefs = await SharedPreferences.getInstance();

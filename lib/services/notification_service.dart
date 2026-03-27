@@ -190,7 +190,7 @@ void _navigateToChat(String? payload) {
                 ? [
                     const AndroidNotificationAction(
                       'mark_as_read',
-                      'Mark as Read',
+                      'View',
                       cancelNotification: true,
                       showsUserInterface: true,
                     ),
