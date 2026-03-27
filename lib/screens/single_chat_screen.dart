@@ -101,11 +101,7 @@ class _SingleChatScreenViewState extends State<SingleChatScreenView>
     ActiveChatSession().enter(widget.threadId);
     WidgetsBinding.instance.addObserver(this);
     _itemPositionsListener.itemPositions.addListener(_onScroll);
-    Future.microtask(() {
-      if (mounted) {
-        context.read<SingleChatCubit>().markThreadAsRead();
-      }
-    });
+
     if (widget.initialMessage != null) {
       _messageController.text = widget.initialMessage!;
     }
@@ -307,7 +303,7 @@ void _scrollToAnchor(int timestamp, List<AppSmsMessage> messages) {
         }
 
         if (state is SingleChatLoaded) {
-
+          context.read<SingleChatCubit>().markThreadAsRead();
         if (state.anchorTimestamp != null && !_hasScrolledToAnchor) {
       
           Future.delayed(const Duration(milliseconds: 500), () {
@@ -411,7 +407,7 @@ void _scrollToAnchor(int timestamp, List<AppSmsMessage> messages) {
                                           messageIndex, messages);
 
                                   final isHighlighted =
-                                      widget.searchedMessage?.id == message.id;
+                                      widget.searchedMessage == message;
 
                                   return GestureDetector(
                                     onLongPress: () =>

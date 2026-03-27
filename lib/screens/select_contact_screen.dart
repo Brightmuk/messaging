@@ -121,7 +121,7 @@ class _SelectContactScreenState extends State<SelectContactScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
-                query.isEmpty ? 'Recent contacts' : 'Suggestions',
+                query.isEmpty ? 'Contacts' : 'Suggestions',
                 style: theme.textTheme.titleSmall?.copyWith(
                   color: theme.colorScheme.primary,
                   fontWeight: FontWeight.bold,
