@@ -250,6 +250,7 @@ class SmsService {
         to: address,
         message: message,
         subscriptionId: defaultSim + 1,
+        isMultipart: message.length > 160,
         statusListener: (status) async {
           debugPrint("\nSend Status: $status\n");
           //Seems like sent doesnt always guarantee the message left the device
@@ -290,6 +291,7 @@ class SmsService {
       await telephony.sendSms(
         to: message.address,
         message: message.body,
+        isMultipart: message.body.length > 160,
         subscriptionId: defaultSim + 1,
         statusListener: (status) async {
           try {
