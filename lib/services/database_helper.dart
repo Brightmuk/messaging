@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:messaging/core/utils/date_formatter.dart';
 import 'package:messaging/cubit/single_chat_cubit.dart';
 import 'package:messaging/models/app_chat.dart';
+import 'package:messaging/models/mchango_campaign.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:another_telephony/telephony.dart' as tel;
@@ -27,13 +28,41 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
   }
 
-  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {}
+Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+  if (oldVersion < 3) {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS campaigns (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        threadId TEXT NOT NULL,
+        startDate INTEGER NOT NULL,
+        endDate INTEGER,
+        targetAmount REAL,
+        isActive INTEGER DEFAULT 1,
+        openingBalance REAL DEFAULT 0
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS contributions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        campaignId INTEGER NOT NULL,
+        senderName TEXT,
+        senderPhone TEXT NOT NULL,
+        amount REAL NOT NULL,
+        date INTEGER NOT NULL,
+        messageId INTEGER,
+        FOREIGN KEY (campaignId) REFERENCES campaigns(id)
+      )
+    ''');
+  }
+
+  }
 
   Future<void> _createDB(Database db, int version) async {
     await db.execute('''
@@ -50,6 +79,9 @@ class DatabaseHelper {
         UNIQUE(address, body, date) ON CONFLICT IGNORE
       )
     ''');
+        // Create indexes to optimize query performance as the DB grows
+    await db
+        .execute('CREATE INDEX idx_messages_threadId ON messages (threadId)');
 
     // 2. Chats table
     await db.execute('''
@@ -64,10 +96,32 @@ class DatabaseHelper {
         unreadCount INTEGER DEFAULT 0
       )
     ''');
+    await db.execute('''
+    CREATE TABLE campaigns (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      threadId TEXT NOT NULL,
+      startDate INTEGER NOT NULL,
+      endDate INTEGER,
+      targetAmount REAL,
+      isActive INTEGER DEFAULT 1,
+      openingBalance REAL DEFAULT 0
+    )
+  ''');
 
-    // Create indexes to optimize query performance as the DB grows
-    await db
-        .execute('CREATE INDEX idx_messages_threadId ON messages (threadId)');
+  await db.execute('''
+    CREATE TABLE contributions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      campaignId INTEGER NOT NULL,
+      senderName TEXT,
+      senderPhone TEXT NOT NULL,
+      amount REAL NOT NULL,
+      date INTEGER NOT NULL,
+      messageId INTEGER,
+      FOREIGN KEY (campaignId) REFERENCES campaigns(id)
+    )
+  ''');
+    
   }
 
   // --- Optimized Batch Operations ---
@@ -461,6 +515,89 @@ Future<List<AppSmsMessage>> searchGlobal(String query, bool isDefault) async {
       where: 'id IN ($placeholders)',
       whereArgs: ids,
     );
+  }
+  // ── Campaigns ──────────────────────────────────────────────
+
+  Future<int> insertCampaign(Campaign campaign) async {
+    final db = await database;
+    return await db.insert('campaigns', campaign.toMap());
+  }
+
+  Future<Campaign?> getActiveCampaign(String threadId) async {
+    final db = await database;
+    final result = await db.query(
+      'campaigns',
+      where: 'threadId = ? AND isActive = 1',
+      whereArgs: [threadId],
+      limit: 1,
+    );
+    if (result.isEmpty) return null;
+    final campaign = Campaign.fromMap(result.first);
+    return await _hydrateCampaign(db, campaign);
+  }
+
+  Future<List<Campaign>> getCampaigns(String threadId) async {
+    final db = await database;
+    final result = await db.query(
+      'campaigns',
+      where: 'threadId = ?',
+      whereArgs: [threadId],
+      orderBy: 'startDate DESC',
+    );
+    return Future.wait(result
+        .map(Campaign.fromMap)
+        .map((c) => _hydrateCampaign(db, c)));
+  }
+
+  Future<Campaign> _hydrateCampaign(Database db, Campaign campaign) async {
+    final stats = await db.rawQuery('''
+      SELECT COUNT(*) as count, SUM(amount) as total
+      FROM contributions WHERE campaignId = ?
+    ''', [campaign.id]);
+    campaign.totalCollected = (stats.first['total'] as num?)?.toDouble() ?? 0;
+    campaign.contributorCount = (stats.first['count'] as int?) ?? 0;
+    return campaign;
+  }
+
+  Future<void> stopCampaign(int campaignId) async {
+    final db = await database;
+    await db.update(
+      'campaigns',
+      {'isActive': 0, 'endDate': DateTime.now().millisecondsSinceEpoch},
+      where: 'id = ?',
+      whereArgs: [campaignId],
+    );
+  }
+
+  // ── Contributions ──────────────────────────────────────────
+
+  Future<int> insertContribution(Contribution contribution) async {
+    final db = await database;
+    return await db.insert('contributions', contribution.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.ignore);
+  }
+
+  Future<List<Contribution>> getContributions(int campaignId) async {
+    final db = await database;
+    final result = await db.query(
+      'contributions',
+      where: 'campaignId = ?',
+      whereArgs: [campaignId],
+      orderBy: 'date DESC',
+    );
+    return result.map(Contribution.fromMap).toList();
+  }
+
+  Future<bool> contributionExists(int campaignId, int messageId) async {
+    final db = await database;
+    final result = await db.query(
+      'contributions',
+      columns: ['id'],
+      where: 'campaignId = ? AND messageId = ?',
+      whereArgs: [campaignId, messageId],
+      limit: 1,
+    );
+    return result.isNotEmpty;
   }
 
   Future<void> close() async {

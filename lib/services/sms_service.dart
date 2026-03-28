@@ -11,6 +11,7 @@ import 'package:messaging/services/ac_chat_session_service.dart';
 import 'package:messaging/services/contact_db.dart';
 import 'package:messaging/services/contact_service.dart';
 import 'package:messaging/services/mask_service.dart';
+import 'package:messaging/services/mchango_service.dart';
 import 'package:messaging/services/sound_service.dart';
 import 'package:sim_card_info/sim_card_info.dart';
 import 'package:sim_card_info/sim_info.dart';
@@ -378,7 +379,7 @@ class SmsService {
       
       await _updateChat(threadId, appMsg.address, appMsg.body, appMsg.date,
           incrementUnread: true);
-
+      await MchangoService().processMessage(appMsg.copyWith(id: appMsg.id));
       _messageUpdateController
           .add(SmsEvent(type: SmsEventType.messageReceived, message: appMsg));
     } catch (_) {

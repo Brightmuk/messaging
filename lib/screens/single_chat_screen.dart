@@ -12,6 +12,7 @@ import 'package:messaging/cubit/sim_card_cubit.dart';
 import 'package:messaging/cubit/single_chat_cubit.dart';
 import 'package:messaging/models/app_chat.dart';
 import 'package:messaging/models/sim_card_state.dart';
+import 'package:messaging/screens/mchango/dashboard.dart';
 import 'package:messaging/screens/select_contact_screen.dart';
 import 'package:messaging/screens/widgets/chat_bubble_ad.dart';
 import 'package:messaging/screens/widgets/contact_name_text.dart';
@@ -696,8 +697,7 @@ void _scrollToAnchor(int timestamp, List<AppSmsMessage> messages) {
             ? IconButton(
                 icon: const Icon(Icons.business_center_outlined),
                 onPressed: () {
-                  ScaffoldMessenger.of(context)
-                      .showSnackBar(SnackBar(content: Text('Coming soon!')));
+                  Navigator.of(context).push(MaterialPageRoute(builder: (ctx) => MchangoDashboardWrapper(threadId: widget.threadId)));
                 },
               )
             : const SizedBox.shrink(),
