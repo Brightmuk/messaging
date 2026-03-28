@@ -31,114 +31,125 @@ class _NewCampaignSheetState extends State<NewCampaignSheet> {
     return Padding(
       padding: EdgeInsets.fromLTRB(
           20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Handle
-            Center(
-              child: Container(
-                width: 40, height: 4,
-                margin: const EdgeInsets.only(bottom: 20),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.outlineVariant,
-                  borderRadius: BorderRadius.circular(2),
+      child: SafeArea(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Handle
+              Center(
+                child: Container(
+                  width: 40, height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.outlineVariant,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-            ),
-
-            Text('New Campaign',
-                style: theme.textTheme.titleLarge
-                    ?.copyWith(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 20),
-
-            // Campaign name
-            TextFormField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Campaign Name',
-                hintText: 'e.g. Wedding for John & Mary',
-                prefixIcon: Icon(Icons.edit_outlined),
+        
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('New Campaign',
+                      style: theme.textTheme.titleLarge
+                          ?.copyWith(fontWeight: FontWeight.bold)),
+                          IconButton(onPressed: (){
+                            Navigator.pop(context);
+                          }, icon: const Icon(Icons.close))
+                ],
               ),
-              textCapitalization: TextCapitalization.sentences,
-              validator: (v) =>
-                  v == null || v.trim().isEmpty ? 'Name is required' : null,
-            ),
-            const SizedBox(height: 16),
-
-            // Target amount toggle
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Set Target Amount'),
-              subtitle: const Text('Track progress towards a goal'),
-              value: _hasTarget,
-              onChanged: (v) => setState(() => _hasTarget = v),
-            ),
-            if (_hasTarget) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 20),
+        
+              // Campaign name
               TextFormField(
-                controller: _targetController,
+                controller: _nameController,
                 decoration: const InputDecoration(
-                  labelText: 'Target Amount (Ksh)',
-                  prefixIcon: Icon(Icons.flag_outlined),
+                  labelText: 'Campaign Name',
+                  hintText: 'e.g. Wedding for John & Mary',
+                  prefixIcon: Icon(Icons.edit_outlined),
                 ),
-                keyboardType: TextInputType.number,
-                validator: (v) {
-                  if (!_hasTarget) return null;
-                  if (v == null || v.isEmpty) return 'Enter target amount';
-                  if (double.tryParse(v) == null) return 'Invalid amount';
-                  return null;
-                },
+                textCapitalization: TextCapitalization.sentences,
+                validator: (v) =>
+                    v == null || v.trim().isEmpty ? 'Name is required' : null,
               ),
-            ],
-            const SizedBox(height: 8),
-
-            // End date toggle
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Set End Date'),
-              subtitle: const Text('Campaign runs indefinitely by default'),
-              value: _hasEndDate,
-              onChanged: (v) => setState(() => _hasEndDate = v),
-            ),
-            if (_hasEndDate) ...[
-              const SizedBox(height: 8),
-              ListTile(
+              const SizedBox(height: 16),
+        
+              // Target amount toggle
+              SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.calendar_month_outlined),
-                title: Text(_endDate == null
-                    ? 'Select end date'
-                    : '${_endDate!.day}/${_endDate!.month}/${_endDate!.year}'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () async {
-                  final picked = await showDatePicker(
-                    context: context,
-                    initialDate:
-                        DateTime.now().add(const Duration(days: 7)),
-                    firstDate: DateTime.now(),
-                    lastDate: DateTime.now().add(const Duration(days: 365)),
-                  );
-                  if (picked != null) setState(() => _endDate = picked);
-                },
+                title: const Text('Set Target Amount'),
+                subtitle: const Text('Track progress towards a goal and be notified when it is reached'),
+                value: _hasTarget,
+                onChanged: (v) => setState(() => _hasTarget = v),
               ),
-            ],
-
-            const SizedBox(height: 24),
-
-            // Submit
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: _submit,
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 4),
-                  child: Text('Start Campaign'),
+              if (_hasTarget) ...[
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _targetController,
+                  decoration: const InputDecoration(
+                   hintText: "Enter target amount",
+                    prefixIcon: Icon(Icons.flag_outlined),
+                  ),
+                  keyboardType: TextInputType.number,
+                  
+                  validator: (v) {
+                    if (!_hasTarget) return null;
+                    if (v == null || v.isEmpty) return 'Enter target amount';
+                    if (double.tryParse(v) == null) return 'Invalid amount';
+                    return null;
+                  },
+                ),
+              ],
+              const SizedBox(height: 8),
+        
+              // End date toggle
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Set End Date'),
+                subtitle: const Text('Campaign runs indefinitely by default'),
+                value: _hasEndDate,
+                onChanged: (v) => setState(() => _hasEndDate = v),
+              ),
+              if (_hasEndDate) ...[
+                const SizedBox(height: 8),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.calendar_month_outlined),
+                  title: Text(_endDate == null
+                      ? 'Select end date'
+                      : '${_endDate!.day}/${_endDate!.month}/${_endDate!.year}'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate:
+                          DateTime.now().add(const Duration(days: 7)),
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                    );
+                    if (picked != null) setState(() => _endDate = picked);
+                  },
+                ),
+              ],
+        
+              const Spacer(),
+        
+              // Submit
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: _submit,
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 4),
+                    child: Text('Start Campaign'),
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

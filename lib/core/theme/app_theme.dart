@@ -37,6 +37,11 @@ class AppTheme {
         style: FilledButton.styleFrom(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
+      ),
+            outlinedButtonTheme: OutlinedButtonThemeData(
+                style: FilledButton.styleFrom(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
       )
     );
   
@@ -75,6 +80,11 @@ class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+                style: FilledButton.styleFrom(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
       )

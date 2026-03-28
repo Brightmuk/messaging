@@ -44,13 +44,11 @@ class _PastCampaignDetailState extends State<PastCampaignDetail> {
       appBar: AppBar(
         title: Text(campaign.name),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.picture_as_pdf_outlined),
-            tooltip: 'Export PDF',
-            onPressed: _loading || _contributions.isEmpty
-                ? null
-                : () => _handleExport(context),
-          ),
+           TextButton.icon(
+                    onPressed: () => _handleExport(context),
+                    icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
+                    label: const Text('Export PDF'),
+                  ),
         ],
       ),
       body: _loading
@@ -172,10 +170,26 @@ class _PastCampaignDetailState extends State<PastCampaignDetail> {
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-                    child: Text(
-                      'Contributions (${_contributions.length})',
-                      style: theme.textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.bold),
+                    child: Row(
+                      children: [
+                        Text(
+                          'Contributions ',
+                          style: theme.textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        Container(
+                          // width: 28,
+                          height: 28,
+                          padding: EdgeInsets.all(5),
+                          decoration: BoxDecoration(
+                            
+                            color: theme.colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Center(child: Text("${_contributions.length}",style: TextStyle(color: theme.colorScheme.onPrimaryContainer,fontWeight: FontWeight.bold),))
+                          
+                        )
+                      ],
                     ),
                   ),
                 ),

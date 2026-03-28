@@ -1,4 +1,7 @@
 
+import 'dart:math';
+
+import 'package:flutter/material.dart';
 import 'package:messaging/models/app_message.dart';
 import 'package:messaging/models/mchango_campaign.dart';
 import 'package:messaging/services/database_helper.dart';
@@ -19,17 +22,18 @@ class MchangoService {
 
   /// Returns a contribution if the message matches a received M-Pesa payment
   Contribution? parseContribution(
-      AppSmsMessage message, int campaignId, double? minAmount) {
+      AppSmsMessage message, int campaignId) {
+        debugPrint("Parsing: ${message.body}");
     final match = _mpesaReceivedPattern.firstMatch(message.body);
     if (match == null) return null;
-
+    
     final amountStr = match.group(1)?.replaceAll(',', '') ?? '0';
     final amount = double.tryParse(amountStr) ?? 0;
     final senderName = match.group(2)?.trim();
     final senderPhone = match.group(3) ?? '';
-
+    debugPrint("Amount is: $amount senderName: $senderName senderPhone: $senderPhone");
+    
     if (amount <= 0) return null;
-    if (minAmount != null && amount < minAmount) return null;
 
     return Contribution(
       campaignId: campaignId,
@@ -78,6 +82,7 @@ class MchangoService {
 
   /// Call this from SmsService when a new M-Pesa message arrives
   Future<void> processMessage(AppSmsMessage message) async {
+    
     try {
       final campaign = await _db.getActiveCampaign(message.threadId);
       if (campaign == null || campaign.id == null) return;
@@ -91,13 +96,79 @@ class MchangoService {
 
       // Skip if already processed
       if (message.id != null &&
-          await _db.contributionExists(campaign.id!, message.id!)) return;
+          await _db.contributionExists(campaign.id!, message.id!)) {
+        return;
+      }
 
       final contribution = parseContribution(
-          message, campaign.id!, campaign.targetAmount);
+          message, campaign.id!);
       if (contribution == null) return;
-
       await _db.insertContribution(contribution);
-    } catch (_) {}
+    } catch (e) {
+        debugPrint('[MchangoService] processMessage error: ${e.runtimeType}');
+    }
   }
+  Future<void> simulateContribution(String threadId) async {
+  try {
+    final random = Random();
+
+    final names = [
+      'JOHN DOE', 'MARY WANJIKU', 'PETER KAMAU', 'GRACE AKINYI',
+      'JAMES MWANGI', 'FAITH NJERI', 'SAMUEL ODHIAMBO', 'RUTH WAMBUI',
+      'DAVID KIPCHOGE', 'ESTHER MUTHONI', 'KEVIN OTIENO', 'LUCY WANGARI',
+      'BRIAN MUTUA', 'CAROLINE ADHIAMBO', 'MICHAEL NJOROGE',
+    ];
+
+    final amounts = [100, 200, 300, 500, 1000, 1500, 2000, 2500, 5000];
+
+    final name = names[random.nextInt(names.length)];
+    final amount = amounts[random.nextInt(amounts.length)];
+    // Generate a realistic Kenyan phone number
+    final phone = '07${random.nextInt(9)}${List.generate(7, (_) => random.nextInt(10)).join()}';
+    // Generate a realistic M-Pesa transaction code
+    final code = List.generate(10, (_) {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      return chars[random.nextInt(chars.length)];
+    }).join();
+
+    final body =
+        '$code Confirmed. You have received Ksh${_formatAmount(amount)} '
+        'from $name $phone on ${_formatMpesaDate(DateTime.now())}. '
+        'New M-PESA balance is Ksh${random.nextInt(50000)}.00. '
+        'Transaction cost, Ksh0.00.';
+    DateTime date = DateTime.now().add(Duration(minutes: 3));
+    final message = AppSmsMessage(
+      address: 'MPESA',
+      body: body,
+      date: date.millisecondsSinceEpoch,
+      type: 1,
+      threadId: threadId,
+      status: MessageStatus.unknown,
+      read: true,
+      simId: -1,
+    );
+
+    await processMessage(message);
+  } catch (e) {
+    debugPrint('[MchangoService] simulateContribution error: ${e.runtimeType}');
+  }
+}
+
+String _formatAmount(int amount) {
+  // M-Pesa format: 1,500.00
+  final formatted = amount.toString().replaceAllMapped(
+    RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+    (m) => '${m[1]},',
+  );
+  return '$formatted.00';
+}
+
+String _formatMpesaDate(DateTime date) {
+  // M-Pesa format: 1/1/25, 3:45 PM
+  final hour = date.hour > 12 ? date.hour - 12 : date.hour;
+  final period = date.hour >= 12 ? 'PM' : 'AM';
+  final minute = date.minute.toString().padLeft(2, '0');
+  final year = date.year.toString().substring(2);
+  return '${date.day}/${date.month}/$year, $hour:$minute $period';
+}
 }

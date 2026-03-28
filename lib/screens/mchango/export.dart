@@ -1,5 +1,7 @@
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:messaging/cubit/payment_cubit.dart';
 import 'package:messaging/models/mchango_campaign.dart';
@@ -17,12 +19,16 @@ class ExportSheet extends StatefulWidget {
 
 class _ExportSheetState extends State<ExportSheet> {
   bool _isGenerating = false;
-
+  final TapGestureRecognizer _copyRecognizer = TapGestureRecognizer();
+ @override
+  void dispose() {
+    _copyRecognizer.dispose(); // ← prevents memory leak
+    super.dispose();
+  }
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isPremium =
-        context.read<PaymentCubit>().isNoAds;
+    final isPremium =  context.read<PaymentCubit>().isNoAds;
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -95,13 +101,43 @@ class _ExportSheetState extends State<ExportSheet> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Watch an ad to remove the watermark from your PDF',
+              'Export PDF and share to contributors',
               style: theme.textTheme.bodySmall
                   ?.copyWith(color: theme.colorScheme.outline),
               textAlign: TextAlign.center,
-            ),
+            )
+            
           ],
-          const SizedBox(height: 8),
+           const SizedBox(height: 12),
+          const Text('Or'),
+            const SizedBox(height: 12),
+            RichText(
+  textAlign: TextAlign.center,
+  text: TextSpan(
+    style: theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.outline,
+    ),
+    children: [
+      
+      TextSpan(
+        text: 'Copy as a list ',
+        style: TextStyle(
+          color: widget.contributions.isEmpty
+              ? theme.colorScheme.outline
+              : theme.colorScheme.primary,
+          fontWeight: FontWeight.w600,
+          decorationColor: theme.colorScheme.primary,
+        ),
+        recognizer: TapGestureRecognizer()
+          ..onTap = widget.contributions.isEmpty ? null : _copyAsText,
+      ),
+      const TextSpan(
+        text: 'with amounts and total',
+      ),
+    ],
+  ),
+),
+          const SizedBox(height: 20),
         ],
       ),
     );
@@ -141,4 +177,42 @@ class _ExportSheetState extends State<ExportSheet> {
       if (mounted) setState(() => _isGenerating = false);
     }
   }
+  Future<void> _copyAsText() async {
+  final buffer = StringBuffer();
+  buffer.writeln("*${widget.campaign.name} contributions*");
+  buffer.writeln();
+
+  double total = 0;
+  for (int i = 0; i < widget.contributions.length; i++) {
+    final c = widget.contributions[i];
+    final name = c.senderName ?? c.senderPhone;
+    final amount = c.amount.toStringAsFixed(0);
+    buffer.writeln('${i + 1}. $name - Ksh.$amount');
+    total += c.amount;
+  }
+  buffer.writeln();
+  buffer.writeln('*Total: Ksh.${total.toStringAsFixed(0)}*');
+  buffer.writeln();
+  buffer.writeln('📲 Track contributions with M-Ficha');
+  buffer.writeln('https://play.google.com/store/apps/details?id=com.brimukon.messaging');
+
+  await Clipboard.setData(ClipboardData(text: buffer.toString()));
+
+  if (mounted) {
+    Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
+            SizedBox(width: 8),
+            Text('Copied to clipboard'),
+          ],
+        ),
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+}
 }

@@ -5,8 +5,10 @@ import 'package:messaging/cubit/mchango_cubit.dart';
 import 'package:messaging/screens/mchango/campaign_dashboard.dart';
 import 'package:messaging/screens/mchango/export.dart';
 import 'package:messaging/screens/mchango/new_campaign.dart';
+import 'package:messaging/screens/mchango/widgets/beta_badge.dart';
 import 'package:messaging/screens/mchango/widgets/contribution_tile.dart';
 import 'package:messaging/screens/mchango/widgets/mchango_tile.dart';
+import 'package:messaging/services/mchango_service.dart';
 
 
 class MchangoDashboardWrapper extends StatelessWidget {
@@ -32,7 +34,14 @@ class MchangoDashboard extends StatelessWidget {
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
-        title: const Text('Mchango'),
+        title: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Mchango'),
+            SizedBox(width: 6),
+            BetaBadge()
+          ],
+        ),
         centerTitle: false,
         actions: [
           BlocBuilder<MchangoCubit, MchangoState>(
@@ -96,6 +105,12 @@ class MchangoDashboard extends StatelessWidget {
           );
         },
       ),
+      // floatingActionButton: FloatingActionButton(
+      //   onPressed: () {
+      //     MchangoService().simulateContribution(threadId);
+      //   },
+      //   child: const Icon(Icons.add),
+      // )
     );
   }
 
@@ -162,11 +177,14 @@ class _MchangoLoadedView extends StatelessWidget {
                   Text('Contributions',
                       style: theme.textTheme.titleMedium
                           ?.copyWith(fontWeight: FontWeight.bold)),
+                          
+                
                   TextButton.icon(
                     onPressed: () => _handleExport(context),
                     icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
                     label: const Text('Export PDF'),
                   ),
+                 
                 ],
               ),
             ),
@@ -256,7 +274,7 @@ class _EmptyState extends StatelessWidget {
                     ?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Text(
-              'Start a Mchango campaign to automatically track received M-Pesa contributions from this conversation.',
+              'Start a Mchango campaign to automatically track received M-Pesa contributions from now',
               textAlign: TextAlign.center,
               style: TextStyle(
                   color: theme.colorScheme.outline, height: 1.5),
