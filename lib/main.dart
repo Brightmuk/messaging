@@ -17,20 +17,40 @@ import 'screens/chats_screen.dart';
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
+  setupDependencies();
+  runApp(globalProvider);
+}
+
+final MultiProvider globalProvider = MultiProvider(
+  providers: [
+    BlocProvider(create: (c) => PaymentCubit()),
+    BlocProvider(create: (c) => PermissionsCubit())
+  ],
+  child: const MyApp(),
+);
+void setupDependencies() {
   WidgetsFlutterBinding.ensureInitialized();
   setupNotifications();
   MobileAds.instance.initialize();
   PurchaseService().initializeIAP();
   setupEdgeToEdge();
-  runApp(
-    MultiProvider(
-      providers: [
-        BlocProvider(create: (c) => PaymentCubit()),
-        BlocProvider(create: (c) => PermissionsCubit())
-      ],
-      child: const MyApp(),
-    ),
-  );
+}
+
+void setupNotifications() async {
+  await Firebase.initializeApp();
+  NotificationService().initialize();
+}
+
+void setupEdgeToEdge() {
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    systemNavigationBarColor: Colors.transparent,
+    systemNavigationBarDividerColor: Colors.transparent,
+    systemNavigationBarContrastEnforced: false,
+    statusBarColor: Colors.transparent,
+    systemNavigationBarIconBrightness: Brightness.dark,
+  ));
+
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 }
 
 class MyApp extends StatelessWidget {
@@ -68,24 +88,6 @@ class MyApp extends StatelessWidget {
       ),
     );
   }
-}
-
-void setupNotifications() async{
-  await Firebase.initializeApp();
-  NotificationService().initialize();
-  
-}
-
-void setupEdgeToEdge() {
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    systemNavigationBarColor: Colors.transparent,
-    systemNavigationBarDividerColor: Colors.transparent,
-    systemNavigationBarContrastEnforced: false,
-    statusBarColor: Colors.transparent,
-    systemNavigationBarIconBrightness: Brightness.dark,
-  ));
-
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 }
 
 @pragma("vm:entry-point")
