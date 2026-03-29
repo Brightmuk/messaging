@@ -10,6 +10,7 @@ import 'package:messaging/cubit/chats_cubit.dart';
 import 'package:messaging/cubit/payment_cubit.dart';
 import 'package:messaging/models/app_chat.dart';
 import 'package:messaging/screens/global_search_page.dart';
+import 'package:messaging/screens/mchango/dashboard.dart';
 import 'package:messaging/screens/settings_screen.dart';
 import 'package:messaging/screens/setup_doa.dart';
 import 'package:messaging/screens/single_chat_screen.dart';
@@ -21,6 +22,7 @@ import 'package:messaging/screens/widgets/contact_name_text.dart';
 import 'package:messaging/screens/widgets/limited_access_tile.dart';
 import 'package:messaging/screens/widgets/rating_dialog.dart';
 import 'package:messaging/services/contact_service.dart';
+import 'package:messaging/services/mchango_service.dart';
 import 'package:messaging/services/notification_service.dart';
 import 'package:messaging/services/rating_limiter.dart';
 import 'package:messaging/services/mask_service.dart';
@@ -410,8 +412,22 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
               child: const Text("Set as Default App"),
             ),
           ),
-          const SizedBox(height: 100),
-           OutlinedButton(onPressed: (){}, child: Text('Mchango'))
+          const SizedBox(height: 40),
+           OutlinedButton(onPressed: ()async{
+            String? id = await MchangoService.getThreadIdForMchango();
+             if(id==null){
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Permission denied or Mpesa thread not found. Cannot open Mchango dashboard."))
+              );
+              return;
+             }
+              Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>  MchangoDashboardWrapper(threadId: id)
+                      ));
+           }, child: const Text('I only need Mchango')),
+           const SizedBox(height: 50,)
         ],
       ),
     );

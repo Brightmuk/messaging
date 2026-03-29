@@ -10,6 +10,7 @@ import 'package:messaging/screens/single_chat_screen.dart';
 import 'package:messaging/services/database_helper.dart';
 import 'package:messaging/services/sms_service.dart';
 
+enum NotificationAction{sms, alert, mchango}
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
   factory NotificationService() => _instance;
@@ -181,22 +182,13 @@ void _navigateToChat(String? payload) {
       required String body,
       String? payload,
       bool lowPriority = false,
-      bool actions = false}) async {
+      NotificationAction action = NotificationAction.sms,
+      }) async {
     AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(lowPriority? 'low_priority_sms_channel' :'sms_channel', 'SMS Messages',
             priority: lowPriority ? Priority.defaultPriority : Priority.high,
             showWhen: true,
-            actions: actions
-                ? [
-                    const AndroidNotificationAction(
-                      'mark_as_read',
-                      'View',
-                      cancelNotification: true,
-                      showsUserInterface: true,
-                    ),
-                    
-                  ]
-                : []);
+            actions: getActions(action));
 
     NotificationDetails notificationDetails = NotificationDetails(
       android: androidDetails,
@@ -209,6 +201,43 @@ void _navigateToChat(String? payload) {
       notificationDetails,
       payload: payload,
     );
+  }
+  List<AndroidNotificationAction> getActions(NotificationAction action) {
+    switch(action){
+      case NotificationAction.sms:
+        return [
+          const AndroidNotificationAction(
+            'mark_as_read',
+            'View',
+            cancelNotification: true,
+            showsUserInterface: true,
+          ),
+        ];
+      case NotificationAction.alert:
+        return [
+          const AndroidNotificationAction(
+            'view_alert',
+            'View',
+            cancelNotification: true,
+            showsUserInterface: true,
+          ),
+        ];
+      case NotificationAction.mchango:
+        return [
+          const AndroidNotificationAction(
+            'view_mchango',
+            'View Campaign',
+            cancelNotification: true,
+            showsUserInterface: true,
+          ),
+          const AndroidNotificationAction(
+            'remove_contribution',
+            'Remove Contribution',
+            cancelNotification: true,
+            showsUserInterface: true,
+          ),
+        ];
+    }
   }
 
   static Future<void> showOverlay(

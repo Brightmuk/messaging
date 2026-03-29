@@ -1,10 +1,13 @@
 
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:messaging/models/app_message.dart';
 import 'package:messaging/models/mchango_campaign.dart';
 import 'package:messaging/services/database_helper.dart';
+import 'package:messaging/services/notification_service.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class MchangoService {
   static final MchangoService _instance = MchangoService._internal();
@@ -12,6 +15,7 @@ class MchangoService {
   MchangoService._internal();
 
   final DatabaseHelper _db = DatabaseHelper.instance;
+  final notificationService = NotificationService();
 
   // M-Pesa received money pattern:
   // "BG27XY1Z2A Confirmed. You have received Ksh1,500.00 from JOHN DOE 0712345678..."
@@ -19,6 +23,15 @@ class MchangoService {
     r'received\s+Ksh([\d,]+\.?\d*)\s+from\s+([A-Z\s]+?)\s+([\d]+)',
     caseSensitive: false,
   );
+  static Future<String?> getThreadIdForMchango() async{
+    final status = await Permission.sms.request();
+    if (!status.isGranted) return null;
+    await Permission.notification.request();
+     final chats = await DatabaseHelper.instance.getAllChats();
+      final chat =
+          chats.where((c) => c.isSameThread(null, "MPESA")).firstOrNull;
+      return chat?.threadId;
+  }
 
   /// Returns a contribution if the message matches a received M-Pesa payment
   Contribution? parseContribution(
@@ -104,6 +117,19 @@ class MchangoService {
           message, campaign.id!);
       if (contribution == null) return;
       await _db.insertContribution(contribution);
+      //show notification
+      notificationService.showNotification(
+        title: "Mchango - New Contribution",
+        body: "You received Ksh${contribution.amount.toStringAsFixed(2)} from ${contribution.senderName ?? contribution.senderPhone} for campaign '${campaign.name}'",
+        action: NotificationAction.mchango,
+        lowPriority: false,
+        payload: json.encode(
+          {
+            'campaignId': campaign.id,
+            'threadId': message.threadId,
+          },
+        ),
+      );
     } catch (e) {
         debugPrint('[MchangoService] processMessage error: ${e.runtimeType}');
     }

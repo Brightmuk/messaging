@@ -42,5 +42,9 @@ class AdsCubit extends Cubit<AdsState> {
     _showAdThisTime = !_showAdThisTime;
   }
 
+  void showRewardedAd() {
+    // Implement rewarded ad logic here, similar to interstitials
+  }
+
 
 }

@@ -41,6 +41,7 @@ dependencies:
   scrollable_positioned_list: ^0.3.8
   pdf: ^3.10.8
   share_plus: ^10.0.0
+  printing: ^5.13.1
 
 dev_dependencies:
   flutter_test:

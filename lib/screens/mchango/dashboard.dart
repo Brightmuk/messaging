@@ -8,7 +8,8 @@ import 'package:messaging/screens/mchango/new_campaign.dart';
 import 'package:messaging/screens/mchango/widgets/beta_badge.dart';
 import 'package:messaging/screens/mchango/widgets/contribution_tile.dart';
 import 'package:messaging/screens/mchango/widgets/mchango_tile.dart';
-import 'package:messaging/services/mchango_service.dart';
+import 'package:messaging/services/ads/reward_ad_service.dart';
+
 
 
 class MchangoDashboardWrapper extends StatelessWidget {
@@ -24,10 +25,26 @@ class MchangoDashboardWrapper extends StatelessWidget {
   }
 }
 
-class MchangoDashboard extends StatelessWidget {
+class MchangoDashboard extends StatefulWidget {
   final String threadId;
   const MchangoDashboard({super.key, required this.threadId});
 
+  @override
+  State<MchangoDashboard> createState() => _MchangoDashboardState();
+}
+
+
+class _MchangoDashboardState extends State<MchangoDashboard> {
+  @override
+void initState() {
+  loadAd();
+  super.initState();
+  
+}
+void loadAd(){
+  final adService = RewardedAdService();
+  adService.loadAd();
+}
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -89,7 +106,7 @@ class MchangoDashboard extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
           if (state is MchangoLoaded) {
-            return _MchangoLoadedView(state: state, threadId: threadId);
+            return _MchangoLoadedView(state: state, threadId: widget.threadId);
           }
           return const Center(child: CircularProgressIndicator());
         },
@@ -280,7 +297,7 @@ class _EmptyState extends StatelessWidget {
                   color: theme.colorScheme.outline, height: 1.5),
             ),
             const SizedBox(height: 32),
-            FilledButton.icon(
+            TextButton.icon(
               onPressed: () => showModalBottomSheet(
                 context: context,
                 isScrollControlled: true,

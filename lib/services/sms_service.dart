@@ -577,7 +577,7 @@ class SmsService {
         title: contactName,
         body: MaskService.maskAfterBalance(message.body!, message.address!)
             .message,
-        actions: true,
+        action: NotificationAction.sms,
         payload:
             json.encode({'threadId': threadId, 'address': message.address}),
       );
@@ -616,7 +616,7 @@ class SmsService {
       notificationService.showNotification(
         title: title,
         body: maskResult.message,
-        actions: true,
+        action: NotificationAction.sms,
         lowPriority: MaskService.isMonitored(message.address!),
         payload: payload,
       );
