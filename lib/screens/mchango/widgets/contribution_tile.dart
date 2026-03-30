@@ -1,5 +1,7 @@
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:messaging/cubit/mchango_cubit.dart';
 import 'package:messaging/models/mchango_campaign.dart';
 
 class ContributionTile extends StatelessWidget {
@@ -13,42 +15,81 @@ class ContributionTile extends StatelessWidget {
     final date =
         DateTime.fromMillisecondsSinceEpoch(contribution.date);
 
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-      leading: CircleAvatar(
-        backgroundColor:
-            theme.colorScheme.primaryContainer,
-        child: Text(
-          _initials(contribution.senderName ?? contribution.senderPhone),
-          style: TextStyle(
-            color: theme.colorScheme.onPrimaryContainer,
-            fontWeight: FontWeight.bold,
-            fontSize: 13,
+    return Dismissible(
+      key: ValueKey(contribution.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        color: Colors.red,
+        child: const Icon(Icons.delete_outline, color: Colors.white),
+      ),
+      confirmDismiss: (_) async {
+        return await showDialog<bool>(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('Remove Contribution?'),
+            content: Text(
+              'Remove Ksh.${contribution.amount.toStringAsFixed(0)} '
+              'from ${contribution.senderName ?? contribution.senderPhone}?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                style:
+                    FilledButton.styleFrom(backgroundColor: Colors.red),
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Remove'),
+              ),
+            ],
+          ),
+        );
+      },
+      onDismissed: (_) {
+        if (contribution.id != null) {
+          context.read<MchangoCubit>().deleteContribution(contribution.id!);
+        }
+      },
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+        leading: CircleAvatar(
+          backgroundColor:
+              theme.colorScheme.primaryContainer,
+          child: Text(
+            _initials(contribution.senderName ?? contribution.senderPhone),
+            style: TextStyle(
+              color: theme.colorScheme.onPrimaryContainer,
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
           ),
         ),
-      ),
-      title: Text(
-        contribution.senderName ?? contribution.senderPhone,
-        style: const TextStyle(fontWeight: FontWeight.w600),
-      ),
-      subtitle: Text(
-        '${date.day}/${date.month}/${date.year} · ${date.hour}:${date.minute.toString().padLeft(2, '0')}',
-        style: TextStyle(
-            fontSize: 12, color: theme.colorScheme.outline),
-      ),
-      trailing: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: Colors.green.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.green.withOpacity(0.3)),
+        title: Text(
+          contribution.senderName ?? contribution.senderPhone,
+          style: const TextStyle(fontWeight: FontWeight.w600),
         ),
-        child: Text(
-          'Ksh ${contribution.amount.toStringAsFixed(0)}',
-          style: const TextStyle(
-            color: Colors.green,
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
+        subtitle: Text(
+          '${date.day}/${date.month}/${date.year} · ${date.hour}:${date.minute.toString().padLeft(2, '0')}',
+          style: TextStyle(
+              fontSize: 12, color: theme.colorScheme.outline),
+        ),
+        trailing: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.green.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.green.withOpacity(0.3)),
+          ),
+          child: Text(
+            'Ksh ${contribution.amount.toStringAsFixed(0)}',
+            style: const TextStyle(
+              color: Colors.green,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
           ),
         ),
       ),

@@ -1,14 +1,17 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/cubit/mchango_cubit.dart';
 import 'package:messaging/screens/mchango/campaign_dashboard.dart';
 import 'package:messaging/screens/mchango/export.dart';
+import 'package:messaging/screens/mchango/mchango_onboarding.dart';
 import 'package:messaging/screens/mchango/new_campaign.dart';
 import 'package:messaging/screens/mchango/widgets/beta_badge.dart';
 import 'package:messaging/screens/mchango/widgets/contribution_tile.dart';
 import 'package:messaging/screens/mchango/widgets/mchango_tile.dart';
 import 'package:messaging/services/ads/reward_ad_service.dart';
+import 'package:messaging/services/mchango_service.dart';
 
 
 
@@ -38,6 +41,14 @@ class _MchangoDashboardState extends State<MchangoDashboard> {
   @override
 void initState() {
   loadAd();
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    await Future.delayed(const Duration(seconds: 1));
+    bool hasSeenOnboarding = await UserDefaults.hasOnboardedMchango();
+    
+    if (!hasSeenOnboarding && mounted) {
+      _showMchangoOnboarding(context);
+    }
+  });
   super.initState();
   
 }
@@ -50,6 +61,7 @@ void loadAd(){
     final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
+      
       appBar: AppBar(
         title: const Row(
           mainAxisSize: MainAxisSize.min,
@@ -114,7 +126,26 @@ void loadAd(){
       floatingActionButton: BlocBuilder<MchangoCubit, MchangoState>(
         builder: (context, state) {
           final hasActive = state is MchangoLoaded && state.activeCampaign != null;
-          if (hasActive) return const SizedBox.shrink();
+          final isDemoMode = state is MchangoLoaded && state.isDemoMode;
+          if(isDemoMode && hasActive){
+            return FloatingActionButton.extended(
+                  onPressed: () {
+                    context.read<MchangoCubit>().simulateContribution();
+                    
+                  },
+                  icon: const Icon(Icons.add),
+                  label: const Text('Mock Add'),
+                );
+          }
+          
+          if (hasActive){
+            return FloatingActionButton(
+                  onPressed: () {
+                   //Edit
+                  },
+                  child: const Icon(Icons.edit),
+                );
+          }
           return FloatingActionButton.extended(
             onPressed: () => _showNewCampaignSheet(context),
             icon: const Icon(Icons.add),
@@ -122,14 +153,23 @@ void loadAd(){
           );
         },
       ),
-      // floatingActionButton: FloatingActionButton(
-      //   onPressed: () {
-      //     MchangoService().simulateContribution(threadId);
-      //   },
-      //   child: const Icon(Icons.add),
-      // )
+      
     );
+    
   }
+    void _showMchangoOnboarding(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    isDismissible: false, // Force them to engage with the "Get Started"
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    ),
+    builder: (context) {
+      return const MchangoOnboarding();
+    },
+  );
+}
 
   Future<bool?> _confirmStop(BuildContext context) => showDialog<bool>(
         context: context,
@@ -315,4 +355,5 @@ class _EmptyState extends StatelessWidget {
       ),
     );
   }
+
 }

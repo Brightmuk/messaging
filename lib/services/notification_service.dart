@@ -230,12 +230,12 @@ void _navigateToChat(String? payload) {
             cancelNotification: true,
             showsUserInterface: true,
           ),
-          const AndroidNotificationAction(
-            'remove_contribution',
-            'Remove Contribution',
-            cancelNotification: true,
-            showsUserInterface: true,
-          ),
+          // const AndroidNotificationAction(
+          //   'remove_contribution',
+          //   'Remove Contribution',
+          //   cancelNotification: true,
+          //   showsUserInterface: true,
+          // ),
         ];
     }
   }

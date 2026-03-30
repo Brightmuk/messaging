@@ -53,6 +53,7 @@ class SingleChatCubit extends Cubit<SingleChatState> {
 
   void handleSmsUpdates(SmsEvent event) {
     debugPrint("Handling event: ${event.type}");
+    
     switch (event.type) {
       case SmsEventType.messageSent:
       case SmsEventType.messageDelivered:
@@ -312,6 +313,7 @@ class SingleChatCubit extends Cubit<SingleChatState> {
   }
 
   Future<void> markThreadAsRead() async {
+    if(await UserDefaults.isDemoMode()) return;
     await _smsService.markThreadAsRead(threadId);
   }
 

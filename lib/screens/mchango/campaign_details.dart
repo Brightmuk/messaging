@@ -44,11 +44,37 @@ class _PastCampaignDetailState extends State<PastCampaignDetail> {
       appBar: AppBar(
         title: Text(campaign.name),
         actions: [
-           TextButton.icon(
-                    onPressed: () => _handleExport(context),
-                    icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
-                    label: const Text('Export PDF'),
+          
+            PopupMenuButton<String>(
+                onSelected: (value) async {
+                  if (value == 'delete') {
+                    final confirm = await _confirmDelete(context);
+                    if (confirm == true && context.mounted) {
+                      final result = await context.read<MchangoCubit>().deleteCampaign(campaign.id!);
+                      if (result && context.mounted) {
+                        Navigator.pop(context, true); 
+                      } else if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Failed to delete campaign')),
+                        );
+                      }
+                    }
+                  }
+                },
+                itemBuilder: (_) => [
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete_outline, color: Colors.red),
+                        SizedBox(width: 8),
+                        Text('Delete Campaign',
+                            style: TextStyle(color: Colors.red)),
+                      ],
+                    ),
                   ),
+                ],
+              )
         ],
       ),
       body: _loading
@@ -171,24 +197,36 @@ class _PastCampaignDetailState extends State<PastCampaignDetail> {
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
                     child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Contributions ',
-                          style: theme.textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.bold),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Contributions ',
+                              style: theme.textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            Container(
+                              // width: 28,
+                              height: 28,
+                              padding: EdgeInsets.all(5),
+                              decoration: BoxDecoration(
+                                
+                                color: theme.colorScheme.primaryContainer,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Center(child: Text("${_contributions.length}",style: TextStyle(color: theme.colorScheme.onPrimaryContainer,fontWeight: FontWeight.bold),))
+                              
+                            )
+                          ],
                         ),
-                        Container(
-                          // width: 28,
-                          height: 28,
-                          padding: EdgeInsets.all(5),
-                          decoration: BoxDecoration(
-                            
-                            color: theme.colorScheme.primaryContainer,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Center(child: Text("${_contributions.length}",style: TextStyle(color: theme.colorScheme.onPrimaryContainer,fontWeight: FontWeight.bold),))
-                          
-                        )
+                        TextButton.icon(
+                    onPressed: () => _handleExport(context),
+                    icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
+                    label: const Text('Export PDF'),
+                  ),
+
                       ],
                     ),
                   ),
@@ -224,8 +262,50 @@ class _PastCampaignDetailState extends State<PastCampaignDetail> {
                 const SliverToBoxAdapter(child: SizedBox(height: 40)),
               ],
             ),
+            floatingActionButton: FloatingActionButton.extended(
+              icon: const Icon(Icons.delete_outline),
+              label: const Text('Delete Campaign'),
+              onPressed: (){
+                showDialog(context: context, builder: (_){
+                  return AlertDialog(
+                    title: const Text('Delete Campaign?'),
+                    content: const Text('This action cannot be undone. All contributions will be lost. Are you sure you want to proceed?'),
+                    actions: [
+                      TextButton(onPressed: (){
+                        Navigator.pop(context);
+                      }, child: const Text('Cancel')),
+                      TextButton(onPressed: () async {
+                        // await MchangoService().deleteCampaign(campaign.id!);
+                        if(mounted) {
+                          Navigator.pop(context); // close dialog
+                          Navigator.pop(context); // go back to dashboard
+                        }
+                      }, child: const Text('Delete', style: TextStyle(color: Colors.red),))
+                    ],
+                  );
+                });
+              
+            }),
     );
   }
+    Future<bool?> _confirmDelete(BuildContext context) => showDialog<bool>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Delete Campaign?'),
+          content: const Text(
+              'This will delete the campaign and all its contributions. This action cannot be undone.'),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel')),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Delete'),
+            ),
+          ],
+        ),
+      );
 
   void _handleExport(BuildContext context) {
     showModalBottomSheet(

@@ -134,6 +134,17 @@ class MchangoService {
         debugPrint('[MchangoService] processMessage error: ${e.runtimeType}');
     }
   }
+  Future<void> deleteCampaign(int campaignId) async {
+  try {
+    await _db.deleteCampaign(campaignId);
+  } catch (_) {}
+}
+
+Future<void> deleteContribution(int contributionId) async {
+  try {
+    await _db.deleteContribution(contributionId);
+  } catch (_) {}
+}
   Future<void> simulateContribution(String threadId) async {
   try {
     final random = Random();

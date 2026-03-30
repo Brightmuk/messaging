@@ -11,6 +11,7 @@ class UserDefaults {
   static const String _canshowOverlayKey = 'canShowOverlay';
    static const String _nextShowOverlayPromptKey = 'nextShowOverlayPrompt';
   static const String _textScaleKey = 'textScale';
+  static const String _hasOnboardedMchangoString = 'hasOnboardedMchango';
 
   static Future<void> setHasOnboarded() async {
     final prefs = await SharedPreferences.getInstance();
@@ -110,5 +111,14 @@ class UserDefaults {
   static Future<void> setTextScale(double scale)async{
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble(_textScaleKey, scale);
+  }
+    static Future<void> setHasOnboardedMchango() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setBool(_hasOnboardedMchangoString, true);
+  }
+
+  static Future<bool> hasOnboardedMchango() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_hasOnboardedMchangoString) ?? false;
   }
 }

@@ -599,6 +599,31 @@ Future<List<AppSmsMessage>> searchGlobal(String query, bool isDefault) async {
     );
     return result.isNotEmpty;
   }
+  Future<void> deleteCampaign(int campaignId) async {
+  final db = await database;
+  await db.transaction((txn) async {
+    // Delete all contributions first (foreign key cascade)
+    await txn.delete(
+      'contributions',
+      where: 'campaignId = ?',
+      whereArgs: [campaignId],
+    );
+    await txn.delete(
+      'campaigns',
+      where: 'id = ?',
+      whereArgs: [campaignId],
+    );
+  });
+}
+
+Future<void> deleteContribution(int contributionId) async {
+  final db = await database;
+  await db.delete(
+    'contributions',
+    where: 'id = ?',
+    whereArgs: [contributionId],
+  );
+}
 
   Future<void> close() async {
     final db = await database;

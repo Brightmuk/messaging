@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:bloc/bloc.dart';
+import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/models/mchango_campaign.dart';
 import 'package:messaging/services/mchango_service.dart';
 import 'package:messaging/services/sms_service.dart';
@@ -25,6 +26,7 @@ class MchangoCubit extends Cubit<MchangoState> {
   }
 
   Future<void> load() async {
+    final isDemoMode = await UserDefaults.isDemoMode();
     try {
       final active = await _service.getActiveCampaign(threadId);
       final past = await _service.getCampaigns(threadId);
@@ -32,12 +34,21 @@ class MchangoCubit extends Cubit<MchangoState> {
           ? await _service.getContributions(active.id!)
           : <Contribution>[];
       emit(MchangoLoaded(
+        isDemoMode: isDemoMode,
         activeCampaign: active,
         contributions: contributions,
         pastCampaigns: past.where((c) => !c.isActive).toList(),
       ));
     } catch (e) {
       emit(MchangoError('Failed to load campaign'));
+    }
+  }
+  Future<void> simulateContribution() async {
+    try {
+      await _service.simulateContribution(threadId);
+      await load();
+    } catch (e) {
+      emit(MchangoError('Failed to simulate contribution'));
     }
   }
 
@@ -72,6 +83,24 @@ class MchangoCubit extends Cubit<MchangoState> {
       emit(MchangoError('Failed to stop campaign'));
     }
   }
+  Future<bool> deleteCampaign(int campaignId) async {
+  try {
+    await _service.deleteCampaign(campaignId);
+    await load();
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+Future<void> deleteContribution(int contributionId) async {
+  try {
+    await _service.deleteContribution(contributionId);
+    await load();
+  } catch (_) {
+    emit(MchangoError('Failed to delete contribution'));
+  }
+}
 
   Future<void> exportPdf(bool isPremium, bool watchedAd) async {
     // Handled in UI layer — pass contributions to PDF generator
