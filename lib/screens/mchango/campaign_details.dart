@@ -262,30 +262,7 @@ class _PastCampaignDetailState extends State<PastCampaignDetail> {
                 const SliverToBoxAdapter(child: SizedBox(height: 40)),
               ],
             ),
-            floatingActionButton: FloatingActionButton.extended(
-              icon: const Icon(Icons.delete_outline),
-              label: const Text('Delete Campaign'),
-              onPressed: (){
-                showDialog(context: context, builder: (_){
-                  return AlertDialog(
-                    title: const Text('Delete Campaign?'),
-                    content: const Text('This action cannot be undone. All contributions will be lost. Are you sure you want to proceed?'),
-                    actions: [
-                      TextButton(onPressed: (){
-                        Navigator.pop(context);
-                      }, child: const Text('Cancel')),
-                      TextButton(onPressed: () async {
-                        // await MchangoService().deleteCampaign(campaign.id!);
-                        if(mounted) {
-                          Navigator.pop(context); // close dialog
-                          Navigator.pop(context); // go back to dashboard
-                        }
-                      }, child: const Text('Delete', style: TextStyle(color: Colors.red),))
-                    ],
-                  );
-                });
-              
-            }),
+            
     );
   }
     Future<bool?> _confirmDelete(BuildContext context) => showDialog<bool>(

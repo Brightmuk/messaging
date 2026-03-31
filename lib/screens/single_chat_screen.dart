@@ -13,6 +13,7 @@ import 'package:messaging/cubit/single_chat_cubit.dart';
 import 'package:messaging/models/app_chat.dart';
 import 'package:messaging/models/sim_card_state.dart';
 import 'package:messaging/screens/mchango/dashboard.dart';
+import 'package:messaging/screens/mchango/widgets/ongoing_banner.dart';
 import 'package:messaging/screens/select_contact_screen.dart';
 import 'package:messaging/screens/widgets/chat_bubble_ad.dart';
 import 'package:messaging/screens/widgets/contact_name_text.dart';
@@ -678,6 +679,7 @@ void _scrollToAnchor(int timestamp, List<AppSmsMessage> messages) {
             onPressed: () => _deleteSelectedMessages(),
           ),
         ],
+        
       );
     }
 
@@ -708,6 +710,7 @@ void _scrollToAnchor(int timestamp, List<AppSmsMessage> messages) {
               : () => _makePhoneCall(widget.address),
         ),
       ],
+      bottom: MchangoActiveBanner(threadId: widget.threadId),
     );
   }
 

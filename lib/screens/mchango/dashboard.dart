@@ -75,35 +75,64 @@ void loadAd(){
         centerTitle: false,
         actions: [
           BlocBuilder<MchangoCubit, MchangoState>(
-            builder: (context, state) {
-              if (state is! MchangoLoaded || state.activeCampaign == null) {
-                return const SizedBox.shrink();
-              }
-              return PopupMenuButton<String>(
-                onSelected: (value) async {
-                  if (value == 'stop') {
-                    final confirm = await _confirmStop(context);
-                    if (confirm == true && context.mounted) {
-                      context.read<MchangoCubit>().stopCampaign();
-                    }
-                  }
-                },
-                itemBuilder: (_) => [
-                  const PopupMenuItem(
-                    value: 'stop',
-                    child: Row(
-                      children: [
-                        Icon(Icons.stop_circle_outlined, color: Colors.red),
-                        SizedBox(width: 8),
-                        Text('Stop Campaign',
-                            style: TextStyle(color: Colors.red)),
-                      ],
-                    ),
-                  ),
-                ],
-              );
-            },
+  builder: (context, state) {
+    if (state is! MchangoLoaded || state.activeCampaign == null) {
+      return const SizedBox.shrink();
+    }
+
+    final theme = Theme.of(context);
+
+    return PopupMenuButton<String>(
+      // M3: Explicitly set the shape and elevation
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 3, 
+      surfaceTintColor: theme.colorScheme.surfaceTint,
+      color: theme.scaffoldBackgroundColor,
+      // M3: The trigger icon should usually be an IconButton-style look
+      icon: Icon(Icons.more_vert, color: theme.colorScheme.onSurfaceVariant),
+      
+      onSelected: (value) async {
+        if (value == 'stop') {
+          final confirm = await _confirmStop(context);
+          if (confirm == true && context.mounted) {
+            context.read<MchangoCubit>().stopCampaign();
+          }
+        } else if (value == 'edit') {
+          _showNewCampaignSheet(context, toEdit: state.activeCampaign!);
+        }
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: 'edit',
+          child: ListTile(
+            visualDensity: VisualDensity.compact,
+            leading: Icon(Icons.edit_outlined, 
+              color: theme.colorScheme.onSurface),
+            title: Text('Edit Campaign', 
+              style: theme.textTheme.labelLarge),
+            contentPadding: EdgeInsets.zero,
           ),
+        ),
+        // M3: Use a Divider between safe actions and destructive actions
+        const PopupMenuDivider(),
+        PopupMenuItem(
+          value: 'stop',
+          child: ListTile(
+            visualDensity: VisualDensity.compact,
+            leading: Icon(Icons.stop_circle_outlined, 
+              color: theme.colorScheme.error),
+            title: Text('Stop Campaign',
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+            ),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+      ],
+    );
+  },
+),
         ],
       ),
       body: BlocConsumer<MchangoCubit, MchangoState>(
@@ -139,14 +168,9 @@ void loadAd(){
                 );
           }
           
-          if (hasActive){
-            return FloatingActionButton(
-                  onPressed: () {
-                    _showNewCampaignSheet(context, toEdit: state.activeCampaign);
-                  },
-                  child: const Icon(Icons.edit),
-                );
-          }
+            if (hasActive) {
+              return const SizedBox.shrink();
+            }
           return FloatingActionButton.extended(
             onPressed: () => _showNewCampaignSheet(context),
             icon: const Icon(Icons.add),
@@ -264,7 +288,9 @@ class _MchangoLoadedViewState extends State<_MchangoLoadedView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final contributions = widget.state.contributions;
-
+        if (widget.state.activeCampaign == null && widget.state.pastCampaigns.isEmpty) {
+      return _EmptyState();
+    }
     return CustomScrollView(
       slivers: [
         // ── Selection mode app bar ───────────────────────────
@@ -382,6 +408,7 @@ class _MchangoLoadedViewState extends State<_MchangoLoadedView> {
               ),
             ),
           ),
+          
 
         // ── Contributions list ───────────────────────────────
         SliverList.builder(
