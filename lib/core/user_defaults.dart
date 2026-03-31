@@ -121,4 +121,5 @@ class UserDefaults {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_hasOnboardedMchangoString) ?? false;
   }
+
 }

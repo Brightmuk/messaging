@@ -15,6 +15,7 @@ import 'core/theme/app_theme.dart';
 import 'screens/chats_screen.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
 
 void main() async {
   setupDependencies();
@@ -61,6 +62,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'SMS App',
       navigatorKey: navigatorKey,
+      navigatorObservers: [routeObserver],
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,

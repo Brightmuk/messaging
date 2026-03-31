@@ -8,6 +8,7 @@ import 'package:messaging/core/feedback_ui.dart';
 import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/cubit/chats_cubit.dart';
 import 'package:messaging/cubit/payment_cubit.dart';
+import 'package:messaging/main.dart';
 import 'package:messaging/models/app_chat.dart';
 import 'package:messaging/screens/global_search_page.dart';
 import 'package:messaging/screens/mchango/dashboard.dart';
@@ -60,7 +61,7 @@ class ChatsView extends StatefulWidget {
   State<ChatsView> createState() => _ChatsViewState();
 }
 
-class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
+class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver, RouteAware{
   Set<String> _selectedThreadIds = {};
   bool get _isSelectionMode => _selectedThreadIds.isNotEmpty;
   final ScrollController _scrollController = ScrollController();
@@ -75,22 +76,25 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
       NotificationService().handleInitialMessage();
     });
   }
-
+  bool _isCurrentRoute = false;
   Future<void> _checkDialogs() async {
     await Future.delayed(const Duration(seconds: 3));
-    if (!mounted) return;
+    if (!mounted || !_isCurrentRoute) return;
 
-    // PRIORITY 1: Rating Dialog
     if (await RateLimiter.shouldShowRateDialog()) {
       showRateUsDialog(context);
-      return;
+      return; 
     }
-    if (!await NotificationService.canShowOverlay() &&
-        await UserDefaults.canShowOverlayPrompt()) {
-      Future.delayed(const Duration(seconds: 5), () async {
-        if (!mounted) return;
+
+    final canShowOverlay = await NotificationService.canShowOverlay();
+    final shouldPrompt = await UserDefaults.canShowOverlayPrompt();
+
+    if (!canShowOverlay && shouldPrompt) {
+      await Future.delayed(const Duration(seconds: 5));
+      
+      if (mounted && _isCurrentRoute) {
         showOverlayBottomSheet(context);
-      });
+      }
     }
   }
 
@@ -101,6 +105,22 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
       context.read<ChatsCubit>().loadChats(isInitialLoad: true);
     }
   }
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    routeObserver.subscribe(this, ModalRoute.of(context)!);
+    _isCurrentRoute = true;
+  }
+  @override
+  void didPushNext() {
+    _isCurrentRoute = false; 
+  }
+
+  @override
+  void didPopNext() {
+    _isCurrentRoute = true;
+  }
+
 
   void _onScroll() {
     if (_scrollController.position.pixels >=
@@ -143,7 +163,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
   @override
   void dispose() {
     _scrollController.dispose();
-
+    routeObserver.unsubscribe(this);
     super.dispose();
   }
 

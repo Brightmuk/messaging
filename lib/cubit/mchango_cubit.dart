@@ -83,6 +83,28 @@ class MchangoCubit extends Cubit<MchangoState> {
       emit(MchangoError('Failed to stop campaign'));
     }
   }
+  Future<void> updateCampaign({
+  required int campaignId,
+  required String name,
+  int? endDate,
+  bool clearEndDate = false,
+  double? targetAmount,
+  bool clearTargetAmount = false,
+}) async {
+  try {
+    await _service.updateCampaign(
+      campaignId,
+      name: name,
+      endDate: endDate,
+      clearEndDate: clearEndDate,
+      targetAmount: targetAmount,
+      clearTargetAmount: clearTargetAmount,
+    );
+    await load();
+  } catch (_) {
+    emit(MchangoError('Failed to update campaign'));
+  }
+}
   Future<bool> deleteCampaign(int campaignId) async {
   try {
     await _service.deleteCampaign(campaignId);

@@ -599,6 +599,26 @@ Future<List<AppSmsMessage>> searchGlobal(String query, bool isDefault) async {
     );
     return result.isNotEmpty;
   }
+  Future<void> updateCampaign(
+  int campaignId, {
+  required String name,
+  int? endDate,
+  bool clearEndDate = false,
+  double? targetAmount,
+  bool clearTargetAmount = false,
+}) async {
+  final db = await database;
+  await db.update(
+    'campaigns',
+    {
+      'name': name,
+      'endDate': clearEndDate ? null : endDate,
+      'targetAmount': clearTargetAmount ? null : targetAmount,
+    },
+    where: 'id = ?',
+    whereArgs: [campaignId],
+  );
+}
   Future<void> deleteCampaign(int campaignId) async {
   final db = await database;
   await db.transaction((txn) async {

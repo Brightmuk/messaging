@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/cubit/mchango_cubit.dart';
+import 'package:messaging/models/mchango_campaign.dart';
 import 'package:messaging/screens/mchango/campaign_dashboard.dart';
 import 'package:messaging/screens/mchango/export.dart';
 import 'package:messaging/screens/mchango/mchango_onboarding.dart';
@@ -11,7 +12,7 @@ import 'package:messaging/screens/mchango/widgets/beta_badge.dart';
 import 'package:messaging/screens/mchango/widgets/contribution_tile.dart';
 import 'package:messaging/screens/mchango/widgets/mchango_tile.dart';
 import 'package:messaging/services/ads/reward_ad_service.dart';
-import 'package:messaging/services/mchango_service.dart';
+
 
 
 
@@ -141,7 +142,7 @@ void loadAd(){
           if (hasActive){
             return FloatingActionButton(
                   onPressed: () {
-                   //Edit
+                    _showNewCampaignSheet(context, toEdit: state.activeCampaign);
                   },
                   child: const Icon(Icons.edit),
                 );
@@ -190,41 +191,152 @@ void loadAd(){
         ),
       );
 
-  void _showNewCampaignSheet(BuildContext context) {
+  void _showNewCampaignSheet(BuildContext context, {Campaign? toEdit}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       builder: (_) => BlocProvider.value(
         value: context.read<MchangoCubit>(),
-        child: const NewCampaignSheet(),
+        child: NewCampaignSheet(toEdit: toEdit),
       ),
     );
   }
 }
-class _MchangoLoadedView extends StatelessWidget {
+class _MchangoLoadedView extends StatefulWidget {
   final MchangoLoaded state;
   final String threadId;
   const _MchangoLoadedView({required this.state, required this.threadId});
 
   @override
+  State<_MchangoLoadedView> createState() => _MchangoLoadedViewState();
+}
+
+class _MchangoLoadedViewState extends State<_MchangoLoadedView> {
+  final Set<int> _selectedIds = {};
+  bool get _isSelectionMode => _selectedIds.isNotEmpty;
+
+  void _toggleSelection(int id) {
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+      } else {
+        _selectedIds.add(id);
+      }
+    });
+  }
+
+  void _clearSelection() => setState(() => _selectedIds.clear());
+
+  Future<void> _deleteSelected(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete Contributions?'),
+        content: Text(
+          'Remove ${_selectedIds.length} selected '
+          '${_selectedIds.length == 1 ? 'contribution' : 'contributions'}? '
+          'This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && context.mounted) {
+      for (final id in _selectedIds) {
+        await context.read<MchangoCubit>().deleteContribution(id);
+      }
+      _clearSelection();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
-    if (state.activeCampaign == null && state.pastCampaigns.isEmpty) {
-      return _EmptyState();
-    }
+    final contributions = widget.state.contributions;
 
     return CustomScrollView(
       slivers: [
-        // ── Active Campaign Dashboard ──────────────────────────
-        if (state.activeCampaign != null)
-          SliverToBoxAdapter(
-            child: CampaignDashboard(campaign: state.activeCampaign!),
+        // ── Selection mode app bar ───────────────────────────
+        if (_isSelectionMode)
+          SliverAppBar(
+            pinned: true,
+            automaticallyImplyLeading: false,
+            backgroundColor: theme.colorScheme.primaryContainer,
+            title: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: _clearSelection,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '${_selectedIds.length} selected',
+                  style: TextStyle(
+                    color: theme.colorScheme.onPrimaryContainer,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              // Select all
+              TextButton.icon(
+                onPressed: () {
+                  setState(() {
+                    final allIds = contributions
+                        .where((c) => c.id != null)
+                        .map((c) => c.id!)
+                        .toSet();
+                    if (_selectedIds.length == allIds.length) {
+                      _selectedIds.clear();
+                    } else {
+                      _selectedIds.addAll(allIds);
+                    }
+                  });
+                },
+                icon: Icon(
+                  _selectedIds.length == contributions.length
+                      ? Icons.deselect
+                      : Icons.select_all,
+                  color: theme.colorScheme.onPrimaryContainer,
+                ),
+                label: Text(
+                  _selectedIds.length == contributions.length
+                      ? 'Deselect All'
+                      : 'Select All',
+                  style: TextStyle(
+                      color: theme.colorScheme.onPrimaryContainer),
+                ),
+              ),
+              // Delete selected
+              IconButton(
+                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                tooltip: 'Delete selected',
+                onPressed: () => _deleteSelected(context),
+              ),
+            ],
           ),
 
-        // ── Contributions Header ───────────────────────────────
-        if (state.activeCampaign != null)
+        // ── Active Campaign Dashboard ────────────────────────
+        if (widget.state.activeCampaign != null && !_isSelectionMode)
+          SliverToBoxAdapter(
+            child:
+                CampaignDashboard(campaign: widget.state.activeCampaign!),
+          ),
+
+        // ── Contributions header ─────────────────────────────
+        if (widget.state.activeCampaign != null)
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
@@ -234,21 +346,20 @@ class _MchangoLoadedView extends StatelessWidget {
                   Text('Contributions',
                       style: theme.textTheme.titleMedium
                           ?.copyWith(fontWeight: FontWeight.bold)),
-                          
-                
-                  TextButton.icon(
-                    onPressed: () => _handleExport(context),
-                    icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
-                    label: const Text('Export PDF'),
-                  ),
-                 
+                  if (!_isSelectionMode)
+                    TextButton.icon(
+                      onPressed: () => _handleExport(context),
+                      icon: const Icon(Icons.picture_as_pdf_outlined,
+                          size: 18),
+                      label: const Text('Export PDF'),
+                    ),
                 ],
               ),
             ),
           ),
 
-        // ── Contributions List ─────────────────────────────────
-        if (state.contributions.isEmpty && state.activeCampaign != null)
+        // ── Empty state ──────────────────────────────────────
+        if (contributions.isEmpty && widget.state.activeCampaign != null)
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(40),
@@ -258,27 +369,75 @@ class _MchangoLoadedView extends StatelessWidget {
                       size: 48, color: theme.colorScheme.outline),
                   const SizedBox(height: 12),
                   Text('No contributions yet',
-                      style: TextStyle(color: theme.colorScheme.outline)),
+                      style:
+                          TextStyle(color: theme.colorScheme.outline)),
                   const SizedBox(height: 4),
-                  Text('Received M-Pesa payments will appear here',
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: theme.colorScheme.outline),
-                      textAlign: TextAlign.center),
+                  Text(
+                    'Received M-Pesa payments will appear here',
+                    style: theme.textTheme.bodySmall
+                        ?.copyWith(color: theme.colorScheme.outline),
+                    textAlign: TextAlign.center,
+                  ),
                 ],
               ),
             ),
           ),
 
+        // ── Contributions list ───────────────────────────────
         SliverList.builder(
-          itemCount: state.contributions.length,
+          itemCount: contributions.length,
           itemBuilder: (context, index) {
-            final c = state.contributions[index];
-            return ContributionTile(contribution: c, index: index);
+            final c = contributions[index];
+            final isSelected = c.id != null && _selectedIds.contains(c.id);
+
+            return GestureDetector(
+              onLongPress: () {
+                if (c.id != null) _toggleSelection(c.id!);
+              },
+              onTap: () {
+                if (_isSelectionMode && c.id != null) {
+                  _toggleSelection(c.id!);
+                }
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                color: isSelected
+                    ? theme.colorScheme.primaryContainer.withOpacity(0.5)
+                    : Colors.transparent,
+                child: Row(
+                  children: [
+                    // Checkbox appears in selection mode
+                    AnimatedSize(
+                      duration: const Duration(milliseconds: 200),
+                      child: _isSelectionMode
+                          ? Padding(
+                              padding: const EdgeInsets.only(left: 8),
+                              child: Checkbox(
+                                value: isSelected,
+                                onChanged: c.id != null
+                                    ? (_) => _toggleSelection(c.id!)
+                                    : null,
+                              ),
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                    Expanded(
+                      child: ContributionTile(
+                        contribution: c,
+                        index: index,
+                        // Disable dismissible in selection mode
+                        allowDismiss: !_isSelectionMode,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
           },
         ),
 
-        // ── Past Campaigns ─────────────────────────────────────
-        if (state.pastCampaigns.isNotEmpty) ...[
+        // ── Past Campaigns ───────────────────────────────────
+        if (widget.state.pastCampaigns.isNotEmpty && !_isSelectionMode) ...[
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 32, 20, 8),
@@ -288,9 +447,9 @@ class _MchangoLoadedView extends StatelessWidget {
             ),
           ),
           SliverList.builder(
-            itemCount: state.pastCampaigns.length,
-            itemBuilder: (_, i) =>
-                PastCampaignTile(campaign: state.pastCampaigns[i]),
+            itemCount: widget.state.pastCampaigns.length,
+            itemBuilder: (_, i) => PastCampaignTile(
+                campaign: widget.state.pastCampaigns[i]),
           ),
         ],
 
@@ -305,14 +464,14 @@ class _MchangoLoadedView extends StatelessWidget {
       builder: (_) => BlocProvider.value(
         value: context.read<MchangoCubit>(),
         child: ExportSheet(
-          campaign: state.activeCampaign!,
-          contributions: state.contributions,
+          campaign: widget.state.activeCampaign!,
+          contributions: widget.state.contributions,
         ),
       ),
     );
   }
-  
 }
+
 class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {

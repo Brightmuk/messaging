@@ -2,10 +2,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:messaging/cubit/mchango_cubit.dart';
+import 'package:messaging/models/mchango_campaign.dart';
 
 
 class NewCampaignSheet extends StatefulWidget {
-  const NewCampaignSheet();
+  final Campaign? toEdit;
+  const NewCampaignSheet({super.key, this.toEdit});
   @override
   State<NewCampaignSheet> createState() => _NewCampaignSheetState();
 }
@@ -17,6 +19,23 @@ class _NewCampaignSheetState extends State<NewCampaignSheet> {
   bool _hasTarget = false;
   bool _hasEndDate = false;
   DateTime? _endDate;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.toEdit != null) {
+      final c = widget.toEdit!;
+      _nameController.text = c.name;
+      if (c.targetAmount != null) {
+        _hasTarget = true;
+        _targetController.text = c.targetAmount.toString();
+      }
+      if (c.endDate != null) {
+        _hasEndDate = true;
+        _endDate = DateTime.fromMillisecondsSinceEpoch(c.endDate!);
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -53,7 +72,7 @@ class _NewCampaignSheetState extends State<NewCampaignSheet> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('New Campaign',
+                  Text( widget.toEdit == null ? 'New Campaign' : 'Edit Campaign',
                       style: theme.textTheme.titleLarge
                           ?.copyWith(fontWeight: FontWeight.bold)),
                           IconButton(onPressed: (){
@@ -125,9 +144,8 @@ class _NewCampaignSheetState extends State<NewCampaignSheet> {
                   onTap: () async {
                     final picked = await showDatePicker(
                       context: context,
-                      initialDate:
-                          DateTime.now().add(const Duration(days: 7)),
-                      firstDate: DateTime.now(),
+                      initialDate: _endDate ?? DateTime.now().add(const Duration(days: 7)),
+                      firstDate: DateTime.now().add(const Duration(days: 1)),
                       lastDate: DateTime.now().add(const Duration(days: 365)),
                     );
                     if (picked != null) setState(() => _endDate = picked);
@@ -142,9 +160,9 @@ class _NewCampaignSheetState extends State<NewCampaignSheet> {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: _submit,
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 4),
-                    child: Text('Start Campaign'),
+                  child:  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Text(widget.toEdit == null ? 'Start Campaign' : 'Update Campaign'),
                   ),
                 ),
               ),
@@ -163,6 +181,15 @@ class _NewCampaignSheetState extends State<NewCampaignSheet> {
       );
       return;
     }
+    if (widget.toEdit != null){
+      await _updateCampaign(widget.toEdit!.id!);
+    } else {
+      await _createCampaign();
+    }
+
+
+  }
+  Future<void> _createCampaign() async {
 
     Navigator.pop(context);
     context.read<MchangoCubit>().startCampaign(
@@ -176,4 +203,21 @@ class _NewCampaignSheetState extends State<NewCampaignSheet> {
       openingBalance: 0,
     );
   }
+  Future<void> _updateCampaign(int campaignId) async {
+
+    Navigator.pop(context);
+    context.read<MchangoCubit>().updateCampaign(
+      campaignId: campaignId,
+      name: _nameController.text.trim(),
+      targetAmount: _hasTarget
+          ? double.tryParse(_targetController.text)
+          : null,
+      clearTargetAmount: !_hasTarget,
+      endDate: _hasEndDate
+          ? _endDate?.millisecondsSinceEpoch
+          : null,
+      clearEndDate: !_hasEndDate,
+    );
+  }
 }
+

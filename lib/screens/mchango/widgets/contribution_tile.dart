@@ -7,7 +7,8 @@ import 'package:messaging/models/mchango_campaign.dart';
 class ContributionTile extends StatelessWidget {
   final Contribution contribution;
   final int index;
-  const ContributionTile({required this.contribution, required this.index});
+  final bool allowDismiss;
+  const ContributionTile({required this.contribution, required this.index, this.allowDismiss = true, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +18,7 @@ class ContributionTile extends StatelessWidget {
 
     return Dismissible(
       key: ValueKey(contribution.id),
-      direction: DismissDirection.endToStart,
+      direction: allowDismiss?  DismissDirection.endToStart: DismissDirection.none,
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
