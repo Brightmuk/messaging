@@ -448,6 +448,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.4.0+5"
+  in_app_purchase_offers:
+    dependency: "direct main"
+    description:
+      name: in_app_purchase_offers
+      sha256: dce454db94e93de8388cd401de52a3fabcf61189bb33f6b0db02033ec7393376
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.4.0"
   in_app_purchase_platform_interface:
     dependency: transitive
     description:

@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:messaging/core/events.dart';
 import 'package:messaging/core/user_defaults.dart';
+import 'package:in_app_purchase_offers/in_app_purchase_offers.dart';
 
 class PurchaseService {
+  static final PurchaseService _instance = PurchaseService._internal();
+  factory PurchaseService() => _instance;
+  PurchaseService._internal();
   final InAppPurchase _iap = InAppPurchase.instance;
 
   void initializeIAP() {
@@ -18,12 +22,26 @@ class PurchaseService {
       debugPrint("Purchase stream error: $error");
     });
   }
+    Future<List<ProductDetails>> loadProducts() async {
+    final InAppPurchase iap = InAppPurchase.instance;
+
+    final bool available = await iap.isAvailable();
+    if (!available) return [];
+    const Set<String> kIds = <String>{'m_ficha_lifetime_no_ads'};
+    final ProductDetailsResponse response = await iap.queryProductDetails(kIds);
+    
+    if (response.notFoundIDs.isNotEmpty) {
+      debugPrint("Warning: These IDs weren't found: ${response.notFoundIDs}");
+    }
+
+    return response.productDetails;
+  }
+ 
 
   void _handlePurchaseUpdates(List<PurchaseDetails> purchases) async {
     for (var purchase in purchases) {
         
       if (purchase.status == PurchaseStatus.purchased || purchase.status == PurchaseStatus.restored) {
-        //Do early enough
         await UserDefaults.setAdsRemoved();
         eventBus.fire(purchase.status);
         if (purchase.pendingCompletePurchase) {

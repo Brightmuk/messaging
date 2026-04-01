@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
@@ -16,8 +17,10 @@ class PaymentCubit extends Cubit<PaymentState> {
   PaymentCubit() : super(PaymentInitial()) {
     init();
   }
+  String price = "Ksh.500";
   bool isNoAds = false;
   void init() async {
+    loadProducts();
     isNoAds = await UserDefaults.getAdsRemoved();
     _paymetConfirmedSub = eventBus.on<PurchaseStatus>().listen((event) {
       _processPayment(event);
@@ -26,17 +29,18 @@ class PaymentCubit extends Cubit<PaymentState> {
     _demoModeSubscription = eventBus.on<DemoMode>().listen((event) {
       isNoAds = event.isActive;
       if (isNoAds) {
-        emit(PaymentPaid());
+        emit(PaymentPaid(price: price));
       } else {
         emit(PaymentNotPaid());
       }
     });
     if (isNoAds) {
-      emit(PaymentPaid());
+      emit(PaymentPaid(price: price));
     } else {
       emit(PaymentNotPaid());
     }
   }
+
 
   Timer? _pendingTimer;
   void _processPayment(PurchaseStatus event) async {
@@ -68,6 +72,14 @@ class PaymentCubit extends Cubit<PaymentState> {
         break;
     }
   }
+  void loadProducts() async {
+  
+    List<ProductDetails> products = await _service.loadProducts();
+    price = products.firstOrNull?.price ?? "Ksh.500";
+    UserDefaults.setAdFreePrice(products.firstOrNull?.price);
+    emit(PaymentPaid(price: price));
+  }
+
 
   void startPurchase() async {
     emit(PaymentProcessing());

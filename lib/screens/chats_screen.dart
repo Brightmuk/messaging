@@ -69,6 +69,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver, Rout
   @override
   void initState() {
     super.initState();
+
     WidgetsBinding.instance.addObserver(this);
     _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -178,6 +179,8 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver, Rout
     bool isNoAds = Provider.of<PaymentCubit>(context).isNoAds;
 
     return Scaffold(
+
+  extendBodyBehindAppBar: true,
       body: BlocBuilder<ChatsCubit, ChatsState>(
         builder: (context, state) {
           return RefreshIndicator(
@@ -194,7 +197,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver, Rout
                   SliverAppBar.medium(
                     title: Text(_isSelectionMode
                         ? '${_selectedThreadIds.length} selected'
-                        : 'Messages'),
+                        : 'Chats'),
                     leading: _isSelectionMode
                         ? IconButton(
                             icon: const Icon(Icons.close),

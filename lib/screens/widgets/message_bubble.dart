@@ -177,7 +177,7 @@ class _MessageBubbleState extends State<MessageBubble> {
                         formatMessageTime(widget.message.date),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               fontSize: 11,
-                              color: widget.isOutgoing && !widget.selected
+                              color: (widget.isOutgoing && !(widget.selected || _shouldHighlight))
                                   ? Theme.of(context)
                                       .colorScheme
                                       .onPrimary

@@ -8,7 +8,13 @@ sealed class PaymentState extends Equatable {
 }
 
 final class PaymentInitial extends PaymentState {}
-final class PaymentPaid extends PaymentState {}
+final class PaymentPaid extends PaymentState {
+  final String price;
+
+  const PaymentPaid({required this.price});
+  @override
+  List<Object> get props => [price];
+}
 final class PaymentNotPaid extends PaymentState {}
 final class PaymentSuccess extends PaymentState {
   final bool isRestored;

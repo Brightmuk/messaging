@@ -6,7 +6,6 @@ import 'package:messaging/core/user_defaults.dart';
 part 'user_preference_state.dart';
 
 
-
 class UserPreferenceCubit extends Cubit<UserPreferenceState> {
   UserPreferenceCubit() : super(UserPreferenceState.initial()) {
     _loadPreferences();

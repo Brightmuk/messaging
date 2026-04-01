@@ -49,7 +49,7 @@ void setupEdgeToEdge() {
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     systemNavigationBarColor: Colors.transparent,
     systemNavigationBarDividerColor: Colors.transparent,
-    systemNavigationBarContrastEnforced: false,
+    systemNavigationBarContrastEnforced: true,
     statusBarColor: Colors.transparent,
     systemNavigationBarIconBrightness: Brightness.dark,
   ));

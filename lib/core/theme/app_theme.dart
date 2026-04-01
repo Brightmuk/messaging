@@ -4,6 +4,7 @@ class AppTheme {
   static ThemeData lightTheme =  ThemeData(
       useMaterial3: true,
       colorScheme: ColorScheme.fromSeed(
+        surface: Colors.white,
         seedColor: const Color.fromRGBO(0, 100, 148, 1),
         secondary: const Color.fromARGB(255, 62, 39, 176),
         brightness: Brightness.light,
@@ -51,7 +52,7 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: ColorScheme.fromSeed(
         seedColor: const Color.fromRGBO(0, 100, 148, 1),
-        secondary: const Color.fromARGB(255, 170, 142, 231),
+        secondary: const Color.fromARGB(255, 154, 142, 231),
         brightness: Brightness.dark,
       ),
       appBarTheme: const AppBarTheme(

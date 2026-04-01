@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:messaging/cubit/payment_cubit.dart';
 import 'package:messaging/screens/no_ads_purchase_sheet.dart';
 
@@ -17,7 +18,7 @@ class AdFreeTile extends StatelessWidget {
         if (isNoAds) {
           return const SizedBox.shrink();
         }
-
+        String price = context.read<PaymentCubit>().price;
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 10),
           decoration: BoxDecoration(
@@ -69,22 +70,15 @@ class AdFreeTile extends StatelessWidget {
                               ),
                               children:  [
                                 const TextSpan(text: "One-time payment of only "),
-                                TextSpan(
-                                  text: "Ksh.500 ",
-                                  style: TextStyle(
-                                    decoration: TextDecoration.lineThrough,
-                                    color: theme.colorScheme.onSurface.withAlpha(120),
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                TextSpan(
-                                  text: " Ksh.360",
+                               
+                               TextSpan(
+                                  text: price,
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     color: theme.colorScheme.onSurface,
                                     fontSize: 14,
                                   ),
-                                ),
+                                )
                               ],
                             ),
                           ),

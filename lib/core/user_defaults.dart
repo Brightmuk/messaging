@@ -13,6 +13,7 @@ class UserDefaults {
   static const String _textScaleKey = 'textScale';
   static const String _hasOnboardedMchangoString = 'hasOnboardedMchango';
   static const String _themeKey = "user_theme_mode";
+  static const String _adFreePrice = "adFreePrice";
 
   static Future<void> setHasOnboarded() async {
     final prefs = await SharedPreferences.getInstance();
@@ -131,6 +132,15 @@ class UserDefaults {
     final prefs = await SharedPreferences.getInstance();
     // Default to 0 (ThemeMode.system)
     return prefs.getInt(_themeKey) ?? 0;
+  }
+  static Future<void> setAdFreePrice(String? price) async {
+    if(price==null) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_adFreePrice, price);
+  }
+  static Future<String> getAdFreePrice() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_adFreePrice) ?? "Ksh.500";
   }
 
 }
