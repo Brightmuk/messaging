@@ -4,19 +4,15 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:messaging/cubit/mchango_cubit.dart';
 import 'package:messaging/screens/mchango/dashboard.dart';
 
-class MchangoActiveBanner extends StatelessWidget implements PreferredSizeWidget {
+class MchangoActiveBanner extends StatelessWidget{
   final String threadId;
   const MchangoActiveBanner({super.key, required this.threadId});
 
-  @override
-  Size get preferredSize => const Size.fromHeight(52.0);
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => MchangoCubit(threadId),
-      child:  _BannerWidget(threadId),
-    );
+  
+    return _BannerWidget(threadId);
   }
 }
 
@@ -55,80 +51,84 @@ class _BannerWidgetState extends State<_BannerWidget>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return BlocBuilder<MchangoCubit, MchangoState>(
-      builder: (context, state) {
-        // If no active campaign, show nothing (SizedBox.shrink won't work in 'bottom')
-        if (state is! MchangoLoaded || state.activeCampaign == null) {
-          return const SizedBox.shrink();
-        }
-
-        final campaign = state.activeCampaign!;
-
-        return InkWell(
-          onTap: () {
-            Navigator.of(context).push(MaterialPageRoute(builder: (ctx) => MchangoDashboardWrapper(threadId: widget.threadId)));
-          },
-
-          child: Container(
-            height: 52,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.secondaryContainer,
-              border: Border(
-                bottom: BorderSide(
-                  color: theme.colorScheme.outlineVariant, 
-                  width: 0.5
-                ),
-              ),
-            ),
-            child: Row(
-              children: [
-                // Pulse Indicator
-                _buildPulseIndicator(),
-                const SizedBox(width: 12),
-                
-                // Campaign Info
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Ongoing Mchango Campaign",
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        "Tracking contributions in ${campaign.name}",
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onSecondaryContainer,
-                        ),
-                      ),
-                    ],
+    return SizedBox(
+      height: 60,
+      width: MediaQuery.of(context).size.width,
+      child: BlocBuilder<MchangoCubit, MchangoState>(
+        builder: (context, state) {
+         print("\nBanner rebuild with state: $state and active campaign: ${(state is MchangoLoaded) ? state.activeCampaign : 'N/A'}\n");
+          if (state is! MchangoLoaded || state.activeCampaign == null) {
+            return const SizedBox.shrink();
+          }
+      
+          final campaign = state.activeCampaign!;
+      
+          return InkWell(
+            onTap: () {
+              Navigator.of(context).push(MaterialPageRoute(builder: (ctx) => MchangoDashboardWrapper(threadId: widget.threadId)));
+            },
+          
+            child: Container(
+              height: 52,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.secondaryContainer,
+                border: Border(
+                  bottom: BorderSide(
+                    color: theme.colorScheme.outlineVariant, 
+                    width: 0.5
                   ),
                 ),
-
-                // Stats Chips
-                _buildStatChip(
-                  context, 
-                  "${campaign.contributorCount}", 
-                  Icons.people_alt_outlined
-                ),
-                const SizedBox(width: 8),
-                _buildStatChip(
-                  context, 
-                  "Ksh ${campaign.totalCollected.toStringAsFixed(0)}", 
-                  Icons.payments_outlined,
-                  isPrimary: true
-                ),
-              ],
+              ),
+              child: Row(
+                children: [
+                  // Pulse Indicator
+                  _buildPulseIndicator(),
+                  const SizedBox(width: 12),
+                  
+                  // Campaign Info
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Ongoing Mchango Campaign",
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          "Tracking contributions in ${campaign.name}",
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSecondaryContainer,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+          
+                  // Stats Chips
+                  _buildStatChip(
+                    context, 
+                    "${campaign.contributorCount}", 
+                    Icons.people_alt_outlined
+                  ),
+                  const SizedBox(width: 8),
+                  _buildStatChip(
+                    context, 
+                    "Ksh ${campaign.totalCollected.toStringAsFixed(0)}", 
+                    Icons.payments_outlined,
+                    isPrimary: true
+                  ),
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
@@ -161,13 +161,13 @@ class _BannerWidgetState extends State<_BannerWidget>
       ),
       child: Row(
         children: [
-          Icon(icon, size: 12, color: isPrimary ? Colors.white : theme.colorScheme.primary),
+          Icon(icon, size: 12, color: isPrimary ? theme.colorScheme.onPrimary : theme.colorScheme.primary),
           const SizedBox(width: 4),
           Text(
             text,
             style: theme.textTheme.labelSmall?.copyWith(
               fontWeight: FontWeight.bold,
-              color: isPrimary ? Colors.white : theme.colorScheme.onSurfaceVariant,
+              color: isPrimary ? theme.colorScheme.onPrimary : theme.colorScheme.onSurfaceVariant,
             ),
           ),
         ],

@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:messaging/cubit/payment_cubit.dart';
 import 'package:messaging/cubit/permissions_cubit.dart';
+import 'package:messaging/cubit/user_preference_cubit.dart';
 import 'package:messaging/screens/onboarding.dart';
 import 'package:messaging/screens/permissions_screen.dart';
 import 'package:messaging/screens/widgets/privacy_overlay.dart';
@@ -15,7 +16,8 @@ import 'core/theme/app_theme.dart';
 import 'screens/chats_screen.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
+final RouteObserver<ModalRoute<void>> routeObserver =
+    RouteObserver<ModalRoute<void>>();
 
 void main() async {
   setupDependencies();
@@ -25,7 +27,8 @@ void main() async {
 final MultiProvider globalProvider = MultiProvider(
   providers: [
     BlocProvider(create: (c) => PaymentCubit()),
-    BlocProvider(create: (c) => PermissionsCubit())
+    BlocProvider(create: (c) => PermissionsCubit()),
+    BlocProvider(create: (c) => UserPreferenceCubit())
   ],
   child: const MyApp(),
 );
@@ -59,35 +62,39 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'SMS App',
-      navigatorKey: navigatorKey,
-      navigatorObservers: [routeObserver],
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
-      home: BlocBuilder<PermissionsCubit, PermissionsState>(
-        builder: (context, state) {
-          switch (state.status) {
-            case AppLifecycleStatus.onboarding:
-              return const MfichaOnboarding();
+    return BlocBuilder<UserPreferenceCubit, UserPreferenceState>(
+      builder: (context, preferenceState) {
+        return MaterialApp(
+          title: 'SMS App',
+          navigatorKey: navigatorKey,
+          navigatorObservers: [routeObserver],
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: preferenceState.themeMode,
+          home: BlocBuilder<PermissionsCubit, PermissionsState>(
+            builder: (context, state) {
+              switch (state.status) {
+                case AppLifecycleStatus.onboarding:
+                  return const MfichaOnboarding();
 
-            case AppLifecycleStatus.promptPermissions:
-              return const PermissionsScreen();
+                case AppLifecycleStatus.promptPermissions:
+                  return const PermissionsScreen();
 
-            case AppLifecycleStatus.authenticated:
-              return const ChatsScreen();
+                case AppLifecycleStatus.authenticated:
+                  return const ChatsScreen();
 
-            case AppLifecycleStatus.initial:
-              return const Scaffold(
-                body: Center(
-                  child: CircularProgressIndicator(),
-                ),
-              );
-          }
-        },
-      ),
+                case AppLifecycleStatus.initial:
+                  return const Scaffold(
+                    body: Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+              }
+            },
+          ),
+        );
+      },
     );
   }
 }
