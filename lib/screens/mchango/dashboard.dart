@@ -141,23 +141,28 @@ void loadAd(){
 ),
         ],
       ),
-      body: BlocConsumer<MchangoCubit, MchangoState>(
-        listener: (context, state) {
-          if (state is MchangoError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message)),
-            );
-          }
+      body: RefreshIndicator(
+        onRefresh: () {
+          return context.read<MchangoCubit>().load();
         },
-        builder: (context, state) {
-          if (state is MchangoLoading) {
+        child: BlocConsumer<MchangoCubit, MchangoState>(
+          listener: (context, state) {
+            if (state is MchangoError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(state.message)),
+              );
+            }
+          },
+          builder: (context, state) {
+            if (state is MchangoLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (state is MchangoLoaded) {
+              return _MchangoLoadedView(state: state, threadId: widget.threadId);
+            }
             return const Center(child: CircularProgressIndicator());
-          }
-          if (state is MchangoLoaded) {
-            return _MchangoLoadedView(state: state, threadId: widget.threadId);
-          }
-          return const Center(child: CircularProgressIndicator());
-        },
+          },
+        ),
       ),
       floatingActionButton: BlocBuilder<MchangoCubit, MchangoState>(
         builder: (context, state) {

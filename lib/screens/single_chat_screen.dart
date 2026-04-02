@@ -611,7 +611,7 @@ void _scrollToAnchor(int timestamp, List<AppSmsMessage> messages) {
                   ),
                 )
               : null,
-              bottomNavigationBar:  const MfichaBannerAd(adType: AdType.inChat),
+              bottomNavigationBar:  AppChat.supportsReplies(widget.address)? null:  const MfichaBannerAd(adType: AdType.inChat),
         );
         return isMpesa(widget.address)?
          BlocProvider(create:   (c) => MchangoCubit(widget.threadId), child: child):
