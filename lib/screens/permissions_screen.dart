@@ -68,15 +68,15 @@ class PermissionsScreen extends StatelessWidget {
                         icon: Icons.sms_outlined,
                         title: "SMS Access",
                         desc:
-                            "Required to send, receive, and manage your SMS/MMS messages",
+                            "Required to send, receive, and manage your SMS/MMS messages, and apply balance masking to M-PESA & Airtel Money messages.",
                       ),
                       const _PermissionInfoTile(
                         icon: Icons.account_balance_wallet_outlined,
                         title: "Read SMS",
                         desc:
-                            "Essential for detecting and masking balances in M-PESA & Airtel Money messages (locally).",
+                            "Smart treasury feature(Mchango) uses this to track your contributions and balances.(locally)",
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 15),
 
                       // --- SECTION 2: DEFAULT APP FEATURES ---
 
@@ -92,7 +92,7 @@ class PermissionsScreen extends StatelessWidget {
                         title: "Phone & SIM",
                         desc: "This is needed for managing dual-SIM setups.",
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 15),
 
                       // --- SECTION 3: OPTIONAL ---
                       _buildSectionHeader(theme, "ALERTS"),

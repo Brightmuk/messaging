@@ -10,7 +10,7 @@ import 'package:messaging/services/pdf_exporter.dart';
 class ExportSheet extends StatefulWidget {
   final Campaign campaign;
   final List<Contribution> contributions;
-  const ExportSheet({required this.campaign, required this.contributions});
+  const ExportSheet({super.key, required this.campaign, required this.contributions});
 
   @override
   State<ExportSheet> createState() => _ExportSheetState();

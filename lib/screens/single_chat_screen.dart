@@ -8,7 +8,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:messaging/core/feedback_ui.dart';
 import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/cubit/mchango_cubit.dart';
-import 'package:messaging/cubit/payment_cubit.dart';
 import 'package:messaging/cubit/sim_card_cubit.dart';
 import 'package:messaging/cubit/single_chat_cubit.dart';
 import 'package:messaging/models/app_chat.dart';
@@ -17,7 +16,6 @@ import 'package:messaging/screens/mchango/dashboard.dart';
 import 'package:messaging/screens/mchango/widgets/ongoing_banner.dart';
 import 'package:messaging/screens/select_contact_screen.dart';
 import 'package:messaging/screens/widgets/banner_ad.dart';
-import 'package:messaging/screens/widgets/chat_bubble_ad.dart';
 import 'package:messaging/screens/widgets/contact_name_text.dart';
 import 'package:messaging/screens/widgets/message_bubble.dart';
 import 'package:messaging/services/ac_chat_session_service.dart';
@@ -294,7 +292,6 @@ void _scrollToAnchor(int timestamp, List<AppSmsMessage> messages) {
   Widget build(BuildContext context) {
     FeedbackUi feedbackUi = FeedbackUi(context);
     final theme = Theme.of(context);
-    bool isNoAds = Provider.of<PaymentCubit>(context).isNoAds;
 
     return BlocConsumer<SingleChatCubit, SingleChatState>(
       listener: (context, state) {
@@ -614,8 +611,7 @@ void _scrollToAnchor(int timestamp, List<AppSmsMessage> messages) {
                   ),
                 )
               : null,
-              bottomNavigationBar:  const SafeArea(child: MfichaBannerAd(adType: AdType.inChat,),
-      ),
+              bottomNavigationBar:  const MfichaBannerAd(adType: AdType.inChat),
         );
         return isMpesa(widget.address)?
          BlocProvider(create:   (c) => MchangoCubit(widget.threadId), child: child):
@@ -623,7 +619,6 @@ void _scrollToAnchor(int timestamp, List<AppSmsMessage> messages) {
       },
     );
   }
-
 
 
   AppBar _buildAppBar(List<AppSmsMessage> messages) {
