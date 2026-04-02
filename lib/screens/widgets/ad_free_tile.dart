@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:messaging/cubit/payment_cubit.dart';
 import 'package:messaging/screens/no_ads_purchase_sheet.dart';
 
@@ -12,8 +11,6 @@ class AdFreeTile extends StatelessWidget {
     final theme = Theme.of(context);
     return BlocBuilder<PaymentCubit, PaymentState>(
       builder: (context, state) {
-        // 1. Check the state to see if the user is already Ad-Free
-        // This ensures the banner disappears immediately after a successful purchase
         bool isNoAds = context.read<PaymentCubit>().isNoAds;
         if (isNoAds) {
           return const SizedBox.shrink();

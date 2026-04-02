@@ -185,7 +185,7 @@ class _ExportSheetState extends State<ExportSheet> {
 
   Future<void> _copyAsText() async {
     final buffer = StringBuffer();
-    buffer.writeln("*${widget.campaign.name} contributionfs*");
+    buffer.writeln("*${widget.campaign.name} contributions*");
     buffer.writeln();
 
     double total = 0;

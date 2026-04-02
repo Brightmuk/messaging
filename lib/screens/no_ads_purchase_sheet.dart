@@ -1,7 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:messaging/cubit/payment_cubit.dart';
 import 'package:url_launcher/url_launcher.dart';
 

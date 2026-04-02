@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:io';
-
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
@@ -17,7 +15,9 @@ class PaymentCubit extends Cubit<PaymentState> {
   PaymentCubit() : super(PaymentInitial()) {
     init();
   }
-  String price = "Ksh.500";
+  String _price = "Ksh.500";
+  String get price => _price.replaceAll(RegExp(r'\.00$'), '');
+
   bool isNoAds = false;
   void init() async {
     loadProducts();
@@ -75,7 +75,7 @@ class PaymentCubit extends Cubit<PaymentState> {
   void loadProducts() async {
   
     List<ProductDetails> products = await _service.loadProducts();
-    price = products.firstOrNull?.price ?? "Ksh.500";
+     _price = products.firstOrNull?.price ?? "Ksh.500";
     UserDefaults.setAdFreePrice(products.firstOrNull?.price);
     emit(PaymentPaid(price: price));
   }

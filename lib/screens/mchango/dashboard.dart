@@ -14,18 +14,24 @@ import 'package:messaging/screens/mchango/widgets/mchango_tile.dart';
 import 'package:messaging/services/ads/reward_ad_service.dart';
 
 
-
-
 class MchangoDashboardWrapper extends StatelessWidget {
   final String threadId;
-  const MchangoDashboardWrapper({super.key, required this.threadId});
+  final MchangoCubit? cubit;
+  const MchangoDashboardWrapper({super.key, required this.threadId, this.cubit});
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-          create: (_) => MchangoCubit(threadId),
-          child: MchangoDashboard(threadId: threadId),
-        );
+    if(cubit!=null){
+      return BlocProvider.value(
+        value: cubit!,
+        child: MchangoDashboard(threadId: threadId),
+      );
+    }else{
+        return BlocProvider(
+        create: (_) => MchangoCubit(threadId),
+        child: MchangoDashboard(threadId: threadId),
+      );
+    }
   }
 }
 
