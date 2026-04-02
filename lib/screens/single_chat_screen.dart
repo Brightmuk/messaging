@@ -16,10 +16,12 @@ import 'package:messaging/models/sim_card_state.dart';
 import 'package:messaging/screens/mchango/dashboard.dart';
 import 'package:messaging/screens/mchango/widgets/ongoing_banner.dart';
 import 'package:messaging/screens/select_contact_screen.dart';
+import 'package:messaging/screens/widgets/banner_ad.dart';
 import 'package:messaging/screens/widgets/chat_bubble_ad.dart';
 import 'package:messaging/screens/widgets/contact_name_text.dart';
 import 'package:messaging/screens/widgets/message_bubble.dart';
 import 'package:messaging/services/ac_chat_session_service.dart';
+import 'package:messaging/services/ads/banner_ads.dart';
 import 'package:messaging/services/contact_service.dart';
 import 'package:messaging/services/notification_service.dart';
 import 'package:messaging/services/mask_service.dart';
@@ -252,12 +254,7 @@ void _scrollToAnchor(int timestamp, List<AppSmsMessage> messages) {
   }
 
   if (index == -1) return;
-   // ✅ Adjust for ad slot at index 3
-  final bool adsEnabled = shouldShowAds(messages.length, 
-      context.read<PaymentCubit>().isNoAds); // or pass isNoAds in
-  if (adsEnabled && index >= 3) {
-    index += 1; // shift past the ad bubble
-  }
+ 
 
   WidgetsBinding.instance.addPostFrameCallback((_) {
     if (_itemScrollController.isAttached) {
@@ -378,25 +375,11 @@ void _scrollToAnchor(int timestamp, List<AppSmsMessage> messages) {
                                     itemScrollController: _itemScrollController,
                                     itemPositionsListener: _itemPositionsListener,
                                     padding: const EdgeInsets.all(16),
-                                    itemCount:
-                                        shouldShowAds(messages.length, isNoAds)
-                                            ? messages.length + 1
-                                            : messages.length,
+                                    itemCount: messages.length,
                                     itemBuilder: (context, index) {
-                                      bool adsEnabled =
-                                          shouldShowAds(messages.length, isNoAds);
+                                     
               
-                                      if (adsEnabled && index == 3) {
-                                        return ChatAdBubble(
-                                            address: messages.isNotEmpty
-                                                ? messages[0].address
-                                                : "");
-                                      }
-              
-                                      final int messageIndex =
-                                          (adsEnabled && index > 3)
-                                              ? index - 1
-                                              : index;
+                                      final int messageIndex = index;
               
                                       if (messageIndex < 0 ||
                                           messageIndex >= messages.length) {
@@ -631,6 +614,8 @@ void _scrollToAnchor(int timestamp, List<AppSmsMessage> messages) {
                   ),
                 )
               : null,
+              bottomNavigationBar:  const SafeArea(child: MfichaBannerAd(adType: AdType.inChat,),
+      ),
         );
         return isMpesa(widget.address)?
          BlocProvider(create:   (c) => MchangoCubit(widget.threadId), child: child):
@@ -639,12 +624,7 @@ void _scrollToAnchor(int timestamp, List<AppSmsMessage> messages) {
     );
   }
 
-  bool shouldShowAds(int messageLength, bool isNoAds) {
-    return MaskService.isMonitored(widget.address) &&
-        messageLength > 5 &&
-        !isNoAds &&
-        widget.searchedMessage == null;
-  }
+
 
   AppBar _buildAppBar(List<AppSmsMessage> messages) {
     // 1. SELECTION MODE

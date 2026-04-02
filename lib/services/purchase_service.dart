@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:messaging/core/events.dart';
 import 'package:messaging/core/user_defaults.dart';
-import 'package:in_app_purchase_offers/in_app_purchase_offers.dart';
+// import 'package:in_app_purchase_offers/in_app_purchase_offers.dart';
 
 class PurchaseService {
   static final PurchaseService _instance = PurchaseService._internal();
