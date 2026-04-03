@@ -4,9 +4,19 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:messaging/cubit/payment_cubit.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class NoAdsPurchaseSheet extends StatelessWidget {
+class NoAdsPurchaseSheet extends StatefulWidget {
   const NoAdsPurchaseSheet({super.key});
 
+  @override
+  State<NoAdsPurchaseSheet> createState() => _NoAdsPurchaseSheetState();
+}
+
+class _NoAdsPurchaseSheetState extends State<NoAdsPurchaseSheet> {
+  @override
+  void initState() {
+    super.initState();
+    context.read<PaymentCubit>().loadProducts();
+  }
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -17,6 +27,7 @@ class NoAdsPurchaseSheet extends StatelessWidget {
         if (state is PaymentSuccess) Navigator.pop(context);
       },
       builder: (context, state) {
+        String price = context.read<PaymentCubit>().price;
         return Container(
           height: MediaQuery.of(context).size.height * 0.85,
           decoration: BoxDecoration(
@@ -61,17 +72,18 @@ class NoAdsPurchaseSheet extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 12),
+                            
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               crossAxisAlignment: CrossAxisAlignment.baseline,
                               textBaseline: TextBaseline.alphabetic,
                               children: [
-                                Text("Ksh 500",
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                        decoration: TextDecoration.lineThrough,
-                                        color: theme.colorScheme.onSurface.withOpacity(0.4))),
+                                // Text("${product.currencyCode} ${product.price}",
+                                //     style: theme.textTheme.bodyMedium?.copyWith(
+                                //         decoration: TextDecoration.lineThrough,
+                                //         color: theme.colorScheme.onSurface.withOpacity(0.4))),
                                 const SizedBox(width: 12),
-                                Text("Ksh 360",
+                                Text(price,
                                     style: theme.textTheme.displaySmall?.copyWith(
                                         fontWeight: FontWeight.w900,
                                         color: theme.colorScheme.onSurface)),
@@ -189,7 +201,7 @@ class NoAdsPurchaseSheet extends StatelessWidget {
         ),
         child: isProcessing
             ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-            : const Text("ACTIVATE PRO ACCESS", style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.1)),
+            : const Text("UNLOCK M-FICHA PRO", style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.1)),
       ),
     );
   }

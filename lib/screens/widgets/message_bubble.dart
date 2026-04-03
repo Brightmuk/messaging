@@ -96,25 +96,35 @@ class _MessageBubbleState extends State<MessageBubble> {
                     maxWidth: MediaQuery.of(context).size.width * 0.8,
                   ),
                   decoration: BoxDecoration(
-                    color: (widget.selected || _shouldHighlight)
-                        ? Theme.of(context).colorScheme.primaryContainer
-                        : widget.isOutgoing
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context)
-                                .colorScheme
-                                .surfaceContainerHighest,
-                    borderRadius: BorderRadius.only(
-                      topLeft: const Radius.circular(20),
-                      topRight: const Radius.circular(20),
-                      bottomLeft: Radius.circular(widget.isOutgoing ? 20 : 4),
-                      bottomRight: Radius.circular(widget.isOutgoing ? 4 : 20),
-                    ),
-                    boxShadow: widget.selected
-                        ? const [
-                            BoxShadow(color: Colors.black12, blurRadius: 4)
-                          ]
-                        : null,
-                  ),
+  // Use 'color' only for incoming or highlighted states
+  color: (widget.selected || _shouldHighlight)
+      ? Theme.of(context).colorScheme.primaryContainer
+      : !widget.isOutgoing
+          ? Theme.of(context).colorScheme.surfaceContainerHighest
+          : null, // Set to null for outgoing so gradient shows
+  
+  // Apply the purple gradient only for outgoing messages
+  gradient: (widget.isOutgoing && !widget.selected && !_shouldHighlight)
+      ?  LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Theme.of(context).colorScheme.secondary,
+            Theme.of(context).colorScheme.primary// Lighter Purple
+          ],
+        )
+      : null,
+
+  borderRadius: BorderRadius.only(
+    topLeft: const Radius.circular(20),
+    topRight: const Radius.circular(20),
+    bottomLeft: Radius.circular(widget.isOutgoing ? 20 : 4),
+    bottomRight: Radius.circular(widget.isOutgoing ? 4 : 20),
+  ),
+  boxShadow: widget.selected
+      ? const [BoxShadow(color: Colors.black12, blurRadius: 4)]
+      : null,
+),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     mainAxisSize: MainAxisSize.min,
@@ -167,7 +177,7 @@ class _MessageBubbleState extends State<MessageBubble> {
                         formatMessageTime(widget.message.date),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               fontSize: 11,
-                              color: widget.isOutgoing && !widget.selected
+                              color: (widget.isOutgoing && !(widget.selected || _shouldHighlight))
                                   ? Theme.of(context)
                                       .colorScheme
                                       .onPrimary

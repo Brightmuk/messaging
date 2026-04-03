@@ -62,7 +62,7 @@ class ContactNameText extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               maxLines: 1,
               style: style ?? Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: unread ? FontWeight.bold : FontWeight.normal,
+                    fontWeight: unread ? FontWeight.w700 : FontWeight.w600,
                   ),
             ),
           ),

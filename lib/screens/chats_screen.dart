@@ -5,13 +5,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:messaging/core/brand_palette.dart';
 import 'package:messaging/core/feedback_ui.dart';
-import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/cubit/chats_cubit.dart';
 import 'package:messaging/cubit/payment_cubit.dart';
+import 'package:messaging/main.dart';
 import 'package:messaging/models/app_chat.dart';
 import 'package:messaging/screens/global_search_page.dart';
+import 'package:messaging/screens/mchango/dashboard.dart';
 import 'package:messaging/screens/settings_screen.dart';
-import 'package:messaging/screens/setup_doa.dart';
 import 'package:messaging/screens/single_chat_screen.dart';
 import 'package:messaging/core/utils/date_formatter.dart';
 import 'package:messaging/screens/widgets/ad_free_tile.dart';
@@ -21,6 +21,7 @@ import 'package:messaging/screens/widgets/contact_name_text.dart';
 import 'package:messaging/screens/widgets/limited_access_tile.dart';
 import 'package:messaging/screens/widgets/rating_dialog.dart';
 import 'package:messaging/services/contact_service.dart';
+import 'package:messaging/services/mchango_service.dart';
 import 'package:messaging/services/notification_service.dart';
 import 'package:messaging/services/rating_limiter.dart';
 import 'package:messaging/services/mask_service.dart';
@@ -58,7 +59,7 @@ class ChatsView extends StatefulWidget {
   State<ChatsView> createState() => _ChatsViewState();
 }
 
-class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
+class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver, RouteAware{
   Set<String> _selectedThreadIds = {};
   bool get _isSelectionMode => _selectedThreadIds.isNotEmpty;
   final ScrollController _scrollController = ScrollController();
@@ -66,32 +67,34 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+
     WidgetsBinding.instance.addObserver(this);
     _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       _checkDialogs();
       NotificationService().handleInitialMessage();
     });
-
   }
-
+  bool _isCurrentRoute = false;
   Future<void> _checkDialogs() async {
     await Future.delayed(const Duration(seconds: 3));
-    if (!mounted) return;
+    if (!mounted || !_isCurrentRoute) return;
 
-    // PRIORITY 1: Rating Dialog
     if (await RateLimiter.shouldShowRateDialog()) {
       showRateUsDialog(context);
-      return;
-    }
-    if(!await NotificationService.canShowOverlay() && await UserDefaults.canShowOverlayPrompt()){
-      Future.delayed(const Duration(seconds: 5), () async {
-      if (!mounted) return;
-        showOverlayBottomSheet(context);
-      }
-      );
+      return; 
     }
 
+    // final canShowOverlay = await NotificationService.canShowOverlay();
+    // final shouldPrompt = await UserDefaults.canShowOverlayPrompt();
+    //TODO: Disable for now
+    // if (!canShowOverlay && shouldPrompt) {
+    //   await Future.delayed(const Duration(seconds: 5));
+      
+    //   if (mounted && _isCurrentRoute) {
+    //     showOverlayBottomSheet(context);
+    //   }
+    // }
   }
 
   @override
@@ -101,6 +104,22 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
       context.read<ChatsCubit>().loadChats(isInitialLoad: true);
     }
   }
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    routeObserver.subscribe(this, ModalRoute.of(context)!);
+    _isCurrentRoute = true;
+  }
+  @override
+  void didPushNext() {
+    _isCurrentRoute = false; 
+  }
+
+  @override
+  void didPopNext() {
+    _isCurrentRoute = true;
+  }
+
 
   void _onScroll() {
     if (_scrollController.position.pixels >=
@@ -143,7 +162,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
   @override
   void dispose() {
     _scrollController.dispose();
-
+    routeObserver.unsubscribe(this);
     super.dispose();
   }
 
@@ -158,6 +177,8 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
     bool isNoAds = Provider.of<PaymentCubit>(context).isNoAds;
 
     return Scaffold(
+
+  extendBodyBehindAppBar: true,
       body: BlocBuilder<ChatsCubit, ChatsState>(
         builder: (context, state) {
           return RefreshIndicator(
@@ -174,7 +195,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                   SliverAppBar.medium(
                     title: Text(_isSelectionMode
                         ? '${_selectedThreadIds.length} selected'
-                        : 'Messages'),
+                        : 'Chats'),
                     leading: _isSelectionMode
                         ? IconButton(
                             icon: const Icon(Icons.close),
@@ -257,7 +278,6 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                                           builder: (context) =>
                                               const GlobalSearchPage()),
                                     )),
-                                    
                             IconButton(
                               icon: const Icon(Icons.settings_outlined),
                               onPressed: () => Navigator.push(
@@ -267,69 +287,68 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                                         const SettingsScreen()),
                               ),
                             ),
-                            
-                             
-                           
                           ],
                   ),
                 if (state is PermissionRevoked)
                   SliverFillRemaining(child: _buildPermissionsPrompt(context))
-                
                 else if (state is ChatsLoaded)
                   state.chats.isEmpty
                       ? const SliverFillRemaining(
                           child: ChatsLoadingWidget(isEmptyState: true))
                       : SliverList(
-                          delegate:  SliverChildBuilderDelegate(
-                                (context, index) {
-                                  final isDefault = state.isDefaultApp;
-                                  
-                                  // 1. Handle the Top "Limited Access" tile for non-default users
-                                  if (!isDefault && index == 0) {
-                                    return LimitedAccessTile(
-                                      onRequest: () => context.read<ChatsCubit>().requestDefaultRole(),
-                                    );
-                                  }
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              final isDefault = state.isDefaultApp;
 
-                                  // Base chat index adjustment
-                                  int chatIndex = isDefault ? index : index - 1;
+                              // 1. Handle the Top "Limited Access" tile for non-default users
+                              if (!isDefault && index == 0) {
+                                return LimitedAccessTile(
+                                  onRequest: () => context
+                                      .read<ChatsCubit>()
+                                      .requestDefaultRole(),
+                                );
+                              }
 
-                                  // 2. Handle the Ad-Free Upsell Tile (Only if ads are enabled)
-                                  if (!isNoAds) {
-                                    // We'll place the AdFreeTile at index 6 (Default) or 7 (Non-Default)
-                                    final adFreeIndex = isDefault ? 6 : 7;
+                              // Base chat index adjustment
+                              int chatIndex = isDefault ? index : index - 1;
 
-                                    if (index == adFreeIndex) {
-                                      return const AdFreeTile();
-                                    }
+                              // 2. Handle the Ad-Free Upsell Tile (Only if ads are enabled)
+                              if (!isNoAds) {
+                                // We'll place the AdFreeTile at index 6 (Default) or 7 (Non-Default)
+                                final adFreeIndex = isDefault ? 6 : 7;
 
-                                    // If we are past the AdFreeTile, we subtract 1 from chatIndex 
-                                    // to "skip" that slot and fetch the correct chat from the list.
-                                    if (index > adFreeIndex) {
-                                      chatIndex -= 1;
-                                    }
-                                  }
+                                if (index == adFreeIndex) {
+                                  return const AdFreeTile();
+                                }
 
-                                  // 3. Safety Check
-                                  if (chatIndex >= state.chats.length || chatIndex < 0) {
-                                    return null;
-                                  }
+                                // If we are past the AdFreeTile, we subtract 1 from chatIndex
+                                // to "skip" that slot and fetch the correct chat from the list.
+                                if (index > adFreeIndex) {
+                                  chatIndex -= 1;
+                                }
+                              }
 
-                                  // 4. Build the actual chat tile
-                                  return isDefault
-                                      ? _buildChatTile(state.chats[chatIndex])
-                                      : _buildPrivacyVaultTile(state.chats[chatIndex], context);
-                                },
-                                childCount: calculateChildCount(
-                                  state.chats.length,
-                                  state.isDefaultApp,
-                                  isNoAds,
-                                ),
-                              ),
+                              // 3. Safety Check
+                              if (chatIndex >= state.chats.length ||
+                                  chatIndex < 0) {
+                                return null;
+                              }
+
+                              // 4. Build the actual chat tile
+                              return isDefault
+                                  ? _buildChatTile(state.chats[chatIndex])
+                                  : _buildPrivacyVaultTile(
+                                      state.chats[chatIndex], context);
+                            },
+                            childCount: calculateChildCount(
+                              state.chats.length,
+                              state.isDefaultApp,
+                              isNoAds,
+                            ),
+                          ),
                         )
                 else
                   const SliverFillRemaining(child: ChatsLoadingWidget())
-                  
               ],
             ),
           );
@@ -338,14 +357,13 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
       floatingActionButton: BlocBuilder<ChatsCubit, ChatsState>(
         builder: (context, state) {
           bool isDefault = state is ChatsLoaded ? state.isDefaultApp : false;
-          
+          if (!isDefault) {
+            return const SizedBox.shrink();
+          }
           return FloatingActionButton.extended(
             label: const Text('New'),
             icon: const Icon(Icons.edit_outlined),
             onPressed: () async {
-             
-              // NotificationService.showOverlay(address: "Mpesa", text: "TKFL9ADWCV has been successfully reversed on 8/3/26 at 10:48 PM and Ksh50.00 is debited from your M-PESA account. New M-PESA account balance is Ksh3,920.00");
-              // SmsService().generateTestData();
               if (isDefault) {
                 Navigator.push(
                     context,
@@ -358,30 +376,36 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
           );
         },
       ),
-      bottomNavigationBar:  SafeArea(child: MfichaBannerAd()),
+      bottomNavigationBar: BlocBuilder<ChatsCubit, ChatsState>(
+        builder: (context, state) {
+          bool isDefault = state is ChatsLoaded ? state.isDefaultApp : false;
+          if(!isDefault){
+            return const SizedBox.shrink();
+          }
+          return const SafeArea(child: MfichaBannerAd());
+        },
+      ),
     );
   }
 
   int calculateChildCount(int chatsLength, bool isDefaultApp, bool isNoAds) {
-  // If no chats and it's the default app, show nothing (or an empty state)
-  if (chatsLength == 0 && isDefaultApp) return 0;
+    // If no chats and it's the default app, show nothing (or an empty state)
+    if (chatsLength == 0 && isDefaultApp) return 0;
 
-  int totalCount = chatsLength;
+    int totalCount = chatsLength;
 
-  // Add 1 for the LimitedAccessTile if not the default app
-  if (!isDefaultApp) {
-    totalCount += 1;
+    // Add 1 for the LimitedAccessTile if not the default app
+    if (!isDefaultApp) {
+      totalCount += 1;
+    }
+
+    // Add 1 for the AdFreeTile only if ads are active and the list is long enough
+    if (!isNoAds && chatsLength >= 6) {
+      totalCount += 1;
+    }
+
+    return totalCount;
   }
-
-  // Add 1 for the AdFreeTile only if ads are active and the list is long enough
-  if (!isNoAds && chatsLength >= 6) {
-    totalCount += 1;
-  }
-
-  return totalCount;
-}
-
-
 
   Widget _buildPermissionsPrompt(BuildContext context) {
     final theme = Theme.of(context);
@@ -409,14 +433,28 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
               child: const Text("Set as Default App"),
             ),
           ),
-          const SizedBox(height: 100),
+          const SizedBox(height: 40),
+           OutlinedButton(onPressed: ()async{
+            String? id = await MchangoService.getThreadIdForMchango();
+             if(id==null){
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Permission denied or Mpesa thread not found. Cannot open Mchango dashboard."))
+              );
+              return;
+             }
+              Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>  MchangoDashboardWrapper(threadId: id)
+                      ));
+           }, child: const Text('I only need Mchango')),
+           const SizedBox(height: 50,)
         ],
       ),
     );
   }
 
   Widget _buildChatTile(AppChat chat) {
-
     final theme = Theme.of(context);
     final bool isSelected = _selectedThreadIds.contains(chat.threadId);
     final bool hasUnread = chat.unreadCount > 0;
@@ -444,14 +482,12 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.all(12),
-          
           decoration: BoxDecoration(
               color: isSelected
                   ? theme.colorScheme.primaryContainer
                   : (hasUnread
                       ? theme.colorScheme.primaryContainer.withAlpha(100)
-                      : Colors.transparent
-                      ),
+                      : Colors.transparent),
               borderRadius: BorderRadius.circular(20),
               border: Border(
                   bottom: BorderSide(
@@ -509,7 +545,8 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
                     const SizedBox(height: 4),
                     Text(
                       MaskService.maskAfterBalance(
-                          chat.lastMessage ?? '', chat.address).message,
+                              chat.lastMessage ?? '', chat.address)
+                          .message,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodyMedium?.copyWith(
@@ -548,287 +585,301 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver {
       ),
     );
   }
+
   Widget _buildPrivacyVaultTile(AppChat chat, BuildContext context) {
-  final theme = Theme.of(context);
-  final bool isSelected = _selectedThreadIds.contains(chat.threadId);
-  final palette = getBrandPalette(chat.address, context);
-  final summary = TransactionSummary.parse(chat.lastMessage??'');
+    final theme = Theme.of(context);
+    final bool isSelected = _selectedThreadIds.contains(chat.threadId);
+    final palette = getBrandPalette(chat.address, context);
+    final summary = TransactionSummary.parse(chat.lastMessage ?? '');
 
-
-  return GestureDetector(
-    
-     onTap: () {
-         if (_isSelectionMode) {
-            _toggleSelection(chat.threadId);
-          } else {
-            Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => SingleChatScreen(
-                      threadId: chat.threadId, address: chat.address),
-                ));
-          }
+    return GestureDetector(
+      onTap: () {
+        if (_isSelectionMode) {
+          _toggleSelection(chat.threadId);
+        } else {
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => SingleChatScreen(
+                    threadId: chat.threadId, address: chat.address),
+              ));
+        }
       },
       onLongPress: () {
-          if (!_isSelectionMode) {
-            _toggleSelection(chat.threadId);
-          }
-        },
-    child: AnimatedContainer(
-      margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      padding: const EdgeInsets.all(20),
-      duration: const Duration(milliseconds: 200),
-      decoration: BoxDecoration(
-        color:  isSelected
-                  ? theme.colorScheme.primaryContainer : palette.background,
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: palette.accent.withOpacity(0.1), width: 1.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 1. Header: Brand + Privacy Shield
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                   isSelected? 
-                   CircleAvatar(
-                    radius: 14,
-                    backgroundColor: theme.colorScheme.primary,
-                    child:Icon(Icons.check, color: theme.colorScheme.onPrimary)
-                        
-                  ):
-                    Icon(Icons.security, size: 16, color: palette.accent),
-                  const SizedBox(width: 8),
-                  Text(
-                    chat.address,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.2,
-                      color: palette.accent,
+        if (!_isSelectionMode) {
+          _toggleSelection(chat.threadId);
+        }
+      },
+      child: AnimatedContainer(
+        margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+        padding: const EdgeInsets.all(20),
+        duration: const Duration(milliseconds: 200),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? theme.colorScheme.primaryContainer
+              : palette.background,
+          borderRadius: BorderRadius.circular(30),
+          border:
+              Border.all(color: palette.accent.withOpacity(0.1), width: 1.5),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 1. Header: Brand + Privacy Shield
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    isSelected
+                        ? CircleAvatar(
+                            radius: 14,
+                            backgroundColor: theme.colorScheme.primary,
+                            child: Icon(Icons.check,
+                                color: theme.colorScheme.onPrimary))
+                        : Icon(Icons.security, size: 16, color: palette.accent),
+                    const SizedBox(width: 8),
+                    Text(
+                      chat.address,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.2,
+                        color: palette.accent,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
+                _buildPrivacyBadge(palette),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // 2. Sanitized Content
+            Text(
+              summary.action == "Checked balance"
+                  ? "Account balance check performed."
+                  : "${summary.action} ${summary.amount} to ${summary.name}",
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onSurface,
               ),
-              _buildPrivacyBadge(palette),
-            ],
-          ),
-          const SizedBox(height: 20),
-      
-          // 2. Sanitized Content
-          Text(
-            summary.action == "Checked balance" 
-                ? "Account balance check performed." 
-                : "${summary.action} ${summary.amount} to ${summary.name}",
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.onSurface,
+            ),
+            const SizedBox(height: 8),
+
+            // 3. The "Masked" Preview & Show Button
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Visual Redaction Bar
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surface.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Text("Balance: ", style: theme.textTheme.bodySmall),
+                      Container(
+                        width: 60,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: palette.accent.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // The "Show" Action
+                summary.isBalanceCheck
+                    ? const SizedBox.shrink()
+                    : TextButton.icon(
+                        onPressed: () =>
+                            _showPrivacyDialog(context, chat, palette),
+                        style: TextButton.styleFrom(
+                          backgroundColor: palette.accent,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                        ),
+                        icon: const Icon(Icons.visibility_outlined, size: 16),
+                        label: const Text("Receipt",
+                            style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPrivacyBadge(BrandPalette palette) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: ShapeDecoration(
+        // Gradient adds that "Premium/Modern" fintech feel
+        gradient: LinearGradient(
+          colors: [
+            palette.accent.withOpacity(0.15),
+            palette.accent.withOpacity(0.05),
+          ],
+        ),
+        shape: StadiumBorder(
+          side: BorderSide(color: palette.accent.withOpacity(0.2), width: 1),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Pulsing-style dot to show the "Privacy Shield" is active
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              color: palette.accent,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: palette.accent.withOpacity(0.4),
+                  blurRadius: 4,
+                  spreadRadius: 1,
+                )
+              ],
             ),
           ),
-          const SizedBox(height: 8),
-      
-          // 3. The "Masked" Preview & Show Button
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          const SizedBox(width: 6),
+          Text(
+            "SECURE VIEW",
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w900,
+              color: palette.accent,
+              letterSpacing: 0.8,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPrivacyDialog(
+      BuildContext context, AppChat chat, BrandPalette palette) {
+    final theme = Theme.of(context);
+    final summary = TransactionSummary.parse(chat.lastMessage ?? '');
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: AlertDialog(
+          backgroundColor: Colors.transparent, // Transparent to show the bubble
+          contentPadding: EdgeInsets.zero,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // Visual Redaction Bar
+              // 1. The "Vault" Status Indicator above the bubble
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.surface.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(8),
+                  color: palette.accent,
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(20)),
                 ),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text("Balance: ", style: theme.textTheme.bodySmall),
-                    Container(
-                      width: 60,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: palette.accent.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(2),
+                    const Icon(Icons.lock_outline,
+                        size: 14, color: Colors.white),
+                    const SizedBox(width: 8),
+                    Text(
+                      "SECURE TRANSACTION VIEW",
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1,
                       ),
                     ),
                   ],
                 ),
               ),
-              
-              // The "Show" Action
-              summary.isBalanceCheck? const SizedBox.shrink(): TextButton.icon(
-                onPressed: () => _showPrivacyDialog(context, chat, palette),
-                style: TextButton.styleFrom(
-                  backgroundColor: palette.accent,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                ),
-                icon: const Icon(Icons.visibility_outlined, size: 16),
-                label: const Text("Receipt", style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
-        ],
-      ),
-    ),
-  );
-}
-Widget _buildPrivacyBadge(BrandPalette palette) {
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-    decoration: ShapeDecoration(
-      // Gradient adds that "Premium/Modern" fintech feel
-      gradient: LinearGradient(
-        colors: [
-          palette.accent.withOpacity(0.15),
-          palette.accent.withOpacity(0.05),
-        ],
-      ),
-      shape: StadiumBorder(
-        side: BorderSide(color: palette.accent.withOpacity(0.2), width: 1),
-      ),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Pulsing-style dot to show the "Privacy Shield" is active
-        Container(
-          width: 6,
-          height: 6,
-          decoration: BoxDecoration(
-            color: palette.accent,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: palette.accent.withOpacity(0.4),
-                blurRadius: 4,
-                spreadRadius: 1,
-              )
-            ],
-          ),
-        ),
-        const SizedBox(width: 6),
-        Text(
-          "SECURE VIEW",
-          style: TextStyle(
-            fontSize: 9,
-            fontWeight: FontWeight.w900,
-            color: palette.accent,
-            letterSpacing: 0.8,
-          ),
-        ),
-      ],
-    ),
-  );
-}
-void _showPrivacyDialog(BuildContext context, AppChat chat, BrandPalette palette) {
-  final theme = Theme.of(context);
-  final summary = TransactionSummary.parse(chat.lastMessage??'');
 
-  showDialog(
-    context: context,
-    barrierDismissible: true,
-    builder: (context) => BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-      child: AlertDialog(
-        backgroundColor: Colors.transparent, // Transparent to show the bubble
-        contentPadding: EdgeInsets.zero,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 20),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 1. The "Vault" Status Indicator above the bubble
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: palette.accent,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.lock_outline, size: 14, color: Colors.white),
-                  const SizedBox(width: 8),
-                  Text(
-                    "SECURE TRANSACTION VIEW",
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1,
-                    ),
+              // 2. The Chat Bubble
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(30),
+                    bottomRight: Radius.circular(30),
+                    topRight: Radius.circular(30),
                   ),
-                ],
-              ),
-            ),
-
-            // 2. The Chat Bubble
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
-                  topRight: Radius.circular(30),
                 ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Transaction Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        summary.action.toUpperCase(),
-                        style: TextStyle(
-                          color: palette.accent,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 12,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Transaction Header
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          summary.action.toUpperCase(),
+                          style: TextStyle(
+                            color: palette.accent,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 12,
+                          ),
                         ),
-                      ),
-                      Text(
-                        "Just Now", // You can pass the actual time here
-                        style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.outline),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // The "Message" Body
-                  Text(
-                    MaskService.maskAfterBalance(chat.lastMessage??'', chat.address).message,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      height: 1.5,
-                      letterSpacing: 0.2,
-                      color: theme.colorScheme.onSurface,
+                        Text(
+                          "Just Now", // You can pass the actual time here
+                          style: theme.textTheme.labelSmall
+                              ?.copyWith(color: theme.colorScheme.outline),
+                        ),
+                      ],
                     ),
-                  ),
-                  
-                  const SizedBox(height: 24),
-                  
-                  // Action Row: Copy Trans ID
-                  // _buildCopyIdButton(rawMessage, palette, theme),
-                ],
+                    const SizedBox(height: 16),
+
+                    // The "Message" Body
+                    Text(
+                      MaskService.maskAfterBalance(
+                              chat.lastMessage ?? '', chat.address)
+                          .message,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        height: 1.5,
+                        letterSpacing: 0.2,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Action Row: Copy Trans ID
+                    // _buildCopyIdButton(rawMessage, palette, theme),
+                  ],
+                ),
               ),
-            ),
-            
-            const SizedBox(height: 20),
-            
-            // 3. Dismiss Button
-            IconButton(
-              onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.clear, color: Colors.white, size: 48),
-            ),
-          ],
+
+              const SizedBox(height: 20),
+
+              // 3. Dismiss Button
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.clear, color: Colors.white, size: 48),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
-
+    );
+  }
 
   Future<void> _deleteSelectedChats() async {
     final count = _selectedThreadIds.length;

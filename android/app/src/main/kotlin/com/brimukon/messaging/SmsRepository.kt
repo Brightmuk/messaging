@@ -62,6 +62,32 @@ class SmsRepository(private val context: Context) {
             null
         }
     }
+    fun markThreadAsRead(address: String): Int {
+    return try {
+        val threadId = getOrCreateSystemThreadId(address)
+        val values = ContentValues().apply {
+            put("read", 1)
+            put("seen", 1)
+        }
+        val rowsUpdated: Int = context.contentResolver.update(
+            Uri.parse("content://sms"),
+            values,
+            "thread_id = ? AND read = 0",
+            arrayOf(threadId.toString())
+        )
+        android.util.Log.d(
+            "SmsRepository",
+            "markThreadAsRead: $rowsUpdated rows updated for threadId=$threadId"
+        )
+        rowsUpdated // ← explicit return
+    } catch (e: Exception) {
+        android.util.Log.e(
+            "SmsRepository",
+            "markThreadAsRead failed: ${e.javaClass.simpleName}"
+        )
+        -1 // ← explicit return
+    }
+}
     fun getOrCreateSystemThreadId(address: String): Long {
     return try {
         // This is the official Android API — it queries or creates a thread
@@ -71,4 +97,5 @@ class SmsRepository(private val context: Context) {
         -1L
     }
 }
+
 }

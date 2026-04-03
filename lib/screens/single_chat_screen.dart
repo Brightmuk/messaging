@@ -7,16 +7,19 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:messaging/core/feedback_ui.dart';
 import 'package:messaging/core/user_defaults.dart';
-import 'package:messaging/cubit/payment_cubit.dart';
+import 'package:messaging/cubit/mchango_cubit.dart';
 import 'package:messaging/cubit/sim_card_cubit.dart';
 import 'package:messaging/cubit/single_chat_cubit.dart';
 import 'package:messaging/models/app_chat.dart';
 import 'package:messaging/models/sim_card_state.dart';
+import 'package:messaging/screens/mchango/dashboard.dart';
+import 'package:messaging/screens/mchango/widgets/ongoing_banner.dart';
 import 'package:messaging/screens/select_contact_screen.dart';
-import 'package:messaging/screens/widgets/chat_bubble_ad.dart';
+import 'package:messaging/screens/widgets/banner_ad.dart';
 import 'package:messaging/screens/widgets/contact_name_text.dart';
 import 'package:messaging/screens/widgets/message_bubble.dart';
 import 'package:messaging/services/ac_chat_session_service.dart';
+import 'package:messaging/services/ads/banner_ads.dart';
 import 'package:messaging/services/contact_service.dart';
 import 'package:messaging/services/notification_service.dart';
 import 'package:messaging/services/mask_service.dart';
@@ -46,7 +49,7 @@ class SingleChatScreen extends StatelessWidget {
         providers: [
           BlocProvider(create: (c) => SimCardCubit()),
           BlocProvider(
-              create: (c) => SingleChatCubit(threadId,
+              create: (c) => SingleChatCubit(threadId, address,
                   targetTimestamp: searchedMessage?.date)),
         ],
         child: SingleChatScreenView(
@@ -249,12 +252,7 @@ void _scrollToAnchor(int timestamp, List<AppSmsMessage> messages) {
   }
 
   if (index == -1) return;
-   // ✅ Adjust for ad slot at index 3
-  final bool adsEnabled = shouldShowAds(messages.length, 
-      context.read<PaymentCubit>().isNoAds); // or pass isNoAds in
-  if (adsEnabled && index >= 3) {
-    index += 1; // shift past the ad bubble
-  }
+ 
 
   WidgetsBinding.instance.addPostFrameCallback((_) {
     if (_itemScrollController.isAttached) {
@@ -294,7 +292,6 @@ void _scrollToAnchor(int timestamp, List<AppSmsMessage> messages) {
   Widget build(BuildContext context) {
     FeedbackUi feedbackUi = FeedbackUi(context);
     final theme = Theme.of(context);
-    bool isNoAds = Provider.of<PaymentCubit>(context).isNoAds;
 
     return BlocConsumer<SingleChatCubit, SingleChatState>(
       listener: (context, state) {
@@ -332,277 +329,272 @@ void _scrollToAnchor(int timestamp, List<AppSmsMessage> messages) {
             : context.read<SingleChatCubit>().messages;
 
         bool hide = context.read<SingleChatCubit>().hideStatus;
-        return Scaffold(
+        Widget child =  Scaffold(
           appBar: _buildAppBar(messages),
-          body: ValueListenableBuilder<double>(
-              valueListenable: _textScaleNotifier,
-              builder: (context, scale, child) {
-                return GestureDetector(
-                  onScaleStart: (details) {
-                    _baseScale = _currentScale;
-                  },
-                  onScaleUpdate: (details) {
-                    double newScale = _baseScale * details.scale;
-                    double value = newScale.clamp(_minScale, _maxScale);
-                    setState(() {
-                      _currentScale = value;
-                    });
-                    updateFontScale(value);
-                  },
-                  child: Column(
-                    children: [
-                      messages.isEmpty
-                          ? Expanded(
-                              child: Center(
-                                child: Text(
-                                  'No messages',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodyLarge
-                                      ?.copyWith(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .outline,
-                                      ),
-                                ),
-                              ),
-                            )
-                          : Expanded(
-                              child: ScrollablePositionedList.builder(
-                                reverse: true,
-                                itemScrollController: _itemScrollController,
-                                itemPositionsListener: _itemPositionsListener,
-                                padding: const EdgeInsets.all(16),
-                                itemCount:
-                                    shouldShowAds(messages.length, isNoAds)
-                                        ? messages.length + 1
-                                        : messages.length,
-                                itemBuilder: (context, index) {
-                                  bool adsEnabled =
-                                      shouldShowAds(messages.length, isNoAds);
-
-                                  if (adsEnabled && index == 3) {
-                                    return ChatAdBubble(
-                                        address: messages.isNotEmpty
-                                            ? messages[0].address
-                                            : "");
-                                  }
-
-                                  final int messageIndex =
-                                      (adsEnabled && index > 3)
-                                          ? index - 1
-                                          : index;
-
-                                  if (messageIndex < 0 ||
-                                      messageIndex >= messages.length) {
-                                    return const SizedBox.shrink();
-                                  }
-
-                                  final message = messages[messageIndex];
-                                  final isOutgoing = message.isOutgoing;
-                                  final isSelected =
-                                      _selectedMessages.contains(message);
-                                  final showDateSeparator =
-                                      _shouldShowDateSeparator(
-                                          messageIndex, messages);
-
-                                  final isHighlighted =
-                                      widget.searchedMessage == message;
-
-                                  return GestureDetector(
-                                    onLongPress: () =>
-                                        _toggleSelection(message),
-                                    onTap: () {
-                                      if (_isSelectionMode) {
-                                        _toggleSelection(message);
-                                      }
-                                    },
-                                    child: MessageBubble(
-                                      key: ValueKey(
-                                          '${message.id}_${message.status}'),
-                                      hide: hide,
-                                      isOutgoing: isOutgoing,
-                                      message: message,
-                                      selected: isSelected,
-                                      showDateSeparator: showDateSeparator,
-                                      isHighlighted: isHighlighted,
-                                      currentScale: _currentScale,
+          body: Stack(
+            children: [
+              ValueListenableBuilder<double>(
+                  valueListenable: _textScaleNotifier,
+                  builder: (context, scale, child) {
+                    return GestureDetector(
+                      onScaleStart: (details) {
+                        _baseScale = _currentScale;
+                      },
+                      onScaleUpdate: (details) {
+                        double newScale = _baseScale * details.scale;
+                        double value = newScale.clamp(_minScale, _maxScale);
+                        setState(() {
+                          _currentScale = value;
+                        });
+                        updateFontScale(value);
+                      },
+                      child: Column(
+                        children: [
+                          messages.isEmpty
+                              ? Expanded(
+                                  child: Center(
+                                    child: Text(
+                                      'No messages',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge
+                                          ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .outline,
+                                          ),
                                     ),
-                                  );
-                                },
-                              ),
-                            ),
-                      AppChat.supportsReplies(widget.address)
-                          ? Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.surface,
-                              ),
-                              child: SafeArea(
-                                child: BlocBuilder<SimCardCubit, SimCardState>(
-                                  builder: (context, state) {
-                                    final isLoading = state is SimCardInitial;
-
-                                    final simCardState = state is SimCardLoaded
-                                        ? state.state
-                                        : null;
-                                    final hasData = simCardState != null &&
-                                        simCardState.allCards.isNotEmpty;
-                                    final defaultSim = simCardState?.allCards
-                                        .where(
-                                          (sim) =>
-                                              int.tryParse(
-                                                  sim.slotIndex.toString()) ==
-                                              simCardState.defaultCard,
-                                        )
-                                        .firstOrNull;
-
-                                    return FutureBuilder<bool>(
-                                        future: SmsService.isDefaultSmsApp(),
-                                        builder: (context, sn) {
-                                          if (sn.hasData && !sn.data!) {
-                                            return Padding(
-                                              padding: const EdgeInsets.only(
-                                                  bottom: 10),
-                                              child: RichText(
-                                                textAlign: TextAlign.center,
-                                                text: TextSpan(
-                                                  style: theme
-                                                      .textTheme.bodyMedium
-                                                      ?.copyWith(
-                                                    color: theme.colorScheme
-                                                        .onSurfaceVariant,
-                                                  ),
-                                                  children: [
-                                                    TextSpan(
-                                                      text:
-                                                          "Set as default app",
-                                                      style: TextStyle(
-                                                        color: theme.colorScheme
-                                                            .primary,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                      ),
-                                                      recognizer:
-                                                          TapGestureRecognizer()
-                                                            ..onTap = () {
-                                                              SmsService
-                                                                  .requestDefaultSmsRole();
-                                                            },
-                                                    ),
-                                                    const TextSpan(
-                                                        text:
-                                                            " to start sending messages"),
-                                                  ],
-                                                ),
-                                              ),
-                                            );
+                                  ),
+                                )
+                              : Expanded(
+                                  child: ScrollablePositionedList.builder(
+                                    reverse: true,
+                                    itemScrollController: _itemScrollController,
+                                    itemPositionsListener: _itemPositionsListener,
+                                    padding: const EdgeInsets.all(16),
+                                    itemCount: messages.length,
+                                    itemBuilder: (context, index) {
+                                     
+              
+                                      final int messageIndex = index;
+              
+                                      if (messageIndex < 0 ||
+                                          messageIndex >= messages.length) {
+                                        return const SizedBox.shrink();
+                                      }
+              
+                                      final message = messages[messageIndex];
+                                      final isOutgoing = message.isOutgoing;
+                                      final isSelected =
+                                          _selectedMessages.contains(message);
+                                      final showDateSeparator =
+                                          _shouldShowDateSeparator(
+                                              messageIndex, messages);
+              
+                                      final isHighlighted =
+                                          widget.searchedMessage == message;
+              
+                                      return GestureDetector(
+                                        onLongPress: () =>
+                                            _toggleSelection(message),
+                                        onTap: () {
+                                          if (_isSelectionMode) {
+                                            _toggleSelection(message);
                                           }
-                                          return Row(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.end,
-                                            children: [
-                                              SizedBox(
-                                                width: 48,
-                                                height: 48,
-                                                child: _buildSimSlot(
-                                                  isLoading: isLoading,
-                                                  hasData:
-                                                      simCardState != null &&
-                                                          simCardState.allCards
-                                                              .isNotEmpty,
-                                                  simCardState: simCardState,
-                                                  defaultSim: defaultSim,
-                                                ),
-                                              ),
-
-                                              Expanded(
-                                                child: TextField(
-                                                  controller:
-                                                      _messageController,
-                                                  maxLines: 5,
-                                                  minLines: 1,
-                                                  enabled:
-                                                      !isLoading && hasData,
-                                                  onChanged: (value) =>
-                                                      setState(() {}),
-                                                  textCapitalization:
-                                                      TextCapitalization
-                                                          .sentences,
-                                                  decoration: InputDecoration(
-                                                    hintText: isLoading
-                                                        ? 'Checking SIMs...'
-                                                        : (hasData
-                                                            ? 'Message'
-                                                            : 'No SIM detected'),
-                                                    contentPadding:
-                                                        const EdgeInsets
-                                                            .symmetric(
-                                                            horizontal: 20,
-                                                            vertical: 10),
-                                                    filled: true,
-                                                    fillColor: Theme.of(context)
-                                                        .colorScheme
-                                                        .surfaceContainerHighest,
-                                                    border: OutlineInputBorder(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              28),
-                                                      borderSide:
-                                                          BorderSide.none,
-                                                    ),
-                                                    suffixIcon: Padding(
-                                                      padding:
-                                                          const EdgeInsets.only(
-                                                              right: 4),
-                                                      child: Column(
-                                                        mainAxisSize:
-                                                            MainAxisSize.min,
-                                                        mainAxisAlignment:
-                                                            MainAxisAlignment
-                                                                .center,
-                                                        children: [
-                                                          IconButton.filled(
-                                                            onPressed: (isLoading ||
-                                                                    !hasData ||
-                                                                    _messageController
-                                                                        .text
-                                                                        .isEmpty)
-                                                                ? null
-                                                                : () =>
-                                                                    _sendMessage(),
-                                                            icon: Icon(
-                                                              Icons
-                                                                  .arrow_upward,
-                                                              color: theme
-                                                                  .colorScheme
-                                                                  .onPrimary,
-                                                            ),
+                                        },
+                                        child: MessageBubble(
+                                          key: ValueKey(
+                                              '${message.id}_${message.status}'),
+                                          hide: hide,
+                                          isOutgoing: isOutgoing,
+                                          message: message,
+                                          selected: isSelected,
+                                          showDateSeparator: showDateSeparator,
+                                          isHighlighted: isHighlighted,
+                                          currentScale: _currentScale,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                          AppChat.supportsReplies(widget.address)
+                              ? Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).colorScheme.surface,
+                                  ),
+                                  child: SafeArea(
+                                    child: BlocBuilder<SimCardCubit, SimCardState>(
+                                      builder: (context, state) {
+                                        final isLoading = state is SimCardInitial;
+              
+                                        final simCardState = state is SimCardLoaded
+                                            ? state.state
+                                            : null;
+                                        final hasData = simCardState != null &&
+                                            simCardState.allCards.isNotEmpty;
+                                        final defaultSim = simCardState?.allCards
+                                            .where(
+                                              (sim) =>
+                                                  int.tryParse(
+                                                      sim.slotIndex.toString()) ==
+                                                  simCardState.defaultCard,
+                                            )
+                                            .firstOrNull;
+              
+                                        return FutureBuilder<bool>(
+                                            future: SmsService.isDefaultSmsApp(),
+                                            builder: (context, sn) {
+                                              if (sn.hasData && !sn.data!) {
+                                                return Padding(
+                                                  padding: const EdgeInsets.only(
+                                                      bottom: 10),
+                                                  child: RichText(
+                                                    textAlign: TextAlign.center,
+                                                    text: TextSpan(
+                                                      style: theme
+                                                          .textTheme.bodyMedium
+                                                          ?.copyWith(
+                                                        color: theme.colorScheme
+                                                            .onSurfaceVariant,
+                                                      ),
+                                                      children: [
+                                                        TextSpan(
+                                                          text:
+                                                              "Set as default app",
+                                                          style: TextStyle(
+                                                            color: theme.colorScheme
+                                                                .primary,
+                                                            fontWeight:
+                                                                FontWeight.bold,
                                                           ),
-                                                        ],
+                                                          recognizer:
+                                                              TapGestureRecognizer()
+                                                                ..onTap = () {
+                                                                  SmsService
+                                                                      .requestDefaultSmsRole();
+                                                                },
+                                                        ),
+                                                        const TextSpan(
+                                                            text:
+                                                                " to start sending messages"),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                );
+                                              }
+                                              return Row(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.end,
+                                                children: [
+                                                  SizedBox(
+                                                    width: 48,
+                                                    height: 48,
+                                                    child: _buildSimSlot(
+                                                      isLoading: isLoading,
+                                                      hasData:
+                                                          simCardState != null &&
+                                                              simCardState.allCards
+                                                                  .isNotEmpty,
+                                                      simCardState: simCardState,
+                                                      defaultSim: defaultSim,
+                                                    ),
+                                                  ),
+              
+                                                  Expanded(
+                                                    child: TextField(
+                                                      controller:
+                                                          _messageController,
+                                                      maxLines: 5,
+                                                      minLines: 1,
+                                                      enabled:
+                                                          !isLoading && hasData,
+                                                      onChanged: (value) =>
+                                                          setState(() {}),
+                                                      textCapitalization:
+                                                          TextCapitalization
+                                                              .sentences,
+                                                      decoration: InputDecoration(
+                                                        hintText: isLoading
+                                                            ? 'Checking SIMs...'
+                                                            : (hasData
+                                                                ? 'Message'
+                                                                : 'No SIM detected'),
+                                                        contentPadding:
+                                                            const EdgeInsets
+                                                                .symmetric(
+                                                                horizontal: 20,
+                                                                vertical: 10),
+                                                        filled: true,
+                                                        fillColor: Theme.of(context)
+                                                            .colorScheme
+                                                            .surfaceContainerHighest,
+                                                        border: OutlineInputBorder(
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                  28),
+                                                          borderSide:
+                                                              BorderSide.none,
+                                                        ),
+                                                        suffixIcon: Padding(
+                                                          padding:
+                                                              const EdgeInsets.only(
+                                                                  right: 4),
+                                                          child: Column(
+                                                            mainAxisSize:
+                                                                MainAxisSize.min,
+                                                            mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .center,
+                                                            children: [
+                                                              IconButton.filled(
+                                                                onPressed: (isLoading ||
+                                                                        !hasData ||
+                                                                        _messageController
+                                                                            .text
+                                                                            .isEmpty)
+                                                                    ? null
+                                                                    : () =>
+                                                                        _sendMessage(),
+                                                                icon: Icon(
+                                                                  Icons
+                                                                      .arrow_upward,
+                                                                  color: theme
+                                                                      .colorScheme
+                                                                      .onPrimary,
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
                                                       ),
                                                     ),
                                                   ),
-                                                ),
-                                              ),
-
-                                              // --- TEXT FIELD SECTION ---
-                                              const SizedBox(width: 8),
-                                            ],
-                                          );
-                                        });
-                                  },
-                                ),
-                              ),
-                            )
-                          : const SizedBox(
-                              height: 50,
-                            )
-                    ],
-                  ),
-                );
-              }),
+              
+                                                  // --- TEXT FIELD SECTION ---
+                                                  const SizedBox(width: 8),
+                                                ],
+                                              );
+                                            });
+                                      },
+                                    ),
+                                  ),
+                                )
+                              : const SizedBox(
+                                  height: 50,
+                                )
+                        ],
+                      ),
+                    );
+                  }),
+                 isMpesa(widget.address)
+                  ? Positioned(
+                  top: 0,
+                  child: MchangoActiveBanner(threadId: widget.threadId)
+                  ):const SizedBox.shrink(),
+            ],
+          ),
           floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
           floatingActionButton: MaskService.isMonitored(widget.address)
               ? Padding(
@@ -619,17 +611,15 @@ void _scrollToAnchor(int timestamp, List<AppSmsMessage> messages) {
                   ),
                 )
               : null,
+              bottomNavigationBar:  AppChat.supportsReplies(widget.address)? null:  const MfichaBannerAd(adType: AdType.inChat),
         );
+        return isMpesa(widget.address)?
+         BlocProvider(create:   (c) => MchangoCubit(widget.threadId), child: child):
+         child;
       },
     );
   }
 
-  bool shouldShowAds(int messageLength, bool isNoAds) {
-    return MaskService.isMonitored(widget.address) &&
-        messageLength > 5 &&
-        !isNoAds &&
-        widget.searchedMessage == null;
-  }
 
   AppBar _buildAppBar(List<AppSmsMessage> messages) {
     // 1. SELECTION MODE
@@ -677,6 +667,7 @@ void _scrollToAnchor(int timestamp, List<AppSmsMessage> messages) {
             onPressed: () => _deleteSelectedMessages(),
           ),
         ],
+        
       );
     }
 
@@ -696,8 +687,7 @@ void _scrollToAnchor(int timestamp, List<AppSmsMessage> messages) {
             ? IconButton(
                 icon: const Icon(Icons.business_center_outlined),
                 onPressed: () {
-                  ScaffoldMessenger.of(context)
-                      .showSnackBar(SnackBar(content: Text('Coming soon!')));
+                  Navigator.of(context).push(MaterialPageRoute(builder: (ctx) => MchangoDashboardWrapper(threadId: widget.threadId)));
                 },
               )
             : const SizedBox.shrink(),
@@ -708,6 +698,7 @@ void _scrollToAnchor(int timestamp, List<AppSmsMessage> messages) {
               : () => _makePhoneCall(widget.address),
         ),
       ],
+      
     );
   }
 

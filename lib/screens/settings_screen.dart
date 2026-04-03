@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:messaging/core/events.dart';
 import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/core/utils/functions.dart';
+import 'package:messaging/cubit/user_preference_cubit.dart';
 import 'package:messaging/models/sim_card_state.dart';
 import 'package:messaging/screens/archived_chats_screen.dart';
 import 'package:messaging/screens/widgets/ad_free_tile.dart';
@@ -43,14 +45,15 @@ class _SettingsScreenState extends State<SettingsScreen>
       _verifyPermissionStatus();
     }
   }
+
   bool _isWaitingForOverlayPermission = false;
   Future<void> _verifyPermissionStatus() async {
-    if(!_isWaitingForOverlayPermission) return ;
+    if (!_isWaitingForOverlayPermission) return;
     bool isGranted = await FlutterOverlayWindow.isPermissionGranted();
     if (isGranted) {
       await UserDefaults.setShowOverlay(true);
       _isWaitingForOverlayPermission = false;
-      setState(() {}); 
+      setState(() {});
     }
   }
 
@@ -75,7 +78,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                 padding:
                     const EdgeInsets.all(16.0), // Outer padding for the cards
                 children: [
-                  _buildSectionHeader("App"),
+                  _buildSectionHeader("Messaging"),
                   Card(
                     elevation: 0,
                     shape: RoundedRectangleBorder(
@@ -91,13 +94,15 @@ class _SettingsScreenState extends State<SettingsScreen>
                     child: Column(
                       children: [
                         ListTile(
-                          leading:  Icon(Icons.messenger_outline, color: theme.colorScheme.primary),
+                          leading: Icon(Icons.messenger_outline,
+                              color: theme.colorScheme.primary),
                           title: const Text("Default Messaging App"),
                           subtitle: Text(_isDefaultSmsApp
                               ? "This is the default messaging app"
                               : "Tap to set as default"),
                           trailing: _isDefaultSmsApp
-                              ? const Icon(Icons.check_circle_outline, color: Colors.green)
+                              ? const Icon(Icons.check_circle_outline,
+                                  color: Colors.green)
                               : FilledButton(
                                   onPressed: () async {
                                     await SmsService.requestDefaultSmsRole();
@@ -110,78 +115,98 @@ class _SettingsScreenState extends State<SettingsScreen>
                                   },
                                   child: const Text('Set as Default')),
                         ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
+                        Divider(
+                          height: 1,
+                          indent: 16,
+                          endIndent: 16,
+                          color: theme.colorScheme.outlineVariant.withAlpha(70),
+                        ),
+                        ListTile(
+                          leading: Icon(Icons.archive_outlined,
+                              color: theme.colorScheme.primary),
+                          title: const Text("Archived Conversations"),
+                          trailing: FutureBuilder<int>(
+                            future: SmsService().getArchivedCount(),
+                            builder: (context, snapshot) {
+                              final count = snapshot.data ?? 0;
+                              return Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primary,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Text(
+                                  "$count",
+                                  style: TextStyle(
+                                    color: theme.colorScheme.onPrimary,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          onTap: () async {
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) =>
+                                      const ArchivedChatsScreen()),
+                            );
+                            if (result != null) {
+                              setState(() {});
+                            }
+                          },
+                        ),
+                        
+                        
+                        Divider(
+                          height: 1,
+                          indent: 16,
+                          endIndent: 16,
+                          color: theme.colorScheme.outlineVariant.withAlpha(70),
+                        ),
                         FutureBuilder<AppSimCardState>(
                           future: SmsService().getSimState(),
                           builder: (context, sn) {
-                            // 1. Extract data safely. 
+                            // 1. Extract data safely.
                             // If it's still loading or has an error, simCardState will be null.
                             final simCardState = sn.data;
-                            
+
                             // 2. Perform safe lookup using ?. and firstOrNull
-                            final currentSim = simCardState?.allCards.where((sim) {
+                            final currentSim =
+                                simCardState?.allCards.where((sim) {
                               final slot = int.tryParse(sim.slotIndex);
-                              return slot != null && slot == simCardState.defaultCard;
+                              return slot != null &&
+                                  slot == simCardState.defaultCard;
                             }).firstOrNull;
-        
+
                             // 3. Build UI - No loaders, just logic
                             final bool hasValidSim = currentSim != null;
-                            final int displaySlot = (int.tryParse(currentSim?.slotIndex ?? "") ?? 0) + 1;
-        
+                            final int displaySlot =
+                                (int.tryParse(currentSim?.slotIndex ?? "") ??
+                                        0) +
+                                    1;
+
                             return ListTile(
                               title: const Text("Default SIM Card"),
-                              subtitle: Text(
-                                hasValidSim 
-                                  ? "SIM $displaySlot (${currentSim.displayName})" 
-                                  : "Select default SIM"
-                              ),
-                              leading:  Icon(Icons.sim_card_outlined, color: theme.colorScheme.primary),
+                              subtitle: Text(hasValidSim
+                                  ? "SIM $displaySlot (${currentSim.displayName})"
+                                  : "Select default SIM"),
+                              leading: Icon(Icons.sim_card_outlined,
+                                  color: theme.colorScheme.primary),
                               trailing: const Icon(Icons.arrow_drop_down),
                               onTap: _showSimPicker,
                             );
                           },
                         ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                         ListTile(
-                            leading:  Icon(Icons.archive_outlined, color: theme.colorScheme.primary),
-                            title: const Text("Archived Conversations"),
-                            trailing: FutureBuilder<int>(
-                              future: SmsService().getArchivedCount(),
-                              builder: (context, snapshot) {
-                                final count = snapshot.data ?? 0;
-                                return Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: BoxDecoration(
-                                    color: theme.colorScheme.primary,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Text(
-                                    "$count",
-                                    style:  TextStyle(
-                                      color: theme.colorScheme.onPrimary,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                            onTap: () async{
-                              final result = await Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => const ArchivedChatsScreen()),
-                              );
-                              if(result!=null){
-                                setState(() {});
-                              }
-                            },
-                          ),
+                        
                       ],
                     ),
                   ),
                   const SizedBox(height: 24), // Space between cards
-        
-                  _buildSectionHeader("Preferences"),
+
+                  _buildSectionHeader("Appearance & Personalization"),
                   Card(
                     elevation: 0,
                     shape: RoundedRectangleBorder(
@@ -193,51 +218,73 @@ class _SettingsScreenState extends State<SettingsScreen>
                     clipBehavior: Clip.antiAlias,
                     child: Column(
                       children: [
+                        ListTile(
+                          title: const Text("Dark Mode"),
+                          trailing: Switch(
+                            value:
+                                Theme.of(context).brightness == Brightness.dark,
+                            onChanged: (isDark) {
+                              context
+                                  .read<UserPreferenceCubit>()
+                                  .updateThemeMode(isDark
+                                      ? ThemeMode.dark
+                                      : ThemeMode.light);
+                            },
+                          ),
+                        ),
+                        Divider(
+                          height: 1,
+                          indent: 16,
+                          endIndent: 16,
+                          color: theme.colorScheme.outlineVariant.withAlpha(70),
+                        ),
                         FutureBuilder(
-                          future: UserDefaults.getHideStatus(),
-                          builder: (context, asyncSnapshot) {
-                            return SwitchListTile(
-                            
-                              title: const Text("Always hide balances"),
-                              value: asyncSnapshot.data ?? false, 
-                              onChanged: (value) async {
-                                await UserDefaults.setHideStatus(value);
-                                setState(() {});
-                              }
-                              );
-                          }
+                            future: UserDefaults.getHideStatus(),
+                            builder: (context, asyncSnapshot) {
+                              return SwitchListTile(
+                                  title: const Text("Always hide balances"),
+                                  value: asyncSnapshot.data ?? false,
+                                  onChanged: (value) async {
+                                    await UserDefaults.setHideStatus(value);
+                                    setState(() {});
+                                  });
+                            }),
+                            Divider(
+                          height: 1,
+                          indent: 16,
+                          endIndent: 16,
+                          color: theme.colorScheme.outlineVariant.withAlpha(70),
                         ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
                         FutureBuilder<bool>(
-                          future: NotificationService.canShowOverlay(),
-                          builder: (context, asyncSnapshot) {
-                            return SwitchListTile(
-                            
-                              title: const Text("Payment confirmation shortcuts"),
-                              subtitle: const Text('Show a secured overlay to quickly verify payments without opening the app'),
-                              value: asyncSnapshot.data ?? false, 
-                              onChanged: (value) async {
-                                if(!await FlutterOverlayWindow.isPermissionGranted()){
-                                  _isWaitingForOverlayPermission = true;
-                                }
-                                  await NotificationService.setShowOverlay(value);
-                                  setState(() {});
-                                }
-                              );
-                          }
-                        ),
-                       
+                            future: NotificationService.canShowOverlay(),
+                            builder: (context, asyncSnapshot) {
+                              return SwitchListTile(
+                                  title: const Text(
+                                      "Payment confirmation shortcuts"),
+                                  subtitle: const Text(
+                                      'Show a secured overlay to quickly verify payments without opening the app'),
+                                  value: asyncSnapshot.data ?? false,
+                                  onChanged: (value) async {
+                                    if (!await FlutterOverlayWindow
+                                        .isPermissionGranted()) {
+                                      _isWaitingForOverlayPermission = true;
+                                    }
+                                    await NotificationService.setShowOverlay(
+                                        value);
+                                    setState(() {});
+                                  });
+                            }),
+                        
                       ],
                     ),
                   ),
-                   const SizedBox(height: 15),
+                  const SizedBox(height: 15),
                   const AdFreeTile(),
                   const NoAdsStatusTile(),
-        
-        
+
                   const SizedBox(height: 24), // Space between cards
-        
-                  _buildSectionHeader("Other"),
+
+                  _buildSectionHeader("Legal & Support"),
                   Card(
                     elevation: 0,
                     shape: RoundedRectangleBorder(
@@ -258,16 +305,15 @@ class _SettingsScreenState extends State<SettingsScreen>
                         _buildLinkTile(
                           Icons.privacy_tip_outlined,
                           "Privacy Policy",
-                          () => _launchUrl('https://brimukon.com/m-ficha/privacy'),
+                          () => _launchUrl(
+                              'https://brimukon.com/m-ficha/privacy'),
                         ),
-                        
                         const Divider(height: 1, indent: 16, endIndent: 16),
                         _buildLinkTile(
                           Icons.help_outline,
                           "Help & Feedback",
                           () => _launchUrl('https://brimukon.com/support'),
                         ),
-                        
                       ],
                     ),
                   ),
@@ -299,7 +345,6 @@ class _SettingsScreenState extends State<SettingsScreen>
     }
   }
 
-
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -317,12 +362,13 @@ class _SettingsScreenState extends State<SettingsScreen>
   Widget _buildLinkTile(IconData icon, String title, VoidCallback onTap) {
     final theme = Theme.of(context);
     return ListTile(
-      leading: Icon(icon,  color: theme.colorScheme.primary),
+      leading: Icon(icon, color: theme.colorScheme.primary),
       title: Text(title),
       trailing: const Icon(Icons.chevron_right, size: 20),
       onTap: onTap,
     );
   }
+
   int _tapCount = 0;
   Widget _buildFooter() {
     final theme = Theme.of(context);
@@ -336,28 +382,30 @@ class _SettingsScreenState extends State<SettingsScreen>
           padding: const EdgeInsets.symmetric(vertical: 20),
           child: GestureDetector(
             onTap: () async {
-            _tapCount++;
-            if (_tapCount >= 7) {
-              _tapCount = 0; 
-              bool currentMode = await UserDefaults.isDemoMode();
-              await UserDefaults.setDemoMode(!currentMode);
-              eventBus.fire(DemoMode(isActive: !currentMode));
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(!currentMode ? "Demo Mode Activated" : "Demo Mode Deactivated"),
-                  backgroundColor: theme.colorScheme.primary,
-                ),
-              );
-            }
-           
-          },
+              _tapCount++;
+              if (_tapCount >= 7) {
+                _tapCount = 0;
+                bool currentMode = await UserDefaults.isDemoMode();
+                await UserDefaults.setDemoMode(!currentMode);
+                eventBus.fire(DemoMode(isActive: !currentMode));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(!currentMode
+                        ? "Demo Mode Activated"
+                        : "Demo Mode Deactivated"),
+                    backgroundColor: theme.colorScheme.primary,
+                  ),
+                );
+              }
+            },
             child: Center(
               child: Column(
                 children: [
                   Text(
                     'App Version ${info.version}',
                     style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant.withOpacity(0.6),
+                      color:
+                          theme.colorScheme.onSurfaceVariant.withOpacity(0.6),
                       letterSpacing: 0.5,
                     ),
                   ),
@@ -365,7 +413,8 @@ class _SettingsScreenState extends State<SettingsScreen>
                   Text(
                     '© ${DateTime.now().year} Proudly Kenyan',
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant.withOpacity(0.4),
+                      color:
+                          theme.colorScheme.onSurfaceVariant.withOpacity(0.4),
                     ),
                   ),
                 ],
@@ -377,8 +426,8 @@ class _SettingsScreenState extends State<SettingsScreen>
     );
   }
 
-  void _showSimPicker() async{
-  final isDefault = await SmsService.isDefaultSmsApp();
+  void _showSimPicker() async {
+    final isDefault = await SmsService.isDefaultSmsApp();
     if (!isDefault) {
       SmsService.requestDefaultSmsRole();
       return;
@@ -408,11 +457,11 @@ class _SimPickerState extends State<SimPicker> {
         future: SmsService().getSimState(),
         builder: (context, sn) {
           final bool isLoading = sn.connectionState == ConnectionState.waiting;
-      
+
           final bool hasData = sn.hasData && sn.data!.allCards.isNotEmpty;
-      
+
           final simCardState = sn.data;
-         
+
           if (isLoading) {
             return const Center(child: CircularProgressIndicator());
           } else if (!hasData) {

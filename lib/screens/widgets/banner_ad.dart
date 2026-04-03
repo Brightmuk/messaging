@@ -6,7 +6,8 @@ import 'package:messaging/cubit/payment_cubit.dart';
 import 'package:messaging/services/ads/banner_ads.dart';
 
 class MfichaBannerAd extends StatefulWidget {
-  const MfichaBannerAd({super.key});
+  final AdType adType;
+  const MfichaBannerAd({super.key, this.adType = AdType.home});
 
   @override
   State<MfichaBannerAd> createState() => _MfichaBannerAdState();
@@ -25,6 +26,7 @@ class _MfichaBannerAdState extends State<MfichaBannerAd> {
   void _loadAd() async {
     if (await UserDefaults.getAdsRemoved()) return;
     _bannerAd = BannerAdService.createBannerAd(
+      type: widget.adType,
       onAdLoaded: (ad) {
         setState(() => _isLoaded = true);
       },

@@ -11,13 +11,11 @@ class AdFreeTile extends StatelessWidget {
     final theme = Theme.of(context);
     return BlocBuilder<PaymentCubit, PaymentState>(
       builder: (context, state) {
-        // 1. Check the state to see if the user is already Ad-Free
-        // This ensures the banner disappears immediately after a successful purchase
         bool isNoAds = context.read<PaymentCubit>().isNoAds;
         if (isNoAds) {
           return const SizedBox.shrink();
         }
-
+        String price = context.read<PaymentCubit>().price;
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 10),
           decoration: BoxDecoration(
@@ -69,22 +67,15 @@ class AdFreeTile extends StatelessWidget {
                               ),
                               children:  [
                                 const TextSpan(text: "One-time payment of only "),
-                                TextSpan(
-                                  text: "Ksh.500 ",
-                                  style: TextStyle(
-                                    decoration: TextDecoration.lineThrough,
-                                    color: theme.colorScheme.onSurface.withAlpha(120),
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                TextSpan(
-                                  text: " Ksh.360",
+                               
+                               TextSpan(
+                                  text: price,
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     color: theme.colorScheme.onSurface,
                                     fontSize: 14,
                                   ),
-                                ),
+                                )
                               ],
                             ),
                           ),

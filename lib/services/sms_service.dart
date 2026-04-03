@@ -11,6 +11,7 @@ import 'package:messaging/services/ac_chat_session_service.dart';
 import 'package:messaging/services/contact_db.dart';
 import 'package:messaging/services/contact_service.dart';
 import 'package:messaging/services/mask_service.dart';
+import 'package:messaging/services/mchango_service.dart';
 import 'package:messaging/services/sound_service.dart';
 import 'package:sim_card_info/sim_card_info.dart';
 import 'package:sim_card_info/sim_info.dart';
@@ -296,6 +297,7 @@ class SmsService {
         statusListener: (status) async {
           try {
             if (status == SendStatus.DELIVERED) {
+              await cancelSendTimeout(message.id!);
               await markMessageAsDelivered(message);
               _writeOutgoingToSystemDb(message);
             }
@@ -378,7 +380,7 @@ class SmsService {
       
       await _updateChat(threadId, appMsg.address, appMsg.body, appMsg.date,
           incrementUnread: true);
-
+      await MchangoService().processMessage(appMsg.copyWith(id: appMsg.id));
       _messageUpdateController
           .add(SmsEvent(type: SmsEventType.messageReceived, message: appMsg));
     } catch (_) {
@@ -576,7 +578,7 @@ class SmsService {
         title: contactName,
         body: MaskService.maskAfterBalance(message.body!, message.address!)
             .message,
-        actions: true,
+        action: NotificationAction.sms,
         payload:
             json.encode({'threadId': threadId, 'address': message.address}),
       );
@@ -615,7 +617,7 @@ class SmsService {
       notificationService.showNotification(
         title: title,
         body: maskResult.message,
-        actions: true,
+        action: NotificationAction.sms,
         lowPriority: MaskService.isMonitored(message.address!),
         payload: payload,
       );
@@ -624,12 +626,24 @@ class SmsService {
     }
   }
 
-  Future<void> markThreadAsRead(String threadId) async {
+  Future<void> markThreadAsRead(String threadId, String address) async {
     try {
       await _dbHelper.markThreadAsRead(threadId);
+      await _markSystemThreadAsRead(address);
       _messageUpdateController.add(SmsEvent(type: SmsEventType.threadUpdated));
     } catch (_) {
       debugPrint("[SmsService] error marking thread as read");
+    }
+  }
+  Future<void> _markSystemThreadAsRead(String address) async {
+    try {
+      final rowsUpdated = await _channel.invokeMethod<int>(
+        'markSystemThreadAsRead',
+        {'address': address},
+      );
+      debugPrint('[SmsService] System thread marked as read: $rowsUpdated rows updated');
+    } catch (e) {
+      debugPrint('[SmsService] markSystemThreadAsRead failed: ${e.runtimeType}');
     }
   }
 
