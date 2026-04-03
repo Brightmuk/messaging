@@ -625,12 +625,24 @@ class SmsService {
     }
   }
 
-  Future<void> markThreadAsRead(String threadId) async {
+  Future<void> markThreadAsRead(String threadId, String address) async {
     try {
       await _dbHelper.markThreadAsRead(threadId);
+      await _markSystemThreadAsRead(address);
       _messageUpdateController.add(SmsEvent(type: SmsEventType.threadUpdated));
     } catch (_) {
       debugPrint("[SmsService] error marking thread as read");
+    }
+  }
+  Future<void> _markSystemThreadAsRead(String address) async {
+    try {
+      final rowsUpdated = await _channel.invokeMethod<int>(
+        'markSystemThreadAsRead',
+        {'address': address},
+      );
+      debugPrint('[SmsService] System thread marked as read: $rowsUpdated rows updated');
+    } catch (e) {
+      debugPrint('[SmsService] markSystemThreadAsRead failed: ${e.runtimeType}');
     }
   }
 

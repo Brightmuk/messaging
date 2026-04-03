@@ -49,7 +49,7 @@ class SingleChatScreen extends StatelessWidget {
         providers: [
           BlocProvider(create: (c) => SimCardCubit()),
           BlocProvider(
-              create: (c) => SingleChatCubit(threadId,
+              create: (c) => SingleChatCubit(threadId, address,
                   targetTimestamp: searchedMessage?.date)),
         ],
         child: SingleChatScreenView(

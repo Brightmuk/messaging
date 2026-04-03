@@ -47,6 +47,12 @@ class SmsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 val newSystemId = smsRepo.writeIncomingToSystemDb(address, body, date)
                 result.success(newSystemId)
             }
+            "markSystemThreadAsRead" -> {
+                val address = call.argument<String>("address")
+                    ?: return result.error("ERR", "No address", null)
+                val rowsUpdated: Int = smsRepo.markThreadAsRead(address)
+                result.success(rowsUpdated)
+            }
             "getSystemThreadId" -> {
                 val address = call.argument<String>("address") ?: return result.error("ERR", "No address", null)
                 result.success(smsRepo.getOrCreateSystemThreadId(address))

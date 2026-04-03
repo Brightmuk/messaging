@@ -13,6 +13,7 @@ const anchorWindow = 20;
 
 class SingleChatCubit extends Cubit<SingleChatState> {
   final String threadId;
+  final String address;
   final SmsService _smsService = SmsService();
   int? targetTimestamp;
   StreamSubscription? _updateSubscription;
@@ -28,7 +29,7 @@ class SingleChatCubit extends Cubit<SingleChatState> {
   int? _oldestLoadedDate;
   int? _newestLoadedDate;
 
-  SingleChatCubit(this.threadId, {this.targetTimestamp})
+  SingleChatCubit(this.threadId, this.address, {this.targetTimestamp})
       : super(SingleChatInitial()) {
     getHideStatus();
     _setupListeners();
@@ -314,7 +315,7 @@ class SingleChatCubit extends Cubit<SingleChatState> {
 
   Future<void> markThreadAsRead() async {
     if(await UserDefaults.isDemoMode()) return;
-    await _smsService.markThreadAsRead(threadId);
+    await _smsService.markThreadAsRead(threadId,address );
   }
 
   @override

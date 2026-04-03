@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:messaging/core/brand_palette.dart';
 import 'package:messaging/core/feedback_ui.dart';
-import 'package:messaging/core/user_defaults.dart';
 import 'package:messaging/cubit/chats_cubit.dart';
 import 'package:messaging/cubit/payment_cubit.dart';
 import 'package:messaging/main.dart';
@@ -13,7 +12,6 @@ import 'package:messaging/models/app_chat.dart';
 import 'package:messaging/screens/global_search_page.dart';
 import 'package:messaging/screens/mchango/dashboard.dart';
 import 'package:messaging/screens/settings_screen.dart';
-import 'package:messaging/screens/setup_doa.dart';
 import 'package:messaging/screens/single_chat_screen.dart';
 import 'package:messaging/core/utils/date_formatter.dart';
 import 'package:messaging/screens/widgets/ad_free_tile.dart';
@@ -87,16 +85,16 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver, Rout
       return; 
     }
 
-    final canShowOverlay = await NotificationService.canShowOverlay();
-    final shouldPrompt = await UserDefaults.canShowOverlayPrompt();
-
-    if (!canShowOverlay && shouldPrompt) {
-      await Future.delayed(const Duration(seconds: 5));
+    // final canShowOverlay = await NotificationService.canShowOverlay();
+    // final shouldPrompt = await UserDefaults.canShowOverlayPrompt();
+    //TODO: Disable for now
+    // if (!canShowOverlay && shouldPrompt) {
+    //   await Future.delayed(const Duration(seconds: 5));
       
-      if (mounted && _isCurrentRoute) {
-        showOverlayBottomSheet(context);
-      }
-    }
+    //   if (mounted && _isCurrentRoute) {
+    //     showOverlayBottomSheet(context);
+    //   }
+    // }
   }
 
   @override

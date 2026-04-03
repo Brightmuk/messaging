@@ -166,8 +166,9 @@ void _navigateToChat(String? payload) {
       try {
         final data = json.decode(payload) as Map<String, dynamic>;
         final threadId = data['threadId'] as String?;
-        if (threadId != null) {
-          SmsService().markThreadAsRead(threadId);
+        final address = data['address'] as String?;
+        if (threadId != null && address != null) {
+          SmsService().markThreadAsRead(threadId, address);
         }
       } catch (e) {
         debugPrint('Failed to parse notification payload: $e');
