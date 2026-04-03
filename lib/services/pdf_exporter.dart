@@ -214,7 +214,7 @@ static String _formatDate(int timestamp) {
     final dir = await getTemporaryDirectory();
    
     final file = File(
-        '${dir.path}/mchango_${campaignName.replaceAll(' ', '_')}.pdf');
+        '${dir.path}/${campaignName.replaceAll(' ', '_')}_contributions.pdf');
         
     await file.writeAsBytes(bytes);
    

@@ -29,7 +29,7 @@ class _BannerWidgetState extends State<_BannerWidget>
   void initState() {
     super.initState();
     _pulseController = AnimationController(
-      lowerBound: 0.7,
+      lowerBound: 0.5,
       upperBound: 1.0,
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -130,17 +130,7 @@ class _BannerWidgetState extends State<_BannerWidget>
   Widget _buildPulseIndicator() {
     return FadeTransition(
       opacity: _pulseController,
-      child: Container(
-        width: 10,
-        height: 10,
-        decoration: const BoxDecoration(
-          color: Colors.blueAccent,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(color: Colors.blue, blurRadius: 4, spreadRadius: 1)
-          ],
-        ),
-      ),
+      child: Icon(Icons.savings_outlined, color: Colors.green.shade700, size: 24),
     );
   }
 

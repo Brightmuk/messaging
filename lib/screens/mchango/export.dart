@@ -89,7 +89,7 @@ class _ExportSheetState extends State<ExportSheet> {
                 label: _loadingExportWithAd? const SizedBox(
                 width: 18,
                 height: 18,
-                child:  CircularProgressIndicator(color: Colors.white,)): const Text('Watch Ad — Remove Watermark'),
+                child:  CircularProgressIndicator(color: Colors.white,)): const Text('Remove Watermark'),
               ),
             ),
             const SizedBox(height: 12),

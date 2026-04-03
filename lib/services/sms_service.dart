@@ -297,6 +297,7 @@ class SmsService {
         statusListener: (status) async {
           try {
             if (status == SendStatus.DELIVERED) {
+              await cancelSendTimeout(message.id!);
               await markMessageAsDelivered(message);
               _writeOutgoingToSystemDb(message);
             }
