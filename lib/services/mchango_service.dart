@@ -22,6 +22,30 @@ class MchangoService {
     r'received\s+Ksh([\d,]+\.?\d*)\s+from\s+([A-Z\s]+?)\s+([\d]+)',
     caseSensitive: false,
   );
+  static final RegExp _excludedSenderPattern = RegExp(
+  r'\b('
+  // Banks
+  r'KCB|EQUITY|COOPERATIVE|CO-OP|ABSA|STANBIC|DTB|NCBA|FAMILY\s*BANK|'
+  r'PRIME\s*BANK|SIDIAN|CREDIT\s*BANK|VICTORIA\s*BANK|GUARDIAN\s*BANK|'
+  r'CONSOLIDATED\s*BANK|HOUSING\s*FINANCE|HFC|NIC|CBA|I&M|'
+  // Saccos & MFIs
+  r'SACCO|FAULU|KWFT|SMEP|UWEZO|RAFIKI|WATU\s*CREDIT|MWANANCHI|'
+  // Telco services
+  r'ZIDI|FULIZA|MSHWARI|KCB\s*MPESA|HUSTLER\s*FUND|'
+  r'AIRTEL\s*MONEY|TKASH|T-KASH|'
+  // Utilities & billers
+  r'KPLC|KENYA\s*POWER|NAIROBI\s*WATER|GWASCO|NAWASCO|'
+  r'DSTV|GOTV|ZUKU|SAFARICOM|'
+  // Government & parastatal
+  r'KRA|NTSA|NHIF|NSSF|HELB|KEBS|'
+  // Lending apps
+  r'TALA|BRANCH|ZENKA|OKOLEA|TIMIZA|HARAKA|LIPA\s*LATER|'
+  r'BERRY|KASHWAY|OPESA|OKASH|XCREDIT|PESA\s*PATA|'
+  // Generic automated indicators
+  r'PAYBILL|TILL|MERCHANT|AGENT|SYSTEM|SERVICE|AUTOMATED|REVERSAL'
+  r')\b',
+  caseSensitive: false,
+);
   static Future<String?> getThreadIdForMchango() async {
     final status = await Permission.sms.request();
     if (!status.isGranted) return null;
@@ -45,6 +69,12 @@ class MchangoService {
         "Amount is: $amount senderName: $senderName senderPhone: $senderPhone");
 
     if (amount <= 0) return null;
+
+     // Ignore known automated/business senders
+  if (senderName != null && _excludedSenderPattern.hasMatch(senderName)) {
+    debugPrint('[MchangoService] Ignoring automated sender: $senderName');
+    return null;
+  }
 
     return Contribution(
       campaignId: campaignId,
@@ -167,6 +197,8 @@ class MchangoService {
       final random = Random();
 
       final names = [
+        'ZIDI',
+        'KCB MPESA',
         'JOHN DOE',
         'MARY WANJIKU',
         'PETER KAMAU',
