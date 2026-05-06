@@ -4,9 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:messaging/core/brand_palette.dart';
-import 'package:messaging/core/feedback_ui.dart';
 import 'package:messaging/cubit/chats_cubit.dart';
-import 'package:messaging/cubit/payment_cubit.dart';
 import 'package:messaging/main.dart';
 import 'package:messaging/models/app_chat.dart';
 import 'package:messaging/screens/global_search_page.dart';
@@ -14,7 +12,6 @@ import 'package:messaging/screens/mchango/dashboard.dart';
 import 'package:messaging/screens/settings_screen.dart';
 import 'package:messaging/screens/single_chat_screen.dart';
 import 'package:messaging/core/utils/date_formatter.dart';
-import 'package:messaging/screens/widgets/ad_free_tile.dart';
 import 'package:messaging/screens/widgets/banner_ad.dart';
 import 'package:messaging/screens/widgets/chats_loading_widget.dart';
 import 'package:messaging/screens/widgets/contact_name_text.dart';
@@ -34,20 +31,9 @@ class ChatsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final feedbackui = FeedbackUi(context);
     return BlocProvider(
       create: (context) => ChatsCubit(),
-      child: BlocListener<PaymentCubit, PaymentState>(
-        listener: (context, state) {
-          if (state is PaymentSuccess) {
-            feedbackui.showSuccess("No Ads forever!");
-          }
-          if (state is PaymentFailed) {
-            feedbackui.showError(state.message);
-          }
-        },
-        child: const ChatsView(),
-      ),
+      child: const ChatsView(),
     );
   }
 }
@@ -174,7 +160,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver, Rout
 
   @override
   Widget build(BuildContext context) {
-    bool isNoAds = Provider.of<PaymentCubit>(context).isNoAds;
+    // bool isNoAds = Provider.of<PaymentCubit>(context).isNoAds;
 
     return Scaffold(
 
@@ -312,21 +298,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver, Rout
                               // Base chat index adjustment
                               int chatIndex = isDefault ? index : index - 1;
 
-                              // 2. Handle the Ad-Free Upsell Tile (Only if ads are enabled)
-                              if (!isNoAds) {
-                                // We'll place the AdFreeTile at index 6 (Default) or 7 (Non-Default)
-                                final adFreeIndex = isDefault ? 6 : 7;
 
-                                if (index == adFreeIndex) {
-                                  return const AdFreeTile();
-                                }
-
-                                // If we are past the AdFreeTile, we subtract 1 from chatIndex
-                                // to "skip" that slot and fetch the correct chat from the list.
-                                if (index > adFreeIndex) {
-                                  chatIndex -= 1;
-                                }
-                              }
 
                               // 3. Safety Check
                               if (chatIndex >= state.chats.length ||
@@ -340,11 +312,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver, Rout
                                   : _buildPrivacyVaultTile(
                                       state.chats[chatIndex], context);
                             },
-                            childCount: calculateChildCount(
-                              state.chats.length,
-                              state.isDefaultApp,
-                              isNoAds,
-                            ),
+                            childCount: state.chats.length
                           ),
                         )
                 else
@@ -388,24 +356,7 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver, Rout
     );
   }
 
-  int calculateChildCount(int chatsLength, bool isDefaultApp, bool isNoAds) {
-    // If no chats and it's the default app, show nothing (or an empty state)
-    if (chatsLength == 0 && isDefaultApp) return 0;
 
-    int totalCount = chatsLength;
-
-    // Add 1 for the LimitedAccessTile if not the default app
-    if (!isDefaultApp) {
-      totalCount += 1;
-    }
-
-    // Add 1 for the AdFreeTile only if ads are active and the list is long enough
-    if (!isNoAds && chatsLength >= 6) {
-      totalCount += 1;
-    }
-
-    return totalCount;
-  }
 
   Widget _buildPermissionsPrompt(BuildContext context) {
     final theme = Theme.of(context);
