@@ -61,3 +61,34 @@ In an era of cloud-syncing and data harvesting, M-Ficha takes a different path: 
 ```bash
    git clone https://github.com/yourusername/m-ficha.git
 ```
+
+2. **Set up Firebase**
+
+   M-Ficha uses Firebase for FCM but the `google-services.json` file is not included in this repository for security reasons. You will need to create your own Firebase project and configure it manually.
+
+   **Steps:**
+   - Go to the [Firebase Console](https://console.firebase.google.com/) and create a new project.
+   - Register an Android app using your package name (e.g. `com.brimukonlabs.mficha`).
+   - Download the generated `google-services.json` file.
+   - Place it in the `android/app/` directory of the cloned project:
+```
+     m-ficha/
+     └── android/
+         └── app/
+             └── google-services.json   ← place it here
+```
+   - Make sure `google-services.json` is listed in your `.gitignore` so you don't accidentally push it:
+```
+     # .gitignore
+     android/app/google-services.json
+```
+
+3. **Install dependencies**
+```bash
+   flutter pub get
+```
+
+4. **Run the app**
+```bash
+   flutter run
+```
