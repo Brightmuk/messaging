@@ -17,12 +17,9 @@ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS INHere is the complete documentation for your repository. You can copy and paste this directly into your project files.
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
 
----
-
-### 1. README.md
-```markdown
 # M-Ficha 🇰🇪
 
 **The First Kenyan-Built 2G SMS Messenger.**
@@ -36,30 +33,31 @@ M-Ficha is an open-source, privacy-first messaging application designed specific
 In an era of cloud-syncing and data harvesting, M-Ficha takes a different path: **Local Isolation.** We believe your financial messages and community contributions should stay on your device, not a server.
 
 ### Key Features
-*   **Privacy Shield:** Automatically masks M-PESA and Airtel Money balances locally on your screen to prevent "shoulder-surfing" in public.
-*   **Mchango Smart Treasury:** A local ledger that automatically parses incoming contribution SMS to track group funds without manual data entry.
-*   **PDF Reporting:** Generate professional, itemized contribution reports for your Mchango groups, ready to share instantly.
-*   **Offline-First Architecture:** No external servers, no cloud backups, and no data tracking. Your data never leaves your phone.
+- **Privacy Shield:** Automatically masks M-PESA and Airtel Money balances locally on your screen to prevent "shoulder-surfing" in public.
+- **Mchango Smart Treasury:** A local ledger that automatically parses incoming contribution SMS to track group funds without manual data entry.
+- **PDF Reporting:** Generate professional, itemized contribution reports for your Mchango groups, ready to share instantly.
+- **Offline-First Architecture:** No external servers, no cloud backups, and no data tracking. Your data never leaves your phone.
 
 ---
 
 ## 🛠️ Tech Stack
 
-*   **Framework:** [Flutter](https://flutter.dev)
-*   **State Management:** BLoC / Cubit
-*   **Local Database:** SQLite (via `sqflite`)
-*   **Platform Logic:** Native Kotlin (for System SMS handling and  Default Handler status)
+- **Framework:** [Flutter](https://flutter.dev)
+- **State Management:** BLoC / Cubit
+- **Local Database:** SQLite (via `sqflite`)
+- **Platform Logic:** Native Kotlin (for System SMS handling and Default Handler status)
 
 ---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-*   Flutter SDK (Latest Stable)
-*   Android Studio / VS Code
-*   A physical Android device (Required for testing SMS permissions and system database updates)
+- Flutter SDK (Latest Stable)
+- Android Studio / VS Code
+- A physical Android device (Required for testing SMS permissions and system database updates)
 
 ### Installation
 1. **Clone the repo**
-   ```bash
+```bash
    git clone https://github.com/yourusername/m-ficha.git
+```
