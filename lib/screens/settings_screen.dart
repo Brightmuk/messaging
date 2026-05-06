@@ -8,8 +8,6 @@ import 'package:messaging/core/utils/functions.dart';
 import 'package:messaging/cubit/user_preference_cubit.dart';
 import 'package:messaging/models/sim_card_state.dart';
 import 'package:messaging/screens/archived_chats_screen.dart';
-import 'package:messaging/screens/widgets/ad_free_tile.dart';
-import 'package:messaging/screens/widgets/no_ads_status_tile.dart';
 import 'package:messaging/services/notification_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -279,8 +277,8 @@ class _SettingsScreenState extends State<SettingsScreen>
                     ),
                   ),
                   const SizedBox(height: 15),
-                  const AdFreeTile(),
-                  const NoAdsStatusTile(),
+                 
+                
 
                   const SizedBox(height: 24), // Space between cards
 

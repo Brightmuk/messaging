@@ -3,14 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:messaging/cubit/payment_cubit.dart';
 import 'package:messaging/cubit/permissions_cubit.dart';
 import 'package:messaging/cubit/user_preference_cubit.dart';
 import 'package:messaging/screens/onboarding.dart';
 import 'package:messaging/screens/permissions_screen.dart';
 import 'package:messaging/screens/widgets/privacy_overlay.dart';
 import 'package:messaging/services/notification_service.dart';
-import 'package:messaging/services/purchase_service.dart';
 import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
 import 'screens/chats_screen.dart';
@@ -26,7 +24,6 @@ void main() async {
 
 final MultiProvider globalProvider = MultiProvider(
   providers: [
-    BlocProvider(create: (c) => PaymentCubit()),
     BlocProvider(create: (c) => PermissionsCubit()),
     BlocProvider(create: (c) => UserPreferenceCubit())
   ],
@@ -36,7 +33,6 @@ void setupDependencies() {
   WidgetsFlutterBinding.ensureInitialized();
   setupNotifications();
   MobileAds.instance.initialize();
-  PurchaseService().initializeIAP();
   setupEdgeToEdge();
 }
 
