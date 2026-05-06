@@ -1,8 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:messaging/cubit/payment_cubit.dart';
 import 'package:messaging/models/mchango_campaign.dart';
 import 'package:messaging/services/ads/reward_ad_service.dart';
 import 'package:messaging/services/pdf_exporter.dart';
@@ -30,7 +28,7 @@ class _ExportSheetState extends State<ExportSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isPremium = context.read<PaymentCubit>().isNoAds;
+    final isPremium = false;
 
     return Padding(
       padding: const EdgeInsets.all(24),
