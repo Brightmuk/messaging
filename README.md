@@ -59,7 +59,7 @@ In an era of cloud-syncing and data harvesting, M-Ficha takes a different path: 
 ### Installation
 1. **Clone the repo**
 ```bash
-   git clone https://github.com/yourusername/m-ficha.git
+   git clone https://github.com/Brightmuk/messaging.git
 ```
 
 2. **Set up Firebase**
