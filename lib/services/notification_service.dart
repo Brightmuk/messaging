@@ -32,7 +32,7 @@ class NotificationService {
     final FirebaseMessaging _fcm = FirebaseMessaging.instance;
 
     await _notifications.initialize(
-      initializationSettings,
+      settings:  initializationSettings,
       onDidReceiveNotificationResponse: _onNotificationResponse,
       onDidReceiveBackgroundNotificationResponse:
           _onBackgroundNotificationResponse,
@@ -45,10 +45,10 @@ class NotificationService {
 
       if (notification != null && android != null) {
         _notifications.show(
-          notification.hashCode,
-          notification.title,
-          notification.body,
-          NotificationDetails(
+          id: notification.hashCode,
+          title: notification.title,
+          body: notification.body,
+          notificationDetails: NotificationDetails(
             android: AndroidNotificationDetails(
               'alert_channel', 
               'Alert Channel',
@@ -196,10 +196,10 @@ void _navigateToChat(String? payload) {
     );
 
     await _notifications.show(
-      ++_notificationId,
-      title,
-      body,
-      notificationDetails,
+     id:  ++_notificationId,
+      title:title,
+     body: body,
+      notificationDetails:  notificationDetails,
       payload: payload,
     );
   }
@@ -283,7 +283,7 @@ void _navigateToChat(String? payload) {
   }
 
   Future<void> cancelNotification(int id) async {
-    await _notifications.cancel(id);
+    await _notifications.cancel(id: id);
   }
 
   Future<void> cancelAllNotifications() async {
@@ -298,7 +298,7 @@ void _onBackgroundNotificationResponse(NotificationResponse response) {
   if (response.actionId == 'mark_as_read') {
     final payload = response.payload;
     if (notificationId != null) {
-      FlutterLocalNotificationsPlugin().cancel(notificationId);
+      FlutterLocalNotificationsPlugin().cancel(id: notificationId);
     }
     if (payload == null) return;
     try {

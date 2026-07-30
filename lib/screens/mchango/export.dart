@@ -2,7 +2,6 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:messaging/models/mchango_campaign.dart';
-import 'package:messaging/services/ads/reward_ad_service.dart';
 import 'package:messaging/services/pdf_exporter.dart';
 
 class ExportSheet extends StatefulWidget {
@@ -143,14 +142,6 @@ class _ExportSheetState extends State<ExportSheet> {
     setState(() {
       _loadingExportWithAd = true;
     });
-    RewardedAdService().showAd(
-      onRewardEarned: (reward) async {
-        await Future.delayed(const Duration(seconds: 1)); 
-         await _export(watermark: false);
-        Navigator.pop(context);
-      },
-    );
-
   }
 
   Future<void> _justExport() async {

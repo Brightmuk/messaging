@@ -1,8 +1,12 @@
+import 'dart:ui';
+
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_analytics/observer.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:messaging/cubit/permissions_cubit.dart';
 import 'package:messaging/cubit/user_preference_cubit.dart';
 import 'package:messaging/screens/onboarding.dart';
@@ -32,8 +36,14 @@ final MultiProvider globalProvider = MultiProvider(
 void setupDependencies() {
   WidgetsFlutterBinding.ensureInitialized();
   setupNotifications();
-  MobileAds.instance.initialize();
   setupEdgeToEdge();
+    FlutterError.onError = (errorDetails) {
+    FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+  };
+  PlatformDispatcher.instance.onError = (error, stack) {
+    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    return true;
+  };
 }
 
 void setupNotifications() async {
@@ -63,7 +73,10 @@ class MyApp extends StatelessWidget {
         return MaterialApp(
           title: 'SMS App',
           navigatorKey: navigatorKey,
-          navigatorObservers: [routeObserver],
+          navigatorObservers: [
+            routeObserver,
+             FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
+            ],
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
