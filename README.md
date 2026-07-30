@@ -92,3 +92,11 @@ In an era of cloud-syncing and data harvesting, M-Ficha takes a different path: 
 ```bash
    flutter run
 ```
+
+## 🛡️ Contribution
+You can contribute to this project by:
+- Forking the project
+- Create a new branch and add your changes
+- Push the branch and create a pull requests
+- We will review and once done merge the PR.
+  
