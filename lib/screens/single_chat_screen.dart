@@ -580,7 +580,7 @@ void _scrollToAnchor(int timestamp, List<AppSmsMessage> messages) {
                                   ),
                                 )
                               : const SizedBox(
-                                  height: 50,
+                                  height: 20,
                                 )
                         ],
                       ),
