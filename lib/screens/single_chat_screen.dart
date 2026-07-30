@@ -15,11 +15,9 @@ import 'package:messaging/models/sim_card_state.dart';
 import 'package:messaging/screens/mchango/dashboard.dart';
 import 'package:messaging/screens/mchango/widgets/ongoing_banner.dart';
 import 'package:messaging/screens/select_contact_screen.dart';
-import 'package:messaging/screens/widgets/banner_ad.dart';
 import 'package:messaging/screens/widgets/contact_name_text.dart';
 import 'package:messaging/screens/widgets/message_bubble.dart';
 import 'package:messaging/services/ac_chat_session_service.dart';
-import 'package:messaging/services/ads/banner_ads.dart';
 import 'package:messaging/services/contact_service.dart';
 import 'package:messaging/services/notification_service.dart';
 import 'package:messaging/services/mask_service.dart';
@@ -582,7 +580,7 @@ void _scrollToAnchor(int timestamp, List<AppSmsMessage> messages) {
                                   ),
                                 )
                               : const SizedBox(
-                                  height: 50,
+                                  height: 20,
                                 )
                         ],
                       ),

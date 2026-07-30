@@ -28,8 +28,8 @@ android {
 
     defaultConfig {
         applicationId = "com.brimukon.messaging"
-        minSdk = 23
-        targetSdk = 35
+        minSdk = flutter.minSdkVersion
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         multiDexEnabled = true

@@ -55,7 +55,7 @@ Future<void> syncContactsIsolate(List<dynamic> args) async {
   SendPort sp = args[0];
   RootIsolateToken token = args[1];
   BackgroundIsolateBinaryMessenger.ensureInitialized(token);
-  final contacts = await FlutterContacts.getContacts(withProperties: true);
+  final contacts = await FlutterContacts.getAll();
   
   // 2. Open DB inside this isolate
   final db = ContactDb();

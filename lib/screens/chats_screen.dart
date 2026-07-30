@@ -12,7 +12,6 @@ import 'package:messaging/screens/mchango/dashboard.dart';
 import 'package:messaging/screens/settings_screen.dart';
 import 'package:messaging/screens/single_chat_screen.dart';
 import 'package:messaging/core/utils/date_formatter.dart';
-import 'package:messaging/screens/widgets/banner_ad.dart';
 import 'package:messaging/screens/widgets/chats_loading_widget.dart';
 import 'package:messaging/screens/widgets/contact_name_text.dart';
 import 'package:messaging/screens/widgets/limited_access_tile.dart';
@@ -342,15 +341,6 @@ class _ChatsViewState extends State<ChatsView> with WidgetsBindingObserver, Rout
               }
             },
           );
-        },
-      ),
-      bottomNavigationBar: BlocBuilder<ChatsCubit, ChatsState>(
-        builder: (context, state) {
-          bool isDefault = state is ChatsLoaded ? state.isDefaultApp : false;
-          if(!isDefault){
-            return const SizedBox.shrink();
-          }
-          return const SafeArea(child: MfichaBannerAd());
         },
       ),
     );

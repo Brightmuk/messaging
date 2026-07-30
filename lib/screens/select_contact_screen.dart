@@ -38,10 +38,7 @@ class _SelectContactScreenState extends State<SelectContactScreen> {
   }
 
   Future<void> _initContacts() async {
-      final contacts = await FlutterContacts.getContacts(
-        withProperties: true,
-        withPhoto: true,
-      );
+      final contacts = await FlutterContacts.getAll();
       setState(() {
         _allContacts = contacts;
         _filteredContacts = contacts;
@@ -55,13 +52,13 @@ class _SelectContactScreenState extends State<SelectContactScreen> {
 
       setState(() {
         _filteredContacts = _allContacts.where((contact) {
-          final name = contact.displayName.toLowerCase();
+          final name = contact.displayName?.toLowerCase() ?? '';
           final matchesPhone = contact.phones.any((p) {
             final normalizedContactPhone = AppChat.normalize(p.number);
             return normalizedContactPhone.contains(normalizedQuery);
           });
 
-          return name.contains(query) || matchesPhone;
+          return name.contains(query)  || matchesPhone;
         }).toList();
       });
     }
@@ -151,10 +148,16 @@ class _SelectContactScreenState extends State<SelectContactScreen> {
                         final phone = contact.phones.isNotEmpty ? contact.phones.first.number : '';
                         return ListTile(
                           leading: CircleAvatar(
-                            backgroundImage: contact.photo != null ? MemoryImage(contact.photo!) : null,
-                            child: contact.photo == null ? Text(contact.displayName.isNotEmpty ? contact.displayName [0]:'') : null,
+                            backgroundImage: contact.photo != null ? MemoryImage(contact.photo as Uint8List) : null,
+                            child: contact.photo == null
+                                ? Text(
+                                    (contact.displayName != null && contact.displayName!.isNotEmpty)
+                                        ? contact.displayName![0]
+                                        : '',
+                                  )
+                                : null,
                           ),
-                          title: Text(contact.displayName),
+                          title: Text(contact.displayName ??''),
                           subtitle: Text(phone),
                           onTap: () => _navigateToChat(phone),
                         );

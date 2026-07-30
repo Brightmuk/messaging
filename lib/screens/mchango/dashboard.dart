@@ -11,7 +11,6 @@ import 'package:messaging/screens/mchango/new_campaign.dart';
 import 'package:messaging/screens/mchango/widgets/beta_badge.dart';
 import 'package:messaging/screens/mchango/widgets/contribution_tile.dart';
 import 'package:messaging/screens/mchango/widgets/mchango_tile.dart';
-import 'package:messaging/services/ads/reward_ad_service.dart';
 
 
 class MchangoDashboardWrapper extends StatelessWidget {
@@ -47,7 +46,7 @@ class MchangoDashboard extends StatefulWidget {
 class _MchangoDashboardState extends State<MchangoDashboard> {
   @override
 void initState() {
-  loadAd();
+ 
   WidgetsBinding.instance.addPostFrameCallback((_) async {
     await Future.delayed(const Duration(seconds: 1));
     bool hasSeenOnboarding = await UserDefaults.hasOnboardedMchango();
@@ -59,10 +58,7 @@ void initState() {
   super.initState();
   
 }
-void loadAd(){
-  final adService = RewardedAdService();
-  adService.loadAd();
-}
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
