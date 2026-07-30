@@ -22,7 +22,7 @@ final RouteObserver<ModalRoute<void>> routeObserver =
     RouteObserver<ModalRoute<void>>();
 
 void main() async {
-  setupDependencies();
+  await setupDependencies();
   runApp(globalProvider);
 }
 
@@ -33,22 +33,25 @@ final MultiProvider globalProvider = MultiProvider(
   ],
   child: const MyApp(),
 );
-void setupDependencies() {
+Future<void> setupDependencies() async {
   WidgetsFlutterBinding.ensureInitialized();
-  setupNotifications();
+  await setupFirebase();
   setupEdgeToEdge();
-    FlutterError.onError = (errorDetails) {
+}
+
+Future<void> setupFirebase() async {
+  await Firebase.initializeApp();
+
+  FlutterError.onError = (errorDetails) {
     FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
   };
+
   PlatformDispatcher.instance.onError = (error, stack) {
     FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
     return true;
   };
-}
 
-void setupNotifications() async {
-  await Firebase.initializeApp();
-  NotificationService().initialize();
+  await NotificationService().initialize();
 }
 
 void setupEdgeToEdge() {
@@ -75,8 +78,8 @@ class MyApp extends StatelessWidget {
           navigatorKey: navigatorKey,
           navigatorObservers: [
             routeObserver,
-             FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
-            ],
+            FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
+          ],
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
