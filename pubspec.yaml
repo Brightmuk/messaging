@@ -3,7 +3,7 @@ description: A modern SMS application for Android
 
 publish_to: 'none'
 
-version: 1.2.2+32
+version: 1.2.3+33
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -30,8 +30,6 @@ dependencies:
   uuid: ^4.5.2
   sim_card_info: ^1.0.0
   equatable: ^2.0.7
-  in_app_purchase: ^3.2.3
-  in_app_purchase_offers: ^0.4.0
   shimmer: ^3.0.0
   flutter_overlay_window: ^0.5.0
   android_intent_plus: ^6.0.0

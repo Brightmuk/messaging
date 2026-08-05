@@ -33,6 +33,7 @@ class MchangoCubit extends Cubit<MchangoState> {
       final contributions = active != null
           ? await _service.getContributions(active.id!)
           : <Contribution>[];
+        if (isClosed) return;
       emit(MchangoLoaded(
         isDemoMode: isDemoMode,
         activeCampaign: active,

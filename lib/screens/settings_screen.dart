@@ -76,7 +76,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                 padding:
                     const EdgeInsets.all(16.0), // Outer padding for the cards
                 children: [
-                  _buildSectionHeader("Messaging"),
+               
                   Card(
                     elevation: 0,
                     shape: RoundedRectangleBorder(

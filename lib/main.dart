@@ -12,6 +12,7 @@ import 'package:messaging/screens/widgets/privacy_overlay.dart';
 import 'package:messaging/services/notification_service.dart';
 import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
+import 'package:flutter/foundation.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 final RouteObserver<ModalRoute<void>> routeObserver =
@@ -37,14 +38,20 @@ Future<void> setupDependencies() async {
 Future<void> setupFirebase() async {
   await Firebase.initializeApp();
 
-  FlutterError.onError = (errorDetails) {
-    FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
-  };
+  if (kDebugMode) {
+    await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(false);
+  } else {
+    await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
 
-  PlatformDispatcher.instance.onError = (error, stack) {
-    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-    return true;
-  };
+    FlutterError.onError = (errorDetails) {
+      FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+    };
+
+    PlatformDispatcher.instance.onError = (error, stack) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true;
+    };
+  }
 
   await NotificationService().initialize();
 }
