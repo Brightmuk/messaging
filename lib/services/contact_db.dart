@@ -31,7 +31,6 @@ class ContactDb {
     };
   }
 
-  // Fast lookup for the background notification
   Future<String?> getName(String phoneNumber) async {
     final db = await database;
     final key = _normalize(phoneNumber);
@@ -55,9 +54,10 @@ Future<void> syncContactsIsolate(List<dynamic> args) async {
   SendPort sp = args[0];
   RootIsolateToken token = args[1];
   BackgroundIsolateBinaryMessenger.ensureInitialized(token);
-  final contacts = await FlutterContacts.getAll();
+  final contacts = await FlutterContacts.getAll(
+    properties: {ContactProperty.name, ContactProperty.phone},
+  );
   
-  // 2. Open DB inside this isolate
   final db = ContactDb();
   final database = await db.database;
   
@@ -73,5 +73,5 @@ Future<void> syncContactsIsolate(List<dynamic> args) async {
     }
   }
   await batch.commit(noResult: true);
-  sp.send(true); // Signal completion
+  sp.send(true); 
 }

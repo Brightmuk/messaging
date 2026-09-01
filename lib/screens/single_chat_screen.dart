@@ -79,6 +79,9 @@ class SingleChatScreenView extends StatefulWidget {
 class _SingleChatScreenViewState extends State<SingleChatScreenView>
     with WidgetsBindingObserver {
   final TextEditingController _messageController = TextEditingController();
+  final FocusNode _messageFocusNode = FocusNode();
+  bool _hasAutoFocused = false;
+  bool _hasAutoSelectedSim = false;
   final ItemScrollController _itemScrollController = ItemScrollController();
   final ItemPositionsListener _itemPositionsListener =
       ItemPositionsListener.create();
@@ -230,6 +233,7 @@ Future<void> _loadNewerWithoutJump() async {
     _olderDebounce?.cancel();
     _newerDebounce?.cancel();
     _messageController.dispose();
+    _messageFocusNode.dispose();
     _itemPositionsListener.itemPositions.removeListener(_onScroll);
     WidgetsBinding.instance.removeObserver(this);
     ActiveChatSession().leave();
@@ -432,6 +436,27 @@ void _scrollToAnchor(int timestamp, List<AppSmsMessage> messages) {
                                             : null;
                                         final hasData = simCardState != null &&
                                             simCardState.allCards.isNotEmpty;
+
+                                        if (hasData &&
+                                            simCardState.defaultCard == null &&
+                                            !_hasAutoSelectedSim) {
+                                          _hasAutoSelectedSim = true;
+                                          final firstSlot = int.tryParse(
+                                              simCardState.allCards.first
+                                                  .slotIndex
+                                                  .toString());
+                                          if (firstSlot != null) {
+                                            WidgetsBinding.instance
+                                                .addPostFrameCallback((_) {
+                                              if (mounted) {
+                                                context
+                                                    .read<SimCardCubit>()
+                                                    .setDefaultSim(firstSlot);
+                                              }
+                                            });
+                                          }
+                                        }
+
                                         final defaultSim = simCardState?.allCards
                                             .where(
                                               (sim) =>
@@ -501,9 +526,26 @@ void _scrollToAnchor(int timestamp, List<AppSmsMessage> messages) {
                                                   ),
               
                                                   Expanded(
-                                                    child: TextField(
+                                                    child: Builder(
+                                                        builder: (context) {
+                                                      if (!isLoading &&
+                                                          hasData &&
+                                                          !_hasAutoFocused) {
+                                                        _hasAutoFocused = true;
+                                                        WidgetsBinding.instance
+                                                            .addPostFrameCallback(
+                                                                (_) {
+                                                          if (mounted) {
+                                                            _messageFocusNode
+                                                                .requestFocus();
+                                                          }
+                                                        });
+                                                      }
+                                                      return TextField(
                                                       controller:
                                                           _messageController,
+                                                      focusNode:
+                                                          _messageFocusNode,
                                                       maxLines: 5,
                                                       minLines: 1,
                                                       enabled:
@@ -567,7 +609,8 @@ void _scrollToAnchor(int timestamp, List<AppSmsMessage> messages) {
                                                           ),
                                                         ),
                                                       ),
-                                                    ),
+                                                    );
+                                                    }),
                                                   ),
               
                                                   // --- TEXT FIELD SECTION ---
@@ -691,9 +734,10 @@ void _scrollToAnchor(int timestamp, List<AppSmsMessage> messages) {
             : const SizedBox.shrink(),
         IconButton(
           icon: const Icon(Icons.call_outlined),
-          onPressed: int.tryParse(widget.address) == null
-              ? null
-              : () => _makePhoneCall(widget.address),
+          onPressed: (AppChat.supportsReplies(widget.address) &&
+                  !AppChat.isBusiness(widget.address))
+              ? () => _makePhoneCall(widget.address)
+              : null,
         ),
       ],
       

@@ -81,6 +81,7 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
                       ),
                       onTap: () {
                         _focus.requestFocus();
+                        
                         Navigator.push(
                             context,
                             MaterialPageRoute(

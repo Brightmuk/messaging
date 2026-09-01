@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:messaging/screens/single_chat_screen.dart';
 import 'package:messaging/services/sms_service.dart';
-import 'package:path/path.dart' as AppChat;
+import 'package:messaging/models/app_chat.dart';
 
 
 class SelectContactScreen extends StatefulWidget {
@@ -38,23 +38,25 @@ class _SelectContactScreenState extends State<SelectContactScreen> {
   }
 
   Future<void> _initContacts() async {
-      final contacts = await FlutterContacts.getAll();
+      final contacts =
+          await FlutterContacts.getAll(properties: {ContactProperty.phone, ContactProperty.name},);
+      final withPhones = contacts.where((c) => c.phones.isNotEmpty).toList();
       setState(() {
-        _allContacts = contacts;
-        _filteredContacts = contacts;
+        _allContacts = withPhones;
+        _filteredContacts = withPhones;
         _isLoading = false;
       });
   }
 
     void _onSearchChanged() {
       final query = _phoneController.text.toLowerCase();
-      final normalizedQuery = AppChat.normalize(query);
+      final normalizedQuery = AppChat.normalizeAddress(query);
 
       setState(() {
         _filteredContacts = _allContacts.where((contact) {
           final name = contact.displayName?.toLowerCase() ?? '';
           final matchesPhone = contact.phones.any((p) {
-            final normalizedContactPhone = AppChat.normalize(p.number);
+            final normalizedContactPhone = AppChat.normalizeAddress(p.number);
             return normalizedContactPhone.contains(normalizedQuery);
           });
 
